@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Rejestracja')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-user-plus"></i> Rejestracja</span>
+        <h1>Zapisz sie na semestr I</h1>
+        <p class="lead">Pola oznaczone * sa wymagane. Walidacja obejmuje 6 regul (wymaganie projektu).</p>
+    </div>
+
+    <form class="form-card" th:action="@{/register}" th:object="${form}" method="post" novalidate>
+        <div class="field">
+            <label for="username">Login *</label>
+            <input type="text" id="username" th:field="*{username}"
+                   th:attr="aria-invalid=${#fields.hasErrors('username')} ? 'true' : 'false'"
+                   aria-describedby="username-help username-err" autocomplete="username">
+            <small id="username-help" class="muted">3-20 znakow, tylko male litery i cyfry.</small>
+            <p class="error" id="username-err" role="alert"
+               th:if="${#fields.hasErrors('username')}" th:errors="*{username}">Blad loginu</p>
+        </div>
+
+        <div class="field">
+            <label for="email">E-mail *</label>
+            <input type="email" id="email" th:field="*{email}"
+                   th:attr="aria-invalid=${#fields.hasErrors('email')} ? 'true' : 'false'"
+                   aria-describedby="email-err" autocomplete="email">
+            <p class="error" id="email-err" role="alert"
+               th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Blad e-mail</p>
+        </div>
+
+        <div class="field">
+            <label for="firstName">Imie</label>
+            <input type="text" id="firstName" th:field="*{firstName}"
+                   th:attr="aria-invalid=${#fields.hasErrors('firstName')} ? 'true' : 'false'"
+                   aria-describedby="firstName-help firstName-err">
+            <small id="firstName-help" class="muted">Pierwsza litera wielka, np. "Jan".</small>
+            <p class="error" id="firstName-err" role="alert"
+               th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}">Blad imienia</p>
+        </div>
+
+        <div class="field">
+            <label for="lastName">Nazwisko</label>
+            <input type="text" id="lastName" th:field="*{lastName}"
+                   th:attr="aria-invalid=${#fields.hasErrors('lastName')} ? 'true' : 'false'"
+                   aria-describedby="lastName-err">
+            <p class="error" id="lastName-err" role="alert"
+               th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Blad nazwiska</p>
+        </div>
+
+        <div class="field">
+            <label for="age">Wiek *</label>
+            <input type="number" id="age" th:field="*{age}" min="18" max="120"
+                   th:attr="aria-invalid=${#fields.hasErrors('age')} ? 'true' : 'false'"
+                   aria-describedby="age-help age-err">
+            <small id="age-help" class="muted">Do gry wymagane co najmniej 18 lat.</small>
+            <p class="error" id="age-err" role="alert"
+               th:if="${#fields.hasErrors('age')}" th:errors="*{age}">Blad wieku</p>
+        </div>
+
+        <div class="field">
+            <label for="password">Haslo *</label>
+            <input type="password" id="password" th:field="*{password}"
+                   th:attr="aria-invalid=${#fields.hasErrors('password')} ? 'true' : 'false'"
+                   aria-describedby="password-help password-err" autocomplete="new-password">
+            <small id="password-help" class="muted">Co najmniej 5 znakow.</small>
+            <p class="error" id="password-err" role="alert"
+               th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Blad hasla</p>
+        </div>
+
+        <div class="field">
+            <label for="confirmPassword">Powtorz haslo *</label>
+            <input type="password" id="confirmPassword" th:field="*{confirmPassword}"
+                   th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')} ? 'true' : 'false'"
+                   aria-describedby="confirm-err" autocomplete="new-password">
+            <p class="error" id="confirm-err" role="alert"
+               th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">Blad powtorzenia</p>
+        </div>
+
+        <button type="submit" class="btn"><i class="fa-solid fa-user-plus"></i> Zarejestruj w bazie USOS</button>
+        <p class="muted" style="margin-top:1rem;">Masz juz konto? <a th:href="@{/login}">Zaloguj sie</a>.</p>
+    </form>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

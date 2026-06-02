@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Graj')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-play"></i> Lobby gry</span>
+        <h1>Rozpocznij rozgrywke</h1>
+        <p class="lead">Utworz pokoj, zapro znajomych lub dolacz po kodzie. Plansza 3D czeka.</p>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <!-- Aktywne pokoje -->
+    <section class="panel" th:if="${!activeSessions.isEmpty()}" style="margin-bottom:1.2rem;">
+        <h2>Twoje aktywne pokoje</h2>
+        <div class="list-row" th:each="s : ${activeSessions}">
+            <div class="mini-avatar">🎲</div>
+            <div>
+                <strong th:text="${s.name}">Pokoj</strong><br>
+                <span class="muted">kod: </span><span class="code-chip" th:text="${s.code}">ABC123</span>
+            </div>
+            <div class="spacer"></div>
+            <a th:href="@{/game/{id}(id=${s.id})}" class="btn btn-small">Wroc do gry</a>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <!-- Tworzenie pokoju -->
+        <section class="panel">
+            <h2>Nowy pokoj</h2>
+            <form th:action="@{/game/create}" method="post">
+                <div class="field">
+                    <label for="name">Nazwa pokoju</label>
+                    <input type="text" id="name" name="name" placeholder="np. Pokoj Mikolaja" maxlength="60">
+                </div>
+
+                <div class="field" th:if="${!friends.isEmpty()}">
+                    <label>Zapros znajomych</label>
+                    <div th:each="f : ${friends}" style="display:flex; align-items:center; gap:.5rem; margin:.3rem 0;">
+                        <input type="checkbox" th:id="'fr-' + ${f.userId}" name="friendIds" th:value="${f.userId}">
+                        <label th:for="'fr-' + ${f.userId}" style="font-weight:500; margin:0;"
+                               th:text="${f.username} + ' (LVL ' + ${f.level} + ')'">znajomy</label>
+                    </div>
+                </div>
+                <p class="muted" th:if="${friends.isEmpty()}">
+                    Nie masz jeszcze znajomych. <a th:href="@{/friends}">Dodaj znajomych</a>
+                    lub zagraj z botami.
+                </p>
+
+                <div class="field">
+                    <label for="bots">Liczba botow (dopelnienie)</label>
+                    <input type="number" id="bots" name="bots" value="1" min="0" max="5">
+                </div>
+
+                <button type="submit" class="btn">Utworz i graj</button>
+            </form>
+        </section>
+
+        <!-- Dolaczanie po kodzie -->
+        <section class="panel">
+            <h2>Dolacz po kodzie</h2>
+            <form th:action="@{/game/join}" method="post">
+                <div class="field">
+                    <label for="code">Kod pokoju</label>
+                    <input type="text" id="code" name="code" placeholder="np. ABC123"
+                           maxlength="8" style="text-transform:uppercase; letter-spacing:2px;" required>
+                </div>
+                <button type="submit" class="btn btn-secondary">Dolacz</button>
+            </form>
+
+            <h2 style="margin-top:1.6rem;">Jak grac?</h2>
+            <ol class="muted" style="padding-left:1.1rem;">
+                <li>Utworz pokoj i podaj kod znajomym — dolacza przez „Dolacz po kodzie”.</li>
+                <li>Kazdy gracz otwiera ten sam pokoj — ruchy synchronizuja sie na zywo.</li>
+                <li>Rzucaj kostka tylko w swojej turze. Trafiasz na Dziekanat? Placisz lapowke 100 PLN.</li>
+            </ol>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

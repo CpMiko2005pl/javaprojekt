@@ -1,0 +1,22 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logi
+*.log
+
+# Lokalne nadpisania konfiguracji (np. hasla do bazy)
+application-local.properties

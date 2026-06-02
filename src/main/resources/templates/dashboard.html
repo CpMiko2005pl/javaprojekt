@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pl"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Profil')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-chart-line"></i> Profil gracza</span>
+        <h1 th:text="${user.username}">gracz</h1>
+        <p class="lead">Statystyki ELO, historia meczow i codzienny streak — panel w stylu rankingu turniejowego.</p>
+    </div>
+    <section class="profile-header">
+        <div class="avatar" th:text="${#strings.toUpperCase(#strings.substring(user.username,0,1))}">G</div>
+        <div>
+            <h2 style="margin:.2rem 0;font-size:1.4rem;" th:text="${user.username}">gracz</h2>
+            <p class="muted" style="margin:.1rem 0;"
+               th:text="${user.firstName} + ' ' + ${user.lastName} + ' · ' + ${user.role.displayName}">Imie · Rola</p>
+            <div style="display:flex; gap:.6rem; margin-top:.5rem; flex-wrap:wrap;">
+                <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
+                <span class="elo-pill" th:if="${stats != null}">⚡ <span th:text="${stats.eloPoints}">1000</span> ELO</span>
+                <span th:if="${user.verified}" class="badge badge-ok">zweryfikowany</span>
+                <span th:unless="${user.verified}" class="badge badge-no">niezweryfikowany</span>
+            </div>
+        </div>
+        <div class="spacer"></div>
+        <div style="display:flex; flex-direction:column; gap:.5rem;">
+            <a th:href="@{/game}" class="btn">▶ Graj teraz</a>
+            <a th:href="@{/wheel}" class="btn btn-secondary"
+               th:classappend="${canSpin} ? ' ' : ''"
+               th:text="${canSpin} ? '🎡 Zakrec kolem!' : '🎡 Kolo Fortuny'">Kolo Fortuny</a>
+        </div>
+    </section>
+
+    <!-- Aktywna rozgrywka -->
+    <div class="alert alert-success" role="status" th:if="${!activeSessions.isEmpty()}">
+        Masz aktywna rozgrywke:
+        <a th:each="s : ${activeSessions}" th:href="@{/game/{id}(id=${s.id})}"
+           th:text="${s.name} + ' (' + ${s.code} + ')'" style="margin-right:.6rem;">pokoj</a>
+    </div>
+
+    <!-- Statystyki -->
+    <section class="stat-grid" th:if="${stats != null}">
+        <div class="stat"><div class="value" th:text="${stats.gamesPlayed}">0</div><div class="label">Rozegrane mecze</div></div>
+        <div class="stat"><div class="value win" th:text="${stats.gamesWon}">0</div><div class="label">Wygrane</div></div>
+        <div class="stat"><div class="value gold" th:text="${stats.winRate} + '%'">0%</div><div class="label">Win rate</div></div>
+        <div class="stat"><div class="value" th:text="${stats.winStreak}">0</div><div class="label">Seria zwyciestw</div></div>
+        <div class="stat"><div class="value" th:text="${stats.dailyStreak}">0</div><div class="label">Daily streak 🔥</div></div>
+    </section>
+
+    <!-- Historia meczow (styl FACEIT) -->
+    <h2>Historia meczow</h2>
+    <table>
+        <caption class="sr-only">Historia rozegranych meczow Monopoly</caption>
+        <thead>
+        <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Mapa</th>
+            <th scope="col">Wynik</th>
+            <th scope="col">Miejsce</th>
+            <th scope="col">Graczy</th>
+            <th scope="col">Siano (koniec)</th>
+            <th scope="col">Czas</th>
+            <th scope="col">ELO</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="m : ${matches}">
+            <td th:text="${#temporals.format(m.playedAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</td>
+            <td th:text="${m.boardName}">Kampus PB</td>
+            <td><span th:if="${m.won}" class="result-w">WYGRANA</span>
+                <span th:unless="${m.won}" class="result-l">PRZEGRANA</span></td>
+            <td th:text="${m.placement} + '/' + ${m.playersCount}">1/4</td>
+            <td th:text="${m.playersCount}">4</td>
+            <td th:text="${m.finalCash} + ' siana'">0</td>
+            <td th:text="${m.durationMinutes} + ' min'">30 min</td>
+            <td><span th:class="${m.eloChange >= 0} ? 'elo-up' : 'elo-down'"
+                      th:text="(${m.eloChange >= 0} ? '+' : '') + ${m.eloChange}">+20</span></td>
+        </tr>
+        <tr th:if="${matches.isEmpty()}">
+            <td colspan="8" class="muted">Brak rozegranych meczow. <a th:href="@{/game}">Zagraj pierwszy mecz!</a></td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Panel administratora')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Admin</span>
+        <h1>Panel administratora</h1>
+        <p class="lead">Zarzadzanie uzytkownikami, rolami, doladowaniem PLN i weryfikacja kont.</p>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <table>
+        <caption>Lista uzytkownikow z mozliwoscia doladowania, weryfikacji i zmiany roli</caption>
+        <thead>
+        <tr>
+            <th scope="col">Login</th>
+            <th scope="col">E-mail</th>
+            <th scope="col">Saldo (PLN)</th>
+            <th scope="col">Rola</th>
+            <th scope="col">Status</th>
+            <th scope="col">Doladuj</th>
+            <th scope="col">Akcje</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="u : ${users}">
+            <td th:text="${u.username}">login</td>
+            <td th:text="${u.email}">email</td>
+            <td th:text="${#numbers.formatDecimal(u.balance, 1, 2)}">0,00</td>
+
+            <!-- Zmiana roli -->
+            <td>
+                <form th:action="@{/admin/users/{id}/role(id=${u.id})}" method="post" class="inline-form">
+                    <label class="sr-only" th:for="'role-' + ${u.id}">Rola dla użytkownika</label>
+                    <select th:id="'role-' + ${u.id}" name="role" onchange="this.form.submit()">
+                        <option th:each="r : ${roles}"
+                                th:value="${r}"
+                                th:text="${r.displayName}"
+                                th:selected="${r == u.role}">Rola</option>
+                    </select>
+                </form>
+            </td>
+
+            <!-- Weryfikacja -->
+            <td>
+                <span th:if="${u.verified}" class="badge badge-ok">zweryfikowany</span>
+                <span th:unless="${u.verified}" class="badge badge-no">nie</span>
+                <form th:action="@{/admin/users/{id}/verify(id=${u.id})}" method="post" class="inline-form">
+                    <input type="hidden" name="verified" th:value="${!u.verified}">
+                    <button type="submit" class="btn btn-secondary btn-small"
+                            th:text="${u.verified} ? 'Cofnij' : 'Zweryfikuj'">Zweryfikuj</button>
+                </form>
+            </td>
+
+            <!-- Doladowanie srodkow PLN -->
+            <td>
+                <form th:action="@{/admin/users/{id}/topup(id=${u.id})}" method="post" class="inline-form">
+                    <label class="sr-only" th:for="'amt-' + ${u.id}">Kwota doładowania</label>
+                    <input th:id="'amt-' + ${u.id}" type="number" name="amount" step="0.01" min="0.01"
+                           value="100" style="width:90px;">
+                    <button type="submit" class="btn btn-small">+ PLN</button>
+                </form>
+            </td>
+
+            <!-- Usuniecie -->
+            <td>
+                <form th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" class="inline-form"
+                      onsubmit="return confirm('Na pewno usunac tego uzytkownika?');">
+                    <button type="submit" class="btn btn-danger btn-small">Usun</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

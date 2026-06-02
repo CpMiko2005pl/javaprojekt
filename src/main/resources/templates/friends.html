@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Znajomi')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-user-group"></i> Spolecznosc</span>
+        <h1>Znajomi</h1>
+        <p class="lead">Dodawaj graczy, akceptuj zaproszenia i zapraszaj do wspolnej rozgrywki.</p>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <div class="grid-2">
+        <!-- Lewa kolumna: lista znajomych -->
+        <section class="panel">
+            <h2>Twoi znajomi (<span th:text="${friends.size()}">0</span>)</h2>
+
+            <div class="list-row" th:each="f : ${friends}">
+                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</div>
+                <div>
+                    <strong th:text="${f.username}">login</strong><br>
+                    <span class="muted">LVL <span th:text="${f.level}">1</span>
+                        · <span th:text="${f.eloPoints}">1000</span> ELO</span>
+                </div>
+                <div class="spacer"></div>
+                <a th:href="@{/game}" class="btn btn-small">Zapros do gry</a>
+                <form th:action="@{/friends/{id}/remove(id=${f.friendshipId})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-danger btn-small">Usun</button>
+                </form>
+            </div>
+            <p class="muted" th:if="${friends.isEmpty()}">Nie masz jeszcze znajomych. Wyszukaj graczy obok →</p>
+        </section>
+
+        <!-- Prawa kolumna: zaproszenia + wyszukiwanie -->
+        <section class="panel">
+            <h2>Zaproszenia (<span th:text="${requests.size()}">0</span>)</h2>
+            <div class="list-row" th:each="r : ${requests}">
+                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</div>
+                <div>
+                    <strong th:text="${r.fromUsername}">login</strong><br>
+                    <span class="muted">LVL <span th:text="${r.level}">1</span> · chce Cie dodac</span>
+                </div>
+                <div class="spacer"></div>
+                <form th:action="@{/friends/{id}/accept(id=${r.friendshipId})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-small">Akceptuj</button>
+                </form>
+                <form th:action="@{/friends/{id}/remove(id=${r.friendshipId})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-ghost btn-small">Odrzuc</button>
+                </form>
+            </div>
+            <p class="muted" th:if="${requests.isEmpty()}">Brak nowych zaproszen.</p>
+
+            <h2 style="margin-top:1.6rem;">Znajdz graczy</h2>
+            <form th:action="@{/friends}" method="get" style="display:flex; gap:.5rem;">
+                <input type="text" name="q" th:value="${query}" placeholder="login gracza…"
+                       style="flex:1; padding:.55rem; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text);">
+                <button type="submit" class="btn btn-secondary">Szukaj</button>
+            </form>
+
+            <div th:if="${results != null and !results.isEmpty()}" style="margin-top:.8rem;">
+                <div class="list-row" th:each="u : ${results}">
+                    <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</div>
+                    <div>
+                        <strong th:text="${u.username}">login</strong><br>
+                        <span class="muted">LVL <span th:text="${u.level}">1</span></span>
+                    </div>
+                    <div class="spacer"></div>
+                    <form th:action="@{/friends/add}" method="post" class="inline-form">
+                        <input type="hidden" name="username" th:value="${u.username}">
+                        <button type="submit" class="btn btn-small">+ Dodaj</button>
+                    </form>
+                </div>
+            </div>
+            <p class="muted" th:if="${query != null and results != null and results.isEmpty()}">
+                Brak graczy dla "<span th:text="${query}">x</span>".
+            </p>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

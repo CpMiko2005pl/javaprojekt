@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pl"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Strona glowna')}"></head>
+<body class="home-page">
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="alert alert-success" role="status" th:if="${param.wylogowano}" style="max-width:1180px;margin:1rem auto;">
+        Zostales wylogowany. Do zobaczenia na kampusie!
+    </div>
+
+    <!-- HERO -->
+    <section class="hero-section">
+        <div class="hero-glow-a" aria-hidden="true"></div>
+        <div class="hero-glow-b" aria-hidden="true"></div>
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <span class="section-kicker">
+                    <span class="online-dot" aria-hidden="true"></span>
+                    Wersja Alfa 2.0 — Kampus PB Online
+                </span>
+                <h1>
+                    Politechnika Monopoly<br>
+                    <span class="hero-gradient">Gra o Przetrwanie</span>
+                </h1>
+                <p>
+                    Wkrocz w bezwzgledny swiat akademicki. Kupuj wydzialy, stawiaj laboratoria,
+                    zbieraj siano (PLN) i wspinaj sie w rankingu ELO. Czy zaliczysz semestr?
+                </p>
+                <div class="hero-actions">
+                    <a sec:authorize="isAuthenticated()" th:href="@{/game}" class="btn btn-large">
+                        <i class="fa-solid fa-play"></i> Zacznij rozgrywke
+                    </a>
+                    <a sec:authorize="!isAuthenticated()" th:href="@{/register}" class="btn btn-large">
+                        <i class="fa-solid fa-user-plus"></i> Zacznij kariere studencka
+                    </a>
+                    <a href="#board-section" class="btn btn-secondary btn-large">
+                        <i class="fa-solid fa-cube"></i> Zobacz plansze 3D
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div>
+                        <div class="hero-stat-val">4</div>
+                        <div class="hero-stat-label">Role graczy</div>
+                    </div>
+                    <div>
+                        <div class="hero-stat-val" style="color:var(--brand-accent)">40</div>
+                        <div class="hero-stat-label">Pol na planszy</div>
+                    </div>
+                    <div>
+                        <div class="hero-stat-val" style="color:var(--brand-purple)">PLN</div>
+                        <div class="hero-stat-label">Waluta gry</div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="hero-showcase" aria-label="Podglad rozgrywki">
+                <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--slate-400);margin-bottom:.75rem;">
+                    <span style="color:var(--brand-purple);font-family:monospace;">SEMESTR I</span>
+                    <span style="padding:.15rem .45rem;border-radius:6px;background:rgba(244,63,94,.12);color:var(--brand-rose);font-weight:700;">DZIEKANAT AKTYWNY</span>
+                </div>
+                <div class="showcase-row">
+                    <div class="showcase-icon cyan"><i class="fa-solid fa-microchip"></i></div>
+                    <div style="flex:1;min-width:0;">
+                        <strong style="display:block;font-size:.88rem;">Wydzial Informatyki</strong>
+                        <span class="muted" style="font-size:.75rem;">Koszt: 320 PLN</span>
+                    </div>
+                    <span style="color:var(--brand-accent);font-weight:800;font-size:.85rem;">+50</span>
+                </div>
+                <div class="showcase-row" style="margin-left:1.2rem;">
+                    <div class="showcase-icon purple"><i class="fa-solid fa-mug-hot"></i></div>
+                    <div style="flex:1;">
+                        <strong style="display:block;font-size:.88rem;">Automat z Kawa</strong>
+                        <span class="muted" style="font-size:.75rem;">Regeneracja tury</span>
+                    </div>
+                    <span class="badge badge-ok">KUPIONE</span>
+                </div>
+                <div class="showcase-row" style="border-color:rgba(244,63,94,.25);">
+                    <div class="showcase-icon rose"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div style="flex:1;">
+                        <strong style="display:block;font-size:.88rem;">Akademik (Areszt)</strong>
+                        <span class="muted" style="font-size:.75rem;">3 tury lub lapowka</span>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--slate-400);border-top:1px solid var(--border);padding-top:.85rem;margin-top:.5rem;">
+                    <span><i class="fa-regular fa-clock" style="color:var(--brand-accent);margin-right:.35rem;"></i>Szybka gra ~30 min</span>
+                    <span><i class="fa-solid fa-users" style="color:var(--brand-purple);margin-right:.35rem;"></i>2-4 graczy</span>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- O GRZE -->
+    <section id="about" class="content-section">
+        <div class="inner">
+            <div class="section-head">
+                <span class="section-kicker">Jak wyglada rozgrywka?</span>
+                <h2>Przetrwaj do konca sesji egzaminacyjnej</h2>
+                <p>Business Tour spotyka rzeczywistosc kampusu PB. Handluj nieruchomosciami, losuj karty szansy i unikaj Dziekanatu.</p>
+            </div>
+            <div class="feature-grid">
+                <article class="feature-card">
+                    <div class="feature-icon cyan"><i class="fa-solid fa-graduation-cap"></i></div>
+                    <h3>Przejmij wydzialy</h3>
+                    <p class="muted">Zgromadz monopol na polach wydzialowych. Im wiecej budynkow w pionie, tym wieksze oplaty od rywali.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon purple"><i class="fa-solid fa-dice"></i></div>
+                    <h3>Karty losu</h3>
+                    <p class="muted">Stypendium rektora, mandat za rower, utrata legitymacji — ponad 50 zdarzen na planszy Kampus PB.</p>
+                </article>
+                <article class="feature-card">
+                    <div class="feature-icon emerald"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                    <h3>Zagrozenie Dziekanatem</h3>
+                    <p class="muted">Trafiasz na areszt akademicki? Placisz kare, czekasz tury albo prosisz znajomych o transfer siana.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- PLANSZA 3D -->
+    <section id="board-section" class="content-section">
+        <div class="inner board-section-grid">
+            <div>
+                <span class="section-kicker"><i class="fa-solid fa-cube"></i> Interaktywny model 3D</span>
+                <h2 style="font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.4rem);margin:.75rem 0;">Odkryj Kampus Politechniki</h2>
+                <p class="muted">Przeciagaj plansze, przyblizaj kolem myszy. Widok wzorowany na Business Tour w cybernetycznym klimacie PB.</p>
+                <div class="legend-grid">
+                    <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span>Wydz. Elektryczny</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#38bdf8"></span>Wydz. Informatyki</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Biblioteka / Kasa</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span>Start / +PLN</div>
+                </div>
+                <p class="muted" style="margin-top:1rem;font-size:.82rem;">
+                    <i class="fa-solid fa-circle-info" style="color:var(--brand-accent);margin-right:.35rem;"></i>
+                    W grze online pionki poruszaja sie po 40 polach — ta plansza sluzy do podgladu stylu 3D.
+                </p>
+            </div>
+            <div class="canvas-shell">
+                <div id="canvas-container"></div>
+                <div class="canvas-hud">
+                    <span><i class="fa-solid fa-arrows-spin" style="color:var(--brand-accent);margin-right:.35rem;"></i>Przeciagnij, aby obrocic</span>
+                    <span><i class="fa-solid fa-magnifying-glass-plus" style="color:var(--brand-purple);margin-right:.35rem;"></i>Zoom: kółko myszy</span>
+                    <button type="button" id="reset-cam-btn" class="btn btn-secondary btn-small">Reset kamery</button>
+                </div>
+                <div id="canvas-loader" class="canvas-loader">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:var(--brand-accent);margin-bottom:1rem;"></i>
+                    <span>Inicjalizowanie silnika 3D...</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RANKING -->
+    <section id="ranking" class="content-section">
+        <div class="inner">
+            <div class="section-head">
+                <span class="section-kicker" style="color:var(--brand-purple);">Najlepsi z najlepszych</span>
+                <h2>Ranking graczy (ELO)</h2>
+                <p>Legendarni studenci, ktorzy przetrwali sesje i wspinaja sie na szczyt rankingu REST.</p>
+            </div>
+            <div class="neon-table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Pozycja</th>
+                        <th>Gracz</th>
+                        <th>Poziom</th>
+                        <th>ELO</th>
+                        <th>Wygrane</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r, stat : ${ranking}">
+                        <td>
+                            <span class="rank-pos"
+                                  th:classappend="${r.pozycja() == 1 ? ' gold' : (r.pozycja() == 2 ? ' silver' : (r.pozycja() == 3 ? ' bronze' : ''))}"
+                                  th:text="${r.pozycja()}">1</span>
+                            <i th:if="${r.pozycja() == 1}" class="fa-solid fa-crown" style="color:#fbbf24;margin-left:.35rem;"></i>
+                        </td>
+                        <td style="font-weight:700;color:#fff;" th:text="${r.login()}">gracz</td>
+                        <td th:text="'LVL ' + ${r.poziom()}">LVL 1</td>
+                        <td style="font-weight:800;color:var(--brand-accent);" th:text="${r.eloPoints()} + ' ELO'">1000 ELO</td>
+                        <td th:text="${r.wygranePartie()}">0</td>
+                        <td>
+                            <span class="badge badge-ok" th:if="${r.pozycja() <= 3}">Top gracz</span>
+                            <span class="badge" th:unless="${r.pozycja() <= 3}" style="background:rgba(148,163,184,.12);color:var(--slate-300);">Aktywny</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${ranking.isEmpty()}">
+                        <td colspan="6" class="muted">Brak danych rankingu. <a th:href="@{/register}">Zarejestruj sie jako pierwszy!</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA REJESTRACJA -->
+    <section id="register" class="cta-section">
+        <div class="cta-grid">
+            <div>
+                <span class="section-kicker" style="color:var(--brand-purple);"><i class="fa-solid fa-user-plus"></i> System rekrutacyjny</span>
+                <h2 style="font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.4rem);margin:.75rem 0 1rem;">Rozpocznij studia juz teraz</h2>
+                <p class="muted">Zaloz konto, zapro znajomych do lobby, zbieraj trofea i graj na planszy Kampus PB w czasie rzeczywistym (hot-seat).</p>
+                <ul class="muted" style="padding-left:1.1rem;line-height:1.9;">
+                    <li>Wlasne lobby ze znajomymi (do 4 graczy + boty)</li>
+                    <li>Codzienne Kolo Fortuny i Daily Streak</li>
+                    <li>Profil ELO, historia meczow, transfery siana</li>
+                </ul>
+            </div>
+            <div class="form-card" style="max-width:none;">
+                <h3 style="margin-top:0;font-family:var(--font-display);"> Dolacz do gry</h3>
+                <p class="muted">Masz juz konto? Zaloguj sie i wejdz do lobby.</p>
+                <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:1.25rem;">
+                    <a sec:authorize="!isAuthenticated()" th:href="@{/register}" class="btn btn-large">
+                        <i class="fa-solid fa-user-plus"></i> Zarejestruj sie
+                    </a>
+                    <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-secondary btn-large">Mam juz konto</a>
+                    <a sec:authorize="isAuthenticated()" th:href="@{/game}" class="btn btn-large">
+                        <i class="fa-solid fa-play"></i> Przejdz do lobby
+                    </a>
+                    <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-secondary btn-large">Moj profil ELO</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script th:src="@{/js/board-preview.js}"></script>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

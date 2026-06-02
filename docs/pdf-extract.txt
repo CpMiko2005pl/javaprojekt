@@ -1,0 +1,188 @@
+﻿================================================================================
+FILE: projekty-2025.pdf
+================================================================================
+Pages: 9
+--- Page 1 ---
+Projekty
+Programowanie aplikacji WWW w j─Özyku Java
+
+
+--- Page 2 ---
+Aplikacje - wymagania (56p.)
+Aplikacja powinna przechowywa─ç dane powi─ůzane co najmniej z 3 
+klasami domeny (danych). Co najmniej 2 klasy powinny by─ç ze sob─ů 
+po┼é─ůczone relacj─ů kompozycji. 
+Klasy domeny powinny mie─ç pola zr├│┼╝nicowanych typ├│w (int, String, 
+doubleÔÇŽ), w tym co najmniej jedno pole Date.
+Pola klas powinny mie─ç na┼éo┼╝one ograniczenia w warto┼Ťci, np. 
+Warto┼Ťci minimalne, maksymalne, minimalna liczba liter, format 
+ci─ůgu znak├│w, zakres dat.
+ 
+
+--- Page 3 ---
+Aplikacje - wymagania
+Aplikacja powinna ogranicza─ç dost─Öp do zasob├│w 
+oferuj─ůc logowanie, a tak┼╝e role u┼╝ytkownik├│w (co 
+najmniej 3 role, w tym administrator).
+Powinna te┼╝ oferowa─ç interfejs u┼╝ytkownika 
+(Thymeleaf) spe┼éniaj─ůcy wymagania dost─Öpno┼Ťci WCAG 
+2.1. 
+Funkcjonalno┼Ťci powinny obejmowa─ç operacje CRUD, 
+zar├│wno w modelu MVC, jak i REST.
+ 
+
+--- Page 4 ---
+Szczeg├│┼éowe funkcjonalno┼Ťci (20p):
+ÔŚĆ dodanie/edycja/usuni─Öcie/wy┼Ťwietlanie (oddzielne operacje dla ka┼╝dej klasy 
+domeny, co najmniej 4 pola) - 5p.
+ÔŚĆ Walidacja formularza (6 r├│┼╝nych regu┼é) - 3p.
+ÔŚĆ Edycja na danych bie┼╝─ůcych - 1p.
+ÔŚĆ Wsp├│┼édzielenie danych pomi─Ödzy u┼╝ytkownikami, np. udost─Öpnianie danych 
+jednego u┼╝ytkownika drugiemu z uwzgl─Ödnieniem r├│l (np. udost─Öpnienie : ze 
+wskazaniem na konkretnego u┼╝ytkownika lub w linku) - 3p.
+ÔŚĆ Wy┼Ťwietlanie: sortowanie w obu kierunkach (3 kryteria) - 2p.
+ÔŚĆ Zapami─Ötanie kierunk├│w i kryteri├│w sortowania - 1p.
+ÔŚĆ Filtrowanie wed┼éug daty (w polu wyboru - od aktualnej) i wybranego pola 
+domany (w polu wyboru - sortujemy od najbardziej popularnej warto┼Ťci) - 2p.
+ÔŚĆ Logowanie - 1p.
+ÔŚĆ Zapis do bazy danych dopiero przy wylogowaniu/wyga┼Ťni─Öciu sesji - 2p.
+ 
+Aplikacje - wymagania funkcjonalne
+
+--- Page 5 ---
+Aplikacje - wymagania funkcjonalne
+Dodatkowe funkcjonalno┼Ťci (6p):
+ÔŚĆ Rejestracja  (niezalogowany) - 2p.
+ÔŚĆ Strona powitalna - 1p.
+ÔŚĆ Wy┼Ťwietlenie informacji z udost─Öpnionego linku 
+(niezalogowany) - 1p.
+ÔŚĆ Wy┼Ťw. listy u┼╝ytkownik├│w (admin) - 1p.
+ÔŚĆ Zarz─ůdzanie rolami (admin) - 1p.
+ 
+
+--- Page 6 ---
+Aplikacje - wymagania (56p.)
+Elementy techniczne (30p.):
+ÔŚĆ Kontrolery - 2p.
+ÔŚĆ Baza danych (co najmniej 2 tabele z relacj─ů) - 3p.
+ÔŚĆ Widoki: formularze z walidacj─ů (3 r├│┼╝ne elementy), 5 r├│┼╝nych 
+znacznik├│w Thymeleafa - 3p.
+ÔŚĆ Sesja - 3p.
+ÔŚĆ Ciasteczka - 2p.
+ÔŚĆ Us┼éuga REST - 10p.
+ÔŚĆ Klient REST - 2p.
+ÔŚĆ Spring Security - 3p. (z baz─ů danych), 1p. (w pami─Öci) 
+ 
+
+--- Page 7 ---
+Dodatkowe elementy (60p.)
+ÔŚĆ Dokumentacja z odniesieniem do wszystkich 
+element├│w punktowanych, co si─Ö uda┼éo zrobi─ç i w 
+jakim pliku/katalogu
+ÔŚĆ Wygl─ůd - WCAG2.1
+ÔŚĆ Prezentacja na forum grupy
+ÔŚĆ Wymagane dwie prezentacje post─Öp├│w kodu 
+(20-30% i 60-70%) - po 2pkt 
+ÔŚĆ T ermin - ostatnie planowe zaj─Öcia
+
+--- Page 8 ---
+Przyk┼éadowa dodatkowa funkcjonalno┼Ť─ç dla grupy 4 os.
+Aplikacja do zapisywania i udost─Öpniania wartych uwagi informacji, 
+np. strony www, listy zakup├│w, zaproszenia na spotkanie, notatki.
+Dane informacji: tytu┼é (3-20), tre┼Ť─ç (5-500), [link], data dodania 
+(aktualna, format dd-mm-yyyy), [data przypomnienia], kategoria
+Dane kategorii: nazwa (3-20, ma┼ée litery)
+Dane u┼╝ytkownika: imi─Ö (3-20, litery, pierwsza du┼╝a), nazwisko 
+(3-50, litery, pierwsza du┼╝a), login (3-20, ma┼ée litery), has┼éo (co 
+najmniej 5 znak├│w), wiek (min. 18 lat)
+ 
+
+--- Page 9 ---
+Przyk┼éadowa dodatkowa funkcjonalno┼Ť─ç dla grupy 4 os.
+Szczeg├│┼éowe funkcjonalno┼Ťci, full user (19p):
+ÔŚĆ dodanie/edycja/usuni─Öcie przez siebie zebranych informacji - 5p.
+ÔŚĆ Walidacja formularza - 1p.
+ÔŚĆ Edycja na danych bie┼╝─ůcych - 1p.
+ÔŚĆ Dodanie nowej kategorii - 1p.
+ÔŚĆ Wy┼Ťwietlenie udost─Öpnionych przez innych informacji - 2p.
+ÔŚĆ udost─Öpnienie : ze wskazaniem na konkretnego u┼╝ytkownika lub w linku - 1p.
+ÔŚĆ Wy┼Ťwietlanie ÔÇťswoichÔÇŁ informacji: sortowanie w obu kierunkach (data, kategoria, alfabetycznie) - 2p.
+ÔŚĆ Zapami─Ötanie kierunk├│w i kryteri├│w sortowania - 1p.
+ÔŚĆ Filtrowanie wed┼éug daty (od aktualnej) i kategorii (od najbardziej popularnej) - 2p.
+ÔŚĆ Logowanie - 1p.
+ÔŚĆ Zapis do bazy danych dopiero przy wylogowaniu/wyga┼Ťni─Öciu sesji - 2p.
+ÔŚĆ Informacje z dat─ů przypomnienia zgodn─ů z dat─ů bie┼╝─ůc─ů powinny by─ç wy┼Ťwietlane w 
+specjalnym widoku, kt├│ry pojawia si─Ö zaraz po zalogowaniu
+ÔŚĆ Je┼Ťli brak jest takich informacji albo ich daty przypomnienia s─ů r├│┼╝ne od daty bie┼╝─ůcej, ten 
+widok nie jest prezentowany
+ 
+
+================================================================================
+FILE: DEKLARACJA (2).pdf
+================================================================================
+Pages: 2
+--- Page 1 ---
+ 
+Deklaracja projektowa 
+Temat 
+projektu: 
+Politechnika Bia┼éostocka: Gra o Przetrwanie, satyryczna, wieloosobowa gra planszowa online (mechanika handlu 
+nieruchomo┼Ťciami) osadzona na kampusie PB i w kultowych miejscach Bia┼éegostoku. Walut─ů s─ů Z┼éot├│wki (PLN). 
+Github https://github.com/kszontek/Politechnika_Monopoly 
+Sk┼éad grupy 
+Imi─Ö i nazwisko Nr indexu PS 
+Piotr Czy┼╝ewski 117344 9 
+Bartosz Sk┼éadanowski 117206 9 
+Miko┼éaj Staniaszek 117260 
+ 
+9 
+Maciej Socik 117245 9 
+   
+Zakres funkcjonalno┼Ťci 
+MVP(Must Have Features) Nice to Have Features 
+ÔÇô Rejestracja i logowanie (Spring Security) z podzia┼éem na role: Admin, Moderator, U┼╝ytkownik 
+oraz Go┼Ť─ç (podgl─ůd rozgrywki bez logowania). 
+ÔÇô Wieloosobowa rozgrywka online w czasie rzeczywistym (WebSockets) ÔÇô synchronizacja 
+ruch├│w pionk├│w i rzut├│w kostk─ů. 
+ÔÇô Dynamiczna plansza w HTML5 / Tailwind CSS Grid z p┼éynnymi animacjami przesuni─Ö─ç 
+pionk├│w (bez Canvas). 
+ÔÇô Transakcyjny silnik rozlicze┼ä (kupno obiekt├│w, op┼éata za pole rywala) oparty na 
+procedurach Oracle PL/SQL. 
+ÔÇô Zapis stanu gry w HttpSession; statystyki i historia zrzucane do bazy przy wylogowaniu. 
+ÔÇô Widok oparty na dacie bie┼╝─ůcej: ÔÇ×Codzienne Ko┼éo Fortuny StypendialnegoÔÇŁ (Daily Login 
+Bonus & Streak). 
+ÔÇô Panel CRUD dla Admina/Moderatora: do┼éadowanie ┼Ťrodk├│w (PLN) na konta graczy oraz 
+weryfikacja u┼╝ytkownika po przes┼éaniu legitymacji PB. 
+ÔÇô Efekty d┼║wi─Ökowe w formacie MP3 (np. 
+brz─Ök monet przy zysku). 
+ÔÇô System codziennych osi─ůgni─Ö─ç (Daily 
+Achievements, np. ÔÇ×Sta┼éy Bywalec GwintuÔÇŁ). 
+ÔÇô Chat graczy w pokoju rozgrywki dzia┼éaj─ůcy 
+przez WebSockets. 
+ÔÇô Losowe awatary studenckie pobierane z 
+zewn─Ötrznego API za pomoc─ů Klienta REST. 
+
+--- Page 2 ---
+Do czego REST b─Ödzie u┼╝ywane i dlaczego jego u┼╝ycie ma sens w kontek┼Ťcie projektu. 
+Backend udost─Öpnia publiczny endpoint GET /api/ranking-najbogatszych zwracaj─ůcy JSON z globalnym rankingiem maj─ůtku graczy (PLN) i 
+liczb─ů wygranych partii ÔÇô do statystyk w menu g┼é├│wnym. REST s┼éu┼╝y te┼╝ do asynchronicznej walidacji stan├│w kont (np. przy zakupie 
+nieruchomo┼Ťci) oraz weryfikacji formularzy rejestracyjnych. U┼╝ycie REST ma sens, bo oddziela warstw─Ö danych i statystyk od logiki gry 
+czasu rzeczywistego (WebSockets) i pozwala udost─Öpnia─ç dane niezale┼╝nie od trwaj─ůcej sesji rozgrywki. 
+Jakie encje b─Öd─ů obs┼éugiwane przez operacje CRUD oraz jak pasuje to do projektu. 
+CRUD obejmuje encj─Ö U┼╝ytkownicy/Studenci. Admin i Moderator zarz─ůdzaj─ů kontami graczy: do┼éadowuj─ů ┼Ťrodki (PLN) oraz weryfikuj─ů konto 
+po przes┼éaniu skanu legitymacji PB (zmiana statusu na zweryfikowany). Admin ma pe┼éne uprawnienia (m.in. usuwanie i edycja wszystkich 
+kont), Moderator dzia┼éa w w─Ö┼╝szym zakresie. Pasuje to do projektu, bo pozwala bezpiecznie zarz─ůdza─ç finansami w grze i dopuszcza─ç do 
+rozgrywki wy┼é─ůcznie potwierdzonych student├│w PB. 
+Jakie b─Öd─ů mechanizmy obs┼éugi formularzy oraz walidacji danych wej┼Ťciowych u┼╝ytkownika. 
+Formularze rejestracji i logowania obs┼éugiwane s─ů w warstwie Spring Security. Walidacja danych wej┼Ťciowych odbywa si─Ö po stronie 
+serwera z u┼╝yciem Spring Validation (adnotacje @Min, @Size i podobne) oraz dodatkowo po stronie klienta. Dane wej┼Ťciowe (login, has┼éo, 
+kwoty transakcji) s─ů weryfikowane pod k─ůtem poprawno┼Ťci i kompletno┼Ťci przed zapisem do bazy Oracle, co zabezpiecza sp├│jno┼Ť─ç 
+rozgrywki. 
+Przewidywane trudno┼Ťci algorytmiczne: 
+ÔÇô Synchronizacja stanu gry w czasie rzeczywistym mi─Ödzy wieloma graczami (WebSockets) i unikanie konflikt├│w jednoczesnych ruch├│w. 
+ÔÇô Bezpieczne, atomowe transakcje PLN mi─Ödzy graczami w odizolowanym bloku transakcyjnym PL/SQL oraz obs┼éuga algorytmu bankructwa 
+przy braku ┼Ťrodk├│w. 
+ÔÇô Poprawne wyliczanie ÔÇ×Daily StreakÔÇŁ przez trigger por├│wnuj─ůcy daty kolejnych logowa┼ä (inkrementacja licznika vs reset). 
+ÔÇô Logika kart wydarze┼ä wp┼éywaj─ůcych globalnie na plansz─Ö (mno┼╝niki op┼éat, przenoszenie pionk├│w, efekty czasowe trwaj─ůce kilka tur). 
+ 
+
