@@ -36,6 +36,21 @@ public class GameSession {
     @Column(name = "current_turn", nullable = false)
     private int currentTurn = 0;
 
+    /**
+     * Pozycja pola, ktore aktualnie czeka na decyzje "kup / pomin" od gracza.
+     * Gdy != null, kolejny rzut kostka jest zablokowany - gracz musi
+     * wykonac decyzje. Inni gracze moga w tym czasie zlozyc oferte (licytacja).
+     */
+    @Column(name = "pending_purchase_pos")
+    private Integer pendingPurchasePos;
+
+    @Column(name = "pending_purchase_price")
+    private Integer pendingPurchasePrice;
+
+    /** ID gracza, ktory ma decyzje na temat kupna pola (= currentTurnPlayer). */
+    @Column(name = "pending_decider_id")
+    private Long pendingDeciderId;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("turnOrder asc")
     private List<GamePlayer> players = new ArrayList<>();
@@ -103,5 +118,35 @@ public class GameSession {
 
     public void setPlayers(List<GamePlayer> players) {
         this.players = players;
+    }
+
+    public Integer getPendingPurchasePos() {
+        return pendingPurchasePos;
+    }
+
+    public void setPendingPurchasePos(Integer pendingPurchasePos) {
+        this.pendingPurchasePos = pendingPurchasePos;
+    }
+
+    public Integer getPendingPurchasePrice() {
+        return pendingPurchasePrice;
+    }
+
+    public void setPendingPurchasePrice(Integer pendingPurchasePrice) {
+        this.pendingPurchasePrice = pendingPurchasePrice;
+    }
+
+    public Long getPendingDeciderId() {
+        return pendingDeciderId;
+    }
+
+    public void setPendingDeciderId(Long pendingDeciderId) {
+        this.pendingDeciderId = pendingDeciderId;
+    }
+
+    public void clearPendingPurchase() {
+        this.pendingPurchasePos = null;
+        this.pendingPurchasePrice = null;
+        this.pendingDeciderId = null;
     }
 }

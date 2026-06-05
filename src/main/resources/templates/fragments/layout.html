@@ -28,10 +28,6 @@
             <li><a th:href="@{/}">Start</a></li>
             <li sec:authorize="isAuthenticated()"><a th:href="@{/dashboard}">Profil</a></li>
             <li sec:authorize="isAuthenticated()"><a th:href="@{/game}">Graj</a></li>
-            <li sec:authorize="isAuthenticated()"><a th:href="@{/wheel}">Kolo Fortuny</a></li>
-            <li sec:authorize="isAuthenticated()"><a th:href="@{/friends}">Znajomi</a></li>
-            <li sec:authorize="isAuthenticated()"><a th:href="@{/properties}">Nieruchomosci</a></li>
-            <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/users}">Admin</a></li>
         </ul>
 
         <div class="nav-auth">
@@ -54,10 +50,6 @@
             <a th:href="@{/}">Start</a>
             <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}">Profil</a>
             <a sec:authorize="isAuthenticated()" th:href="@{/game}">Graj</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/wheel}">Kolo Fortuny</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/friends}">Znajomi</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/properties}">Nieruchomosci</a>
-            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}">Admin</a>
             <a sec:authorize="!isAuthenticated()" th:href="@{/login}">Zaloguj</a>
             <a sec:authorize="!isAuthenticated()" th:href="@{/register}">Zarejestruj sie</a>
         </div>

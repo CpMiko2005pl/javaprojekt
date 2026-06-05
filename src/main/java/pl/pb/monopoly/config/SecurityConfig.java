@@ -51,7 +51,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // zasoby publiczne (rowniez dla niezalogowanego "Goscia")
                 .requestMatchers("/", "/register", "/login", "/error").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/favicon.ico").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico").permitAll()
                 .requestMatchers("/ws/**").authenticated()
                 .requestMatchers("/api/ranking-najlepszych").permitAll()
                 // panel administracyjny

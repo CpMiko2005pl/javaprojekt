@@ -1,5 +1,7 @@
 package pl.pb.monopoly.dto;
 
+import java.util.List;
+
 /** Stan jednego gracza w sesji - przekazywany do planszy na canvasie. */
 public record GamePlayerDto(
         Long id,
@@ -8,6 +10,8 @@ public record GamePlayerDto(
         int position,
         String color,
         boolean bankrupt,
-        boolean isMe
+        boolean isMe,
+        boolean bot,
+        List<Integer> ownedPositions
 ) {
 }

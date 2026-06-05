@@ -3,7 +3,6 @@ package pl.pb.monopoly.domain;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
@@ -62,6 +61,15 @@ public class PlayerStatistics {
     /** Opis ostatnio wylosowanej nagrody/ulatwienia. */
     @Column(name = "last_reward", length = 120)
     private String lastReward;
+
+    /** Liczba dostepnych skrzynek (lootboxow) do otwarcia. */
+    @Min(0)
+    @Column(name = "available_lootboxes", nullable = false)
+    private int availableLootboxes = 1;
+
+    /** Data ostatniego odebrania darmowej skrzynki (raz dziennie). */
+    @Column(name = "last_lootbox_grant_date")
+    private LocalDate lastLootboxGrantDate;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
@@ -162,5 +170,21 @@ public class PlayerStatistics {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public int getAvailableLootboxes() {
+        return availableLootboxes;
+    }
+
+    public void setAvailableLootboxes(int availableLootboxes) {
+        this.availableLootboxes = availableLootboxes;
+    }
+
+    public LocalDate getLastLootboxGrantDate() {
+        return lastLootboxGrantDate;
+    }
+
+    public void setLastLootboxGrantDate(LocalDate lastLootboxGrantDate) {
+        this.lastLootboxGrantDate = lastLootboxGrantDate;
     }
 }

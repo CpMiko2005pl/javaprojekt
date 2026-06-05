@@ -1,9 +1,12 @@
 package pl.pb.monopoly.dto;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Pelny stan rozgrywki — REST, WebSocket i animacje na planszy 3D.
+ * Pelny stan rozgrywki - REST, WebSocket i animacje na planszy 3D.
+ * Zawiera dynamiczna mape wlasnosci pol oraz info o ewentualnym pendingPurchase
+ * (decyzja kup/pomin) i wylosowanej karcie Szansy.
  */
 public record GameStateDto(
         Long sessionId,
@@ -20,6 +23,10 @@ public record GameStateDto(
         Integer toPosition,
         boolean myTurn,
         List<String> tileNames,
-        List<String> tileEffects
+        List<String> tileEffects,
+        PendingPurchaseDto pendingPurchase,
+        Map<Integer, Long> ownership,
+        List<Integer> tilePrices,
+        ChanceCardDto chanceCard
 ) {
 }

@@ -9,7 +9,8 @@ import pl.pb.monopoly.service.FriendService;
 
 /**
  * System znajomych: lista, wyszukiwanie graczy, zaproszenia i ich akceptacja.
- * Znajomych mozna nastepnie zaprosic do wspolnej rozgrywki (panel /game).
+ * Operacje moga byc wywolywane zarowno z dedykowanej strony /friends jak i z
+ * panelu gracza /dashboard - decyduje o tym parametr "from" w formularzu.
  */
 @Controller
 @RequestMapping("/friends")
@@ -33,34 +34,47 @@ public class FriendsController {
     }
 
     @PostMapping("/add")
-    public String add(@RequestParam String username, Authentication auth, RedirectAttributes ra) {
+    public String add(@RequestParam String username,
+                      @RequestParam(value = "from", required = false) String from,
+                      Authentication auth, RedirectAttributes ra) {
         try {
             friendService.sendRequest(auth.getName(), username);
             ra.addFlashAttribute("message", "Wyslano zaproszenie do: " + username);
         } catch (IllegalArgumentException ex) {
             ra.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/friends";
+        return redirectTarget(from);
     }
 
     @PostMapping("/{id}/accept")
-    public String accept(@PathVariable Long id, Authentication auth, RedirectAttributes ra) {
+    public String accept(@PathVariable Long id,
+                         @RequestParam(value = "from", required = false) String from,
+                         Authentication auth, RedirectAttributes ra) {
         try {
             friendService.accept(id, auth.getName());
             ra.addFlashAttribute("message", "Dodano do znajomych!");
         } catch (IllegalArgumentException ex) {
             ra.addFlashAttribute("error", ex.getMessage());
         }
-        return "redirect:/friends";
+        return redirectTarget(from);
     }
 
     @PostMapping("/{id}/remove")
-    public String remove(@PathVariable Long id, Authentication auth, RedirectAttributes ra) {
+    public String remove(@PathVariable Long id,
+                         @RequestParam(value = "from", required = false) String from,
+                         Authentication auth, RedirectAttributes ra) {
         try {
             friendService.removeOrReject(id, auth.getName());
             ra.addFlashAttribute("message", "Relacja usunieta.");
         } catch (IllegalArgumentException ex) {
             ra.addFlashAttribute("error", ex.getMessage());
+        }
+        return redirectTarget(from);
+    }
+
+    private String redirectTarget(String from) {
+        if ("dashboard".equalsIgnoreCase(from)) {
+            return "redirect:/dashboard";
         }
         return "redirect:/friends";
     }

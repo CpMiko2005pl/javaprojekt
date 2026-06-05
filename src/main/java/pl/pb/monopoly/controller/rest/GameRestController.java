@@ -10,10 +10,13 @@ import pl.pb.monopoly.service.GameService;
 import java.util.Map;
 
 /**
- * REST API rozgrywki dla planszy na canvasie:
- *  - GET  /api/game/{id}/state    - aktualny stan (gracze, pozycje, siano)
- *  - POST /api/game/{id}/roll     - rzut kostka i ruch aktualnego gracza
- *  - POST /api/game/{id}/transfer - przelej siano do innego gracza
+ * REST API rozgrywki:
+ *  - GET  /api/game/{id}/state    - aktualny stan
+ *  - POST /api/game/{id}/roll     - rzut kostka
+ *  - POST /api/game/{id}/transfer - przelew siana
+ *  - POST /api/game/{id}/buy      - aktywny gracz kupuje pole
+ *  - POST /api/game/{id}/skip     - aktywny gracz pomija kupno (zostawia wolne)
+ *  - POST /api/game/{id}/bid      - inny gracz licytuje pole (kwota w body)
  */
 @RestController
 @RequestMapping("/api/game")
@@ -45,6 +48,36 @@ public class GameRestController {
                                       Authentication auth) {
         try {
             return ResponseEntity.ok(gameService.transfer(id, auth.getName(), req.toPlayerId(), req.amount()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/buy")
+    public ResponseEntity<?> buy(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.buy(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/skip")
+    public ResponseEntity<?> skip(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.skipPurchase(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/bid")
+    public ResponseEntity<?> bid(@PathVariable Long id,
+                                 @RequestBody Map<String, Integer> body,
+                                 Authentication auth) {
+        try {
+            int amount = body.getOrDefault("amount", 0);
+            return ResponseEntity.ok(gameService.bid(id, auth.getName(), amount));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }

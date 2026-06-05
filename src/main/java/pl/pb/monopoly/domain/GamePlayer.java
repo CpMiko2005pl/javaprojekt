@@ -2,6 +2,9 @@ package pl.pb.monopoly.domain;
 
 import jakarta.persistence.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Gracz w obrebie jednej sesji rozgrywki. Tu zyje "siano" (gotowka w grze) -
  * zgodnie z zalozeniem, ze saldo istnieje TYLKO podczas rozgrywki (jak w Monopoly).
@@ -45,6 +48,13 @@ public class GamePlayer {
     /** Kolejnosc ruchu w sesji. */
     @Column(name = "turn_order", nullable = false)
     private int turnOrder = 0;
+
+    /** Pola planszy, ktore gracz posiada (pozycje 0-39). */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "game_player_properties",
+            joinColumns = @JoinColumn(name = "player_id"))
+    @Column(name = "position")
+    private Set<Integer> ownedPositions = new HashSet<>();
 
     public GamePlayer() {
     }
@@ -124,5 +134,13 @@ public class GamePlayer {
 
     public void setTurnOrder(int turnOrder) {
         this.turnOrder = turnOrder;
+    }
+
+    public Set<Integer> getOwnedPositions() {
+        return ownedPositions;
+    }
+
+    public void setOwnedPositions(Set<Integer> ownedPositions) {
+        this.ownedPositions = ownedPositions;
     }
 }

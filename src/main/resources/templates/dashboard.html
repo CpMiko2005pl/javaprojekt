@@ -10,27 +10,28 @@
     <div class="page-header">
         <span class="section-kicker"><i class="fa-solid fa-chart-line"></i> Profil gracza</span>
         <h1 th:text="${user.username}">gracz</h1>
-        <p class="lead">Statystyki ELO, historia meczow i codzienny streak — panel w stylu rankingu turniejowego.</p>
+        <p class="lead">Centrum dowodzenia: statystyki, znajomi, skrzynki, Kolo Fortuny i historia meczow.</p>
     </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
     <section class="profile-header">
         <div class="avatar" th:text="${#strings.toUpperCase(#strings.substring(user.username,0,1))}">G</div>
         <div>
             <h2 style="margin:.2rem 0;font-size:1.4rem;" th:text="${user.username}">gracz</h2>
             <p class="muted" style="margin:.1rem 0;"
-               th:text="${user.firstName} + ' ' + ${user.lastName} + ' · ' + ${user.role.displayName}">Imie · Rola</p>
+               th:text="${user.firstName} + ' ' + ${user.lastName} + ' . ' + ${user.role.displayName}">Imie . Rola</p>
             <div style="display:flex; gap:.6rem; margin-top:.5rem; flex-wrap:wrap;">
                 <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
-                <span class="elo-pill" th:if="${stats != null}">⚡ <span th:text="${stats.eloPoints}">1000</span> ELO</span>
+                <span class="elo-pill" th:if="${stats != null}"><i class="fa-solid fa-bolt"></i> <span th:text="${stats.eloPoints}">1000</span> ELO</span>
                 <span th:if="${user.verified}" class="badge badge-ok">zweryfikowany</span>
                 <span th:unless="${user.verified}" class="badge badge-no">niezweryfikowany</span>
             </div>
         </div>
         <div class="spacer"></div>
         <div style="display:flex; flex-direction:column; gap:.5rem;">
-            <a th:href="@{/game}" class="btn">▶ Graj teraz</a>
-            <a th:href="@{/wheel}" class="btn btn-secondary"
-               th:classappend="${canSpin} ? ' ' : ''"
-               th:text="${canSpin} ? '🎡 Zakrec kolem!' : '🎡 Kolo Fortuny'">Kolo Fortuny</a>
+            <a th:href="@{/game}" class="btn"><i class="fa-solid fa-play"></i> Graj teraz</a>
         </div>
     </section>
 
@@ -47,11 +48,166 @@
         <div class="stat"><div class="value win" th:text="${stats.gamesWon}">0</div><div class="label">Wygrane</div></div>
         <div class="stat"><div class="value gold" th:text="${stats.winRate} + '%'">0%</div><div class="label">Win rate</div></div>
         <div class="stat"><div class="value" th:text="${stats.winStreak}">0</div><div class="label">Seria zwyciestw</div></div>
-        <div class="stat"><div class="value" th:text="${stats.dailyStreak}">0</div><div class="label">Daily streak 🔥</div></div>
+        <div class="stat"><div class="value" th:text="${stats.dailyStreak}">0</div><div class="label">Daily streak</div></div>
     </section>
 
-    <!-- Historia meczow (styl FACEIT) -->
-    <h2>Historia meczow</h2>
+    <!-- Karty szybkiego dostepu -->
+    <h2 style="margin-top:2rem;">Szybki dostep</h2>
+    <div class="quick-grid">
+        <a th:href="@{/wheel}" class="quick-card quick-card-gold">
+            <div class="quick-icon"><i class="fa-solid fa-trophy"></i></div>
+            <div class="quick-body">
+                <strong>Kolo Fortuny</strong>
+                <span th:if="${canSpin}">Mozesz zakrecic dzisiaj!</span>
+                <span th:unless="${canSpin}" class="muted">Wrocisz jutro</span>
+            </div>
+        </a>
+        <a th:href="@{/properties}" class="quick-card quick-card-cyan">
+            <div class="quick-icon"><i class="fa-solid fa-building"></i></div>
+            <div class="quick-body">
+                <strong>Nieruchomosci</strong>
+                <span class="muted">Lista i ceny pol</span>
+            </div>
+        </a>
+        <a th:href="@{/game}" class="quick-card quick-card-purple">
+            <div class="quick-icon"><i class="fa-solid fa-dice"></i></div>
+            <div class="quick-body">
+                <strong>Lobby gry</strong>
+                <span class="muted">Stworz pokoj lub dolacz</span>
+            </div>
+        </a>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}" class="quick-card quick-card-rose">
+            <div class="quick-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="quick-body">
+                <strong>Panel admina</strong>
+                <span class="muted">Zarzadzaj graczami</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- LOOTBOX - karuzela CS2 -->
+    <h2 style="margin-top:2rem;"><i class="fa-solid fa-box-open"></i> Skrzynki PB</h2>
+    <section class="lootbox-section">
+        <div class="lootbox-head">
+            <div>
+                <h3 style="margin:0;">Skrzynka Studencka</h3>
+                <p class="muted" style="margin:.25rem 0 0;">Codziennie +1 darmowa skrzynka. Items: avatary, kolory pionkow, ramki, naklejki.</p>
+            </div>
+            <div class="lootbox-head-stats">
+                <span class="lootbox-badge">Dostepne: <strong id="availableBoxesBadge" th:text="${availableBoxes}">0</strong></span>
+                <button id="lootboxOpenBtn" class="btn btn-large" type="button"
+                        th:disabled="${availableBoxes lt 1}">
+                    <i class="fa-solid fa-box-open"></i> Otworz skrzynke
+                </button>
+            </div>
+        </div>
+
+        <div class="lootbox-carousel">
+            <div class="lootbox-pointer" aria-hidden="true"></div>
+            <div class="lootbox-strip-mask">
+                <div id="lootboxStrip" class="lootbox-strip"></div>
+            </div>
+        </div>
+
+        <div id="lootboxResult" class="lootbox-result" aria-live="polite"></div>
+    </section>
+
+    <!-- INWENTARZ -->
+    <h2 style="margin-top:2rem;"><i class="fa-solid fa-toolbox"></i> Twoj ekwipunek (<span th:text="${inventory.size()}">0</span>)</h2>
+    <div id="inventoryGrid" class="inventory-grid">
+        <div th:each="i : ${inventory}" class="inventory-item"
+             th:classappend="' rarity-' + ${#strings.toLowerCase(i.rarity)}"
+             th:style="'border-color:' + ${i.rarityColor}">
+            <div class="inventory-icon" th:style="'color:' + ${i.rarityColor}">
+                <i th:class="${i.iconClass}"></i>
+            </div>
+            <div>
+                <strong th:text="${i.name}">Item</strong>
+                <span class="inventory-rarity" th:style="'color:' + ${i.rarityColor}">
+                    <span th:text="${i.rarityLabel}">Common</span> &middot;
+                    <span th:text="${i.category}">Awatar</span>
+                </span>
+            </div>
+        </div>
+        <p th:if="${inventory.isEmpty()}" class="muted" style="grid-column:1/-1;">
+            Brak przedmiotow. Otworz pierwsza skrzynke!
+        </p>
+    </div>
+
+    <!-- Sekcja znajomych -->
+    <h2 style="margin-top:2rem;"><i class="fa-solid fa-user-group"></i> Znajomi</h2>
+    <div class="grid-2">
+        <section class="panel">
+            <h3 style="margin-top:0;">Twoja lista (<span th:text="${friends.size()}">0</span>)</h3>
+            <div class="list-row" th:each="f : ${friends}">
+                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</div>
+                <div>
+                    <strong th:text="${f.username}">login</strong><br>
+                    <span class="muted">LVL <span th:text="${f.level}">1</span>
+                        . <span th:text="${f.eloPoints}">1000</span> ELO</span>
+                </div>
+                <div class="spacer"></div>
+                <a th:href="@{/game}" class="btn btn-small">Zapros</a>
+                <form th:action="@{/friends/{id}/remove(id=${f.friendshipId})}" method="post" class="inline-form">
+                    <input type="hidden" name="from" value="dashboard">
+                    <button type="submit" class="btn btn-danger btn-small">Usun</button>
+                </form>
+            </div>
+            <p class="muted" th:if="${friends.isEmpty()}">Nie masz jeszcze znajomych. Dodaj kogos po prawej.</p>
+
+            <h3 style="margin-top:1.5rem;">Zaproszenia (<span th:text="${requests.size()}">0</span>)</h3>
+            <div class="list-row" th:each="r : ${requests}">
+                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</div>
+                <div>
+                    <strong th:text="${r.fromUsername}">login</strong><br>
+                    <span class="muted">LVL <span th:text="${r.level}">1</span> . chce Cie dodac</span>
+                </div>
+                <div class="spacer"></div>
+                <form th:action="@{/friends/{id}/accept(id=${r.friendshipId})}" method="post" class="inline-form">
+                    <input type="hidden" name="from" value="dashboard">
+                    <button type="submit" class="btn btn-small">Akceptuj</button>
+                </form>
+                <form th:action="@{/friends/{id}/remove(id=${r.friendshipId})}" method="post" class="inline-form">
+                    <input type="hidden" name="from" value="dashboard">
+                    <button type="submit" class="btn btn-ghost btn-small">Odrzuc</button>
+                </form>
+            </div>
+            <p class="muted" th:if="${requests.isEmpty()}">Brak nowych zaproszen.</p>
+        </section>
+
+        <section class="panel">
+            <h3 style="margin-top:0;">Dodaj znajomego</h3>
+            <p class="muted" style="margin-top:0;">Wyszukaj gracza po loginie i wyslij zaproszenie.</p>
+
+            <form th:action="@{/dashboard}" method="get" style="display:flex; gap:.5rem;">
+                <input type="text" name="q" th:value="${query}" placeholder="login gracza..."
+                       style="flex:1; padding:.55rem .75rem; border-radius:10px; border:1px solid var(--border); background:var(--brand-dark); color:var(--slate-100);">
+                <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-magnifying-glass"></i> Szukaj</button>
+            </form>
+
+            <div th:if="${results != null and !results.isEmpty()}" style="margin-top:.8rem;">
+                <div class="list-row" th:each="u : ${results}">
+                    <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</div>
+                    <div>
+                        <strong th:text="${u.username}">login</strong><br>
+                        <span class="muted">LVL <span th:text="${u.level}">1</span></span>
+                    </div>
+                    <div class="spacer"></div>
+                    <form th:action="@{/friends/add}" method="post" class="inline-form">
+                        <input type="hidden" name="from" value="dashboard">
+                        <input type="hidden" name="username" th:value="${u.username}">
+                        <button type="submit" class="btn btn-small">+ Dodaj</button>
+                    </form>
+                </div>
+            </div>
+            <p class="muted" th:if="${query != null and results != null and results.isEmpty()}">
+                Brak graczy dla "<span th:text="${query}">x</span>".
+            </p>
+        </section>
+    </div>
+
+    <!-- Historia meczow -->
+    <h2 style="margin-top:2rem;">Historia meczow</h2>
     <table>
         <caption class="sr-only">Historia rozegranych meczow Monopoly</caption>
         <thead>
@@ -88,5 +244,6 @@
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/lootbox.js}"></script>
 </body>
 </html>

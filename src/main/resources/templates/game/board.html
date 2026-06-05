@@ -1,22 +1,19 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Plansza')}"></head>
-<body class="board-page">
-<header th:replace="~{fragments/layout :: navbar}"></header>
+<body class="board-page board-fullscreen">
 
-<main id="main" class="page-wide board-main" th:attr="data-session=${sessionId}">
-    <div class="board-header board-header-compact">
-        <div class="board-header-left">
-            <a th:href="@{/game}" class="btn btn-ghost btn-small"><i class="fa-solid fa-arrow-left"></i> Lobby</a>
-            <div>
-                <p class="board-room-label">Kampus PB — styl Business Tour</p>
-                <h1 class="board-room-name" th:text="${sessionName}">Pokoj</h1>
-            </div>
+<main id="main" class="board-fullscreen-main" th:attr="data-session=${sessionId}">
+    <div class="board-topbar">
+        <div class="board-topbar-info">
+            <span class="board-topbar-brand">Politechnika Monopoly</span>
+            <span class="board-topbar-room" th:text="${sessionName}">Pokoj</span>
+            <span class="muted">Kod:</span>
+            <span class="code-chip" th:text="${sessionCode}">ABC123</span>
         </div>
-        <div class="board-header-code">
-            <span class="muted">Kod pokoju</span>
-            <span class="code-chip code-chip-lg" th:text="${sessionCode}">ABC123</span>
-        </div>
+        <a th:href="@{/game}" class="btn btn-danger btn-small">
+            <i class="fa-solid fa-right-from-bracket"></i> Wyjscie
+        </a>
     </div>
 
     <div class="game-layout board-layout-bt">
@@ -26,32 +23,76 @@
             <div id="cornerPlayers" class="bt-corner-players" aria-live="polite"></div>
 
             <div id="diceToast" class="bt-dice-toast" aria-hidden="true">
-                <span class="bt-dice-label">Rzut kostką…</span>
-                <span id="diceToastSum" class="bt-dice-sum">–</span>
+                <span class="bt-dice-label">Rzut kostka...</span>
+                <span id="diceToastSum" class="bt-dice-sum">-</span>
             </div>
 
             <div class="canvas-hud bt-canvas-hud">
-                <span><i class="fa-solid fa-chess-board" style="color:#1565C0;margin-right:.35rem;"></i>Plansza PB — bez obrotu</span>
+                <span><i class="fa-solid fa-chess-board" style="color:#ffd54f;margin-right:.35rem;"></i>Plansza PB</span>
+                <span class="muted" style="font-size:.78rem;">
+                    <i class="fa-solid fa-arrows-up-down-left-right"></i> Przeciagnij | 
+                    <i class="fa-solid fa-rotate"></i> Shift+drag = obrot | 
+                    <i class="fa-solid fa-magnifying-glass"></i> Scroll = zoom
+                </span>
                 <div class="bt-zoom-group">
-                    <button type="button" id="zoom-in-btn" class="btn btn-bt btn-small" title="Przybliz">+</button>
-                    <button type="button" id="zoom-out-btn" class="btn btn-bt btn-small" title="Oddal">−</button>
+                    <button type="button" id="zoom-in-btn" class="btn btn-bt btn-small" title="Przyblizenie (+)">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </button>
+                    <button type="button" id="zoom-out-btn" class="btn btn-bt btn-small" title="Oddalenie (-)">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </button>
                 </div>
-                <span id="liveBadge" class="hud-badge bt-live">Laczenie…</span>
+                <span id="liveBadge" class="hud-badge bt-live">Laczenie...</span>
             </div>
 
             <div id="game-canvas-loader" class="canvas-loader">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#1565C0;margin-bottom:1rem;"></i>
-                <span>Ladowanie Kampus PB 3D…</span>
+                <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#ffd54f;margin-bottom:1rem;"></i>
+                <span>Ladowanie planszy Kampus PB...</span>
+            </div>
+
+            <!-- Kostki 3D sa renderowane przez Three.js na planszy (showBoardDice).
+                 Wynik rzutu pokazywany jest jako maly toast-badge nad planszą. -->
+            <div id="diceBadge" class="bt-dice-badge" aria-hidden="true">
+                <span class="bt-dice-badge-d" id="diceBadgeD1">-</span>
+                <span class="bt-dice-badge-plus">+</span>
+                <span class="bt-dice-badge-d" id="diceBadgeD2">-</span>
+                <span class="bt-dice-badge-eq">=</span>
+                <span class="bt-dice-badge-sum" id="diceBadgeSum">-</span>
+            </div>
+
+            <!-- Pasek krotkich komunikatow (toast feed) u dolu planszy. -->
+            <div id="actionToasts" class="bt-toast-feed" aria-live="polite"></div>
+
+            <!-- Modal karty Szansy / Wydarzenia -->
+            <div id="chanceModal" class="chance-modal" aria-hidden="true">
+                <div class="chance-card">
+                    <div class="chance-kind" id="chanceKind">SZANSA - PB</div>
+                    <div class="chance-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                    <h3 class="chance-title" id="chanceTitle">Tytul karty</h3>
+                    <p class="chance-desc" id="chanceDesc">Opis efektu</p>
+                    <div class="chance-effect" id="chanceEffect">+0 PLN</div>
+                </div>
             </div>
         </div>
 
         <aside class="game-hud game-hud-bt">
+            <!-- Panel rzutu -->
+            <div class="hud-panel bt-panel" id="rollPanel">
+                <div class="hud-panel-head">
+                    <h2 id="centerTurnLabel">Twoja kolej</h2>
+                    <span id="centerHint" class="hud-badge bt-live">Rzuć!</span>
+                </div>
+                <button id="rollBtn" class="btn btn-bt-roll hud-roll-btn" type="button">
+                    <i class="fa-solid fa-dice"></i> RZUĆ KOSTKĄ
+                </button>
+            </div>
+
             <div class="hud-panel bt-panel">
                 <div class="hud-panel-head">
                     <h2>Gracze</h2>
                     <span class="hud-badge bt-badge"><span id="onlineCount">0</span> online</span>
                 </div>
-                <div id="players"><p class="muted">Ladowanie…</p></div>
+                <div id="players"><p class="muted">Ladowanie...</p></div>
             </div>
 
             <div class="hud-panel bt-panel" id="tileInfoPanel">
@@ -59,17 +100,8 @@
                 <div id="tileInfo" class="log-box bt-log">Tura startuje na planszy Kampus PB.</div>
             </div>
 
-            <div class="hud-panel bt-panel">
-                <div class="hud-panel-head"><h2>Rzut kostka</h2></div>
-                <div class="dice">
-                    <div class="die bt-die" id="d1" aria-label="Kosc 1">–</div>
-                    <div class="die bt-die" id="d2" aria-label="Kosc 2">–</div>
-                </div>
-                <button id="rollBtn" class="btn btn-roll btn-bt-roll" type="button">
-                    <i class="fa-solid fa-dice"></i> Rzuc kostka
-                </button>
-                <div class="log-box bt-log" id="log" aria-live="polite">Czekaj na swoja ture.</div>
-            </div>
+            <!-- Panel decyzji: KUP / POMIN / LICYTUJ - widoczny tylko gdy backend zaznaczy pendingPurchase -->
+            <div class="hud-panel bt-panel action-panel" id="actionPanel" style="display:none;"></div>
 
             <div class="hud-panel bt-panel" id="transferPanel">
                 <div class="hud-panel-head"><h2>Transfer siana</h2></div>
@@ -88,7 +120,6 @@
     </div>
 </main>
 
-<footer th:replace="~{fragments/layout :: footer}"></footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
