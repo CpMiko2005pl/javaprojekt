@@ -2,9 +2,13 @@ package pl.pb.monopoly.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pl.pb.monopoly.domain.OwnedItem;
 import pl.pb.monopoly.domain.User;
+import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.LootboxService;
 import pl.pb.monopoly.service.LootboxService.LootboxItem;
@@ -22,10 +26,13 @@ public class LootboxController {
 
     private final LootboxService lootboxService;
     private final UserRepository userRepository;
+    private final OwnedItemRepository ownedItemRepository;
 
-    public LootboxController(LootboxService lootboxService, UserRepository userRepository) {
+    public LootboxController(LootboxService lootboxService, UserRepository userRepository,
+                             OwnedItemRepository ownedItemRepository) {
         this.lootboxService = lootboxService;
         this.userRepository = userRepository;
+        this.ownedItemRepository = ownedItemRepository;
     }
 
     @PostMapping("/lootbox/open")
@@ -45,6 +52,37 @@ public class LootboxController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
+    }
+
+    /**
+     * Zaloz / zdejmij przedmiot z ekwipunku.
+     * Dla kategorii "Kolor pionka" mozliwy jest tylko 1 equipped naraz.
+     */
+    @PostMapping("/inventory/{id}/equip")
+    @Transactional
+    public ResponseEntity<?> equip(@PathVariable Long id, Authentication auth) {
+        User user = userRepository.findByUsername(auth.getName()).orElseThrow();
+        OwnedItem item = ownedItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Brak przedmiotu"));
+        if (!item.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "To nie Twoj przedmiot."));
+        }
+        LootboxItem catalog = LootboxService.findBySlug(item.getItemSlug());
+        String category = catalog != null ? catalog.category() : "";
+        boolean willEquip = !item.isEquipped();
+        if (willEquip) {
+            // zdejmij inne itemy tej samej kategorii
+            ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
+                    .filter(o -> !o.getId().equals(id))
+                    .filter(o -> {
+                        LootboxItem c = LootboxService.findBySlug(o.getItemSlug());
+                        return c != null && c.category().equals(category);
+                    })
+                    .forEach(o -> { o.setEquipped(false); ownedItemRepository.save(o); });
+        }
+        item.setEquipped(willEquip);
+        ownedItemRepository.save(item);
+        return ResponseEntity.ok(Map.of("equipped", willEquip, "itemId", id));
     }
 
     private Map<String, Object> toMap(LootboxItem i) {

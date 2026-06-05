@@ -3,11 +3,17 @@ package pl.pb.monopoly.service;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import pl.pb.monopoly.domain.*;
 import pl.pb.monopoly.dto.*;
 import pl.pb.monopoly.repository.GameSessionRepository;
+import pl.pb.monopoly.repository.MatchHistoryRepository;
+import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -181,20 +187,46 @@ public class GameService {
     private final GameSessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final GameSyncService gameSyncService;
+    private final MatchHistoryRepository matchHistoryRepository;
+    private final OwnedItemRepository ownedItemRepository;
     private BotAutoplayService botAutoplayService;
 
     public GameService(GameSessionRepository sessionRepository,
                        UserRepository userRepository,
-                       @Lazy GameSyncService gameSyncService) {
+                       @Lazy GameSyncService gameSyncService,
+                       MatchHistoryRepository matchHistoryRepository,
+                       OwnedItemRepository ownedItemRepository) {
         this.sessionRepository = sessionRepository;
         this.userRepository = userRepository;
         this.gameSyncService = gameSyncService;
+        this.matchHistoryRepository = matchHistoryRepository;
+        this.ownedItemRepository = ownedItemRepository;
     }
 
     /** Setter dla autoplay - lazy by uniknac cyklicznej zaleznosci konstruktorow. */
     @org.springframework.beans.factory.annotation.Autowired
     public void setBotAutoplayService(@Lazy BotAutoplayService botAutoplayService) {
         this.botAutoplayService = botAutoplayService;
+    }
+
+    /**
+     * Wywoluje onTurnUpdate PO commicie biezacej transakcji.
+     * Dzieki temu bot widzi zaaktualizowany stan w BD i nie wpada w petle
+     * wynikajaca z odczytu niecommitowanego stanu.
+     */
+    private void scheduleBotUpdate(Long sessionId) {
+        if (botAutoplayService == null) return;
+        final BotAutoplayService bot = botAutoplayService;
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    bot.onTurnUpdate(sessionId);
+                }
+            });
+        } else {
+            bot.onTurnUpdate(sessionId);
+        }
     }
 
     public static List<String> tileNamesList() {
@@ -223,7 +255,7 @@ public class GameService {
         session.setStatus(GameStatus.ACTIVE);
 
         User creator = user(creatorUsername);
-        GamePlayer me = new GamePlayer(creator.getUsername(), COLORS[0]);
+        GamePlayer me = new GamePlayer(creator.getUsername(), equippedColor(creator, COLORS[0]));
         me.setUser(creator);
         session.addPlayer(me);
 
@@ -232,8 +264,9 @@ public class GameService {
                 userRepository.findById(fid).ifPresent(friend -> {
                     if (session.getPlayers().stream().noneMatch(p ->
                             p.getUser() != null && p.getUser().getId().equals(friend.getId()))) {
-                        GamePlayer gp = new GamePlayer(friend.getUsername(),
+                        String color = equippedColor(friend,
                                 COLORS[session.getPlayers().size() % COLORS.length]);
+                        GamePlayer gp = new GamePlayer(friend.getUsername(), color);
                         gp.setUser(friend);
                         session.addPlayer(gp);
                     }
@@ -249,7 +282,7 @@ public class GameService {
 
         GameSession saved = sessionRepository.save(session);
         publishPublic(saved.getId(), null, null, null, null, null, null, null);
-        if (botAutoplayService != null) botAutoplayService.onTurnUpdate(saved.getId());
+        scheduleBotUpdate(saved.getId());
         return saved;
     }
 
@@ -286,8 +319,12 @@ public class GameService {
     public GameStateDto roll(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
+        requireActiveGame(session);
         if (session.getPendingPurchasePos() != null) {
             throw new IllegalArgumentException("Najpierw zakoncz decyzje o polu (kup lub pomin).");
+        }
+        if (session.getPendingPaymentDebtorId() != null) {
+            throw new IllegalArgumentException("Trwa uregulowanie zaleglosci — najpierw oplac lub zbankrutuj.");
         }
         List<GamePlayer> players = session.getPlayers();
         if (players.isEmpty()) {
@@ -301,6 +338,9 @@ public class GameService {
         if (current.isBankrupt()) {
             throw new IllegalArgumentException("Jestes bankrutem i nie mozesz grac.");
         }
+        if (current.getCash() < 0) {
+            throw new IllegalArgumentException("Masz ujemne saldo — ureguluj zaleglosci.");
+        }
 
         return doRoll(session, current, username);
     }
@@ -309,13 +349,16 @@ public class GameService {
     @Transactional
     public GameStateDto rollAsBot(Long sessionId, Long botPlayerId) {
         GameSession session = getSession(sessionId);
+        if (session.getStatus() == GameStatus.FINISHED) return null;
         if (session.getPendingPurchasePos() != null) return null;
+        if (session.getPendingPaymentDebtorId() != null) return null;
         List<GamePlayer> players = session.getPlayers();
         if (players.isEmpty()) return null;
         GamePlayer current = players.get(session.getCurrentTurn() % players.size());
         if (!current.getId().equals(botPlayerId)) return null;
         if (current.getUser() != null) return null;
         if (current.isBankrupt()) return null;
+        if (current.getCash() < 0) return null;
         return doRoll(session, current, null);
     }
 
@@ -349,9 +392,14 @@ public class GameService {
             drawnCard = drawCard();
             msg.append("Karta Szansy: \"").append(drawnCard.title())
                     .append("\" - ").append(drawnCard.description()).append(" ");
-            current.setCash(current.getCash() + drawnCard.moneyEffect());
-            if (drawnCard.moneyEffect() > 0) msg.append("(+").append(drawnCard.moneyEffect()).append(" PLN). ");
-            else if (drawnCard.moneyEffect() < 0) msg.append("(").append(drawnCard.moneyEffect()).append(" PLN). ");
+            int effect = drawnCard.moneyEffect();
+            if (effect > 0) {
+                current.setCash(current.getCash() + effect);
+                msg.append("(+").append(effect).append(" PLN). ");
+            } else if (effect < 0) {
+                chargePlayer(session, current, -effect, null, "Karta Szansy: " + drawnCard.title(), msg);
+                msg.append("(-").append(-effect).append(" PLN). ");
+            }
         } else {
             applyTileEffect(current, newPos, steps, session, msg);
         }
@@ -370,24 +418,21 @@ public class GameService {
                 }
             } else if (!ownerOfTile.getId().equals(current.getId()) && !ownerOfTile.isBankrupt()) {
                 int rent = computeRent(session, ownerOfTile, newPos, steps);
-                current.setCash(current.getCash() - rent);
-                ownerOfTile.setCash(ownerOfTile.getCash() + rent);
-                msg.append(current.getDisplayName()).append(" placi czynsz ")
-                        .append(rent).append(" PLN dla ")
-                        .append(ownerOfTile.getDisplayName()).append(". ");
-                if (current.getCash() < 0) {
-                    current.setBankrupt(true);
-                    msg.append("BANKRUCTWO! ");
-                    releaseProperties(current);
+                if (chargePlayer(session, current, rent, ownerOfTile,
+                        "Czynsz: " + TILES[newPos], msg)) {
+                    msg.append(current.getDisplayName()).append(" placi czynsz ")
+                            .append(rent).append(" PLN dla ")
+                            .append(ownerOfTile.getDisplayName()).append(". ");
                 }
             } else if (ownerOfTile.getId().equals(current.getId())) {
                 msg.append("To Twoje pole - bez czynszu. ");
             }
         }
 
-        if (session.getPendingPurchasePos() == null) {
+        if (session.getPendingPurchasePos() == null && session.getPendingPaymentDebtorId() == null) {
             advanceTurn(session);
         }
+        checkGameEnd(session, msg);
         sessionRepository.save(session);
 
         Long movedId = current.getId();
@@ -398,9 +443,7 @@ public class GameService {
         publishPublic(sessionId, d1, d2, msg.toString(), movedId, oldPos, newPos, cardDto);
 
         // Powiadom autoplay (boty rzucaja same, decyzja czeka 10s)
-        if (botAutoplayService != null) {
-            botAutoplayService.onTurnUpdate(sessionId);
-        }
+        scheduleBotUpdate(sessionId);
         return toState(session, username, d1, d2, msg.toString(), movedId, oldPos, newPos, cardDto);
     }
 
@@ -447,7 +490,7 @@ public class GameService {
         String msg = me.getDisplayName() + " kupuje " + TILES[pos] + " za " + price + " PLN.";
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg, null, null, null, null);
-        if (botAutoplayService != null) botAutoplayService.onTurnUpdate(sessionId);
+        scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
@@ -526,7 +569,7 @@ public class GameService {
                 : me.getDisplayName() + " pomija pole " + TILES[pos] + " - zostaje wolne.";
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg, null, null, null, null);
-        if (botAutoplayService != null) botAutoplayService.onTurnUpdate(sessionId);
+        scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
@@ -561,13 +604,14 @@ public class GameService {
 
         String msg = me.getDisplayName() + " wygrywa licytacje na " + TILES[pos] + " za " + amount + " PLN!";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
-        if (botAutoplayService != null) botAutoplayService.onTurnUpdate(sessionId);
+        scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
     @Transactional
     public GameStateDto transfer(Long sessionId, String username, Long toPlayerId, int amount) {
         GameSession session = getSession(sessionId);
+        requireActiveGame(session);
         if (amount <= 0) {
             throw new IllegalArgumentException("Kwota musi byc dodatnia");
         }
@@ -579,6 +623,12 @@ public class GameService {
         if (from.getId().equals(to.getId())) {
             throw new IllegalArgumentException("Nie mozesz przelac siana samemu sobie");
         }
+        if (from.isBankrupt()) {
+            throw new IllegalArgumentException("Bankrut nie moze przelac siana.");
+        }
+        if (to.isBankrupt()) {
+            throw new IllegalArgumentException("Nie mozna przelac siana bankrutowi.");
+        }
         if (from.getCash() < amount) {
             throw new IllegalArgumentException("Za malo siana (masz " + from.getCash() + " PLN)");
         }
@@ -587,8 +637,96 @@ public class GameService {
         sessionRepository.save(session);
 
         String msg = from.getDisplayName() + " przelal " + amount + " PLN do " + to.getDisplayName() + ".";
+        if (session.getPendingPaymentDebtorId() != null
+                && session.getPendingPaymentDebtorId().equals(to.getId())) {
+            msg += " (pozyczka na splate zadluzenia)";
+        }
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Sprzedaz nieruchomosci (50% ceny) w fazie uregulowania zadluzenia. */
+    @Transactional
+    public GameStateDto sellProperty(Long sessionId, String username, int position) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        if (session.getPendingPaymentDebtorId() == null) {
+            throw new IllegalArgumentException("Brak aktywnego zadluzenia do splaty.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingPaymentDebtorId())) {
+            throw new IllegalArgumentException("Tylko zadluzony gracz moze sprzedawac nieruchomosci.");
+        }
+        String msg = doSellProperty(me, position);
+        sessionRepository.save(session);
+        Long sessionIdVal = session.getId();
+        publishPublic(sessionIdVal, null, null, msg, null, null, null, null);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Zadluzony gracz oplaca zaleglosc po zebraniu wystarczajacej kwoty. */
+    @Transactional
+    public GameStateDto payDebt(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        if (session.getPendingPaymentDebtorId() == null) {
+            throw new IllegalArgumentException("Brak zadluzenia do splaty.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingPaymentDebtorId())) {
+            throw new IllegalArgumentException("To nie Twoje zadluzenie.");
+        }
+        return doPayDebt(session, me, username);
+    }
+
+    /** Zadluzony gracz rezygnuje — bankructwo. */
+    @Transactional
+    public GameStateDto declareBankruptcy(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        if (session.getPendingPaymentDebtorId() == null) {
+            throw new IllegalArgumentException("Brak aktywnego zadluzenia.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingPaymentDebtorId())) {
+            throw new IllegalArgumentException("To nie Twoje zadluzenie.");
+        }
+        return doDeclareBankruptcy(session, me, username);
+    }
+
+    /** Bot/automat: sprzedaje pola i splaca lub bankrutuje. */
+    @Transactional
+    public GameStateDto resolvePaymentAsBot(Long sessionId, Long debtorId, int snapAmount) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingPaymentDebtorId() == null) return null;
+        if (!debtorId.equals(session.getPendingPaymentDebtorId())) return null;
+        if (session.getPendingPaymentAmount() == null || session.getPendingPaymentAmount() != snapAmount) return null;
+        GamePlayer debtor = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(debtorId))
+                .findFirst().orElse(null);
+        if (debtor == null || debtor.isBankrupt()) return null;
+
+        StringBuilder msg = new StringBuilder();
+        while (debtor.getCash() < snapAmount && !debtor.getOwnedPositions().isEmpty()) {
+            int cheapest = cheapestOwnedPosition(debtor);
+            msg.append(doSellProperty(debtor, cheapest)).append(" ");
+        }
+        if (debtor.getCash() >= snapAmount) {
+            if (!msg.isEmpty()) publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+            return doPayDebt(session, debtor, null);
+        }
+        if (!msg.isEmpty()) publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+        return doDeclareBankruptcy(session, debtor, null);
+    }
+
+    /** Timeout dla czlowieka w fazie splaty — auto jak bot. */
+    @Transactional
+    public GameStateDto autoPaymentTimeout(Long sessionId, int snapAmount) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingPaymentDebtorId() == null) return null;
+        if (session.getPendingPaymentAmount() == null || session.getPendingPaymentAmount() != snapAmount) return null;
+        Long debtorId = session.getPendingPaymentDebtorId();
+        return resolvePaymentAsBot(sessionId, debtorId, snapAmount);
     }
 
     public GameStateDto buildPublicState(Long sessionId, Integer d1, Integer d2, String message,
@@ -601,15 +739,18 @@ public class GameService {
     private void applyTileEffect(GamePlayer player, int pos, int diceSum, GameSession session, StringBuilder msg) {
         switch (pos) {
             case 4 -> {
-                player.setCash(player.getCash() - 200);
-                msg.append("Oplaca warunki (-200 PLN). ");
+                chargePlayer(session, player, 200, null, "Oplata za warunki", msg);
+                msg.append("Oplata za warunki (-200 PLN). ");
             }
             case POS_JAIL -> {
-                player.setCash(Math.max(0, player.getCash() - 100));
-                msg.append("Dziekanat (wiezienie): lapowka 100 PLN. ");
+                if (chargePlayer(session, player, 100, null, "Lapowka w Dziekanacie", msg)) {
+                    msg.append("Dziekanat (wiezienie): lapowka 100 PLN. ");
+                } else {
+                    msg.append("Dziekanat (wiezienie): lapowka 100 PLN — brak siana! ");
+                }
             }
             case 38 -> {
-                player.setCash(player.getCash() - 100);
+                chargePlayer(session, player, 100, null, "Oplata luksusowa", msg);
                 msg.append("Oplata luksusowa (-100 PLN). ");
             }
             case 2, 17, 33 -> {
@@ -617,11 +758,6 @@ public class GameService {
                 msg.append("Kasa Miejska - stypendium (+200 PLN). ");
             }
             default -> { /* posiadlosci - obsluga w roll() */ }
-        }
-        if (player.getCash() < 0) {
-            player.setBankrupt(true);
-            msg.append("BANKRUCTWO! ");
-            releaseProperties(player);
         }
     }
 
@@ -660,6 +796,195 @@ public class GameService {
     /** Po bankructwie zwalnia pola gracza. */
     private void releaseProperties(GamePlayer player) {
         player.getOwnedPositions().clear();
+    }
+
+    private void requireActiveGame(GameSession session) {
+        if (session.getStatus() == GameStatus.FINISHED) {
+            throw new IllegalArgumentException("Gra zostala zakonczona.");
+        }
+    }
+
+    /** Cena sprzedazy nieruchomosci — polowa ceny zakupu. */
+    public static int sellPrice(int position) {
+        int price = TILE_PRICE[position];
+        return price > 0 ? price / 2 : 0;
+    }
+
+    /**
+     * Pobiera oplate od gracza. Gdy brak siana — uruchamia faze splaty zamiast ujemnego salda.
+     * @return true gdy oplacono od razu, false gdy trwa pending payment
+     */
+    private boolean chargePlayer(GameSession session, GamePlayer debtor, int amount,
+                                 GamePlayer creditor, String reason, StringBuilder msg) {
+        if (amount <= 0) return true;
+        if (debtor.getCash() >= amount) {
+            debtor.setCash(debtor.getCash() - amount);
+            if (creditor != null) {
+                creditor.setCash(creditor.getCash() + amount);
+            }
+            return true;
+        }
+        session.setPendingPaymentDebtorId(debtor.getId());
+        session.setPendingPaymentAmount(amount);
+        session.setPendingPaymentCreditorId(creditor != null ? creditor.getId() : null);
+        session.setPendingPaymentReason(reason);
+        msg.append("Brakuje siana! ").append(debtor.getDisplayName())
+                .append(" musi uzbierac ").append(amount).append(" PLN (ma ")
+                .append(debtor.getCash()).append("). Sprzedaj nieruchomosc lub popros o pozyczke. ");
+        return false;
+    }
+
+    private String doSellProperty(GamePlayer player, int position) {
+        if (!player.getOwnedPositions().contains(position)) {
+            throw new IllegalArgumentException("Nie posiadasz tego pola.");
+        }
+        int salePrice = sellPrice(position);
+        if (salePrice <= 0) {
+            throw new IllegalArgumentException("To pole nie jest na sprzedaz.");
+        }
+        player.getOwnedPositions().remove(position);
+        player.setCash(player.getCash() + salePrice);
+        return player.getDisplayName() + " sprzedaje " + TILES[position] + " za " + salePrice + " PLN.";
+    }
+
+    private GameStateDto doPayDebt(GameSession session, GamePlayer debtor, String username) {
+        int amount = session.getPendingPaymentAmount();
+        if (debtor.getCash() < amount) {
+            throw new IllegalArgumentException("Nadal za malo siana (potrzeba " + amount + " PLN, masz "
+                    + debtor.getCash() + "). Sprzedaj nieruchomosc lub popros o pozyczke.");
+        }
+        GamePlayer creditor = null;
+        if (session.getPendingPaymentCreditorId() != null) {
+            creditor = session.getPlayers().stream()
+                    .filter(p -> p.getId().equals(session.getPendingPaymentCreditorId()))
+                    .findFirst().orElse(null);
+        }
+        debtor.setCash(debtor.getCash() - amount);
+        if (creditor != null && !creditor.isBankrupt()) {
+            creditor.setCash(creditor.getCash() + amount);
+        }
+        String reason = session.getPendingPaymentReason() != null ? session.getPendingPaymentReason() : "Oplata";
+        session.clearPendingPayment();
+        StringBuilder msg = new StringBuilder(debtor.getDisplayName() + " oplaca " + amount + " PLN (" + reason + "). ");
+        advanceTurn(session);
+        checkGameEnd(session, msg);
+        sessionRepository.save(session);
+        Long sessionId = session.getId();
+        publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg.toString(), null, null, null, null);
+    }
+
+    private GameStateDto doDeclareBankruptcy(GameSession session, GamePlayer debtor, String username) {
+        StringBuilder msg = new StringBuilder();
+        applyBankruptcy(debtor, msg);
+        session.clearPendingPayment();
+        advanceTurn(session);
+        checkGameEnd(session, msg);
+        sessionRepository.save(session);
+        Long sessionId = session.getId();
+        publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg.toString(), null, null, null, null);
+    }
+
+    private void applyBankruptcy(GamePlayer player, StringBuilder msg) {
+        player.setBankrupt(true);
+        player.setCash(0);
+        releaseProperties(player);
+        msg.append(player.getDisplayName()).append(" BANKRUCTWO! ");
+    }
+
+    private void checkGameEnd(GameSession session, StringBuilder msg) {
+        if (session.getStatus() == GameStatus.FINISHED) return;
+        List<GamePlayer> active = session.getPlayers().stream()
+                .filter(p -> !p.isBankrupt())
+                .toList();
+        if (active.size() == 1) {
+            session.setStatus(GameStatus.FINISHED);
+            GamePlayer winner = active.get(0);
+            msg.append(winner.getDisplayName()).append(" WYGRYWA GRE! ");
+            persistGameResults(session, winner);
+        } else if (active.isEmpty()) {
+            session.setStatus(GameStatus.FINISHED);
+            msg.append("Wszyscy bankruci — remis. ");
+            persistGameResults(session, null);
+        }
+    }
+
+    /** Zapisuje MatchHistory i aktualizuje PlayerStatistics po koncu gry. */
+    private void persistGameResults(GameSession session, GamePlayer winner) {
+        int totalPlayers = (int) session.getPlayers().stream().filter(p -> p.getUser() != null).count();
+        if (totalPlayers == 0) return;
+        long durationMinutes = ChronoUnit.MINUTES.between(session.getCreatedAt(), LocalDateTime.now());
+
+        for (GamePlayer gp : session.getPlayers()) {
+            if (gp.getUser() == null) continue;
+            User user = userRepository.findById(gp.getUser().getId()).orElse(null);
+            if (user == null) continue;
+            boolean won = winner != null && winner.getId().equals(gp.getId());
+            int eloChange = won ? 20 + (totalPlayers - 1) * 5 : -10;
+            int placement = won ? 1 : 2;
+
+            MatchHistory mh = new MatchHistory();
+            mh.setUser(user);
+            mh.setWon(won);
+            mh.setPlacement(placement);
+            mh.setPlayersCount(totalPlayers);
+            mh.setFinalCash(gp.getCash());
+            mh.setDurationMinutes((int) Math.max(1, durationMinutes));
+            mh.setEloChange(eloChange);
+            matchHistoryRepository.save(mh);
+
+            PlayerStatistics stats = user.getStatistics();
+            if (stats != null) {
+                stats.setGamesPlayed(stats.getGamesPlayed() + 1);
+                if (won) {
+                    stats.setGamesWon(stats.getGamesWon() + 1);
+                    stats.setWinStreak(stats.getWinStreak() + 1);
+                } else {
+                    stats.setWinStreak(0);
+                }
+                int newElo = Math.max(0, stats.getEloPoints() + eloChange);
+                stats.setEloPoints(newElo);
+                stats.setLevel(Math.max(1, 1 + newElo / 500));
+            }
+        }
+    }
+
+    /** Mapa slug koloru -> hex z katalogu lootbox. */
+    private static final Map<String, String> PAWN_COLORS = Map.of(
+            "color-blue",    "#38bdf8",
+            "color-red",     "#f43f5e",
+            "color-emerald", "#10b981",
+            "color-pink",    "#ec4899",
+            "color-neon",    "#a3e635"
+    );
+
+    /** Zwraca kolor pionka wg. zalozonego itemu gracza lub domyslny. */
+    private String equippedColor(User user, String defaultColor) {
+        if (user == null || user.getId() == null) return defaultColor;
+        List<OwnedItem> equipped = ownedItemRepository.findByUserIdAndEquipped(user.getId(), true);
+        for (OwnedItem item : equipped) {
+            String hex = PAWN_COLORS.get(item.getItemSlug());
+            if (hex != null) return hex;
+        }
+        return defaultColor;
+    }
+
+    private int cheapestOwnedPosition(GamePlayer player) {
+        return player.getOwnedPositions().stream()
+                .min((a, b) -> Integer.compare(sellPrice(a), sellPrice(b)))
+                .orElseThrow();
+    }
+
+    private Map<Integer, Integer> sellPricesFor(GamePlayer player) {
+        Map<Integer, Integer> prices = new HashMap<>();
+        for (int pos : player.getOwnedPositions()) {
+            int sp = sellPrice(pos);
+            if (sp > 0) prices.put(pos, sp);
+        }
+        return prices;
     }
 
     private void publishPublic(Long sessionId, Integer d1, Integer d2, String message,
@@ -724,6 +1049,30 @@ public class GameService {
             );
         }
 
+        PendingPaymentDto pendingPayment = null;
+        if (session.getPendingPaymentDebtorId() != null && session.getPendingPaymentAmount() != null) {
+            GamePlayer debtor = players.stream()
+                    .filter(p -> p.getId().equals(session.getPendingPaymentDebtorId()))
+                    .findFirst().orElse(null);
+            pendingPayment = new PendingPaymentDto(
+                    session.getPendingPaymentDebtorId(),
+                    session.getPendingPaymentAmount(),
+                    session.getPendingPaymentCreditorId(),
+                    session.getPendingPaymentReason(),
+                    debtor != null ? sellPricesFor(debtor) : Map.of()
+            );
+        }
+
+        Long winnerId = null;
+        String winnerName = null;
+        if (session.getStatus() == GameStatus.FINISHED) {
+            List<GamePlayer> active = players.stream().filter(p -> !p.isBankrupt()).toList();
+            if (active.size() == 1) {
+                winnerId = active.get(0).getId();
+                winnerName = active.get(0).getDisplayName();
+            }
+        }
+
         // Lista cen i grup pol — statyczne dane do rysowania UI
         List<Integer> prices = new ArrayList<>();
         for (int v : TILE_PRICE) prices.add(v);
@@ -731,7 +1080,7 @@ public class GameService {
         return new GameStateDto(session.getId(), session.getCode(), session.getName(),
                 session.getStatus().name(), dtos, currentId, d1, d2, message,
                 movedId, fromPos, toPos, myTurn, tileNamesList(), tileEffectsList(),
-                pending, ownership, prices, card);
+                pending, pendingPayment, ownership, prices, card, winnerId, winnerName);
     }
 
     private String generateCode() {

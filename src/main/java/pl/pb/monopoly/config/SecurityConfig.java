@@ -56,6 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/ranking-najlepszych").permitAll()
                 // panel administracyjny
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                // panel moderatora
+                .requestMatchers("/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
                 // CRUD nieruchomosci: modyfikacje tylko admin/moderator
                 .requestMatchers("/properties/new", "/properties/*/edit", "/properties/*/delete",
                         "/properties/save").hasAnyRole("ADMIN", "MODERATOR")

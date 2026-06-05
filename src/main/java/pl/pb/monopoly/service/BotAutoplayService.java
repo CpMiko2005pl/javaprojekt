@@ -29,8 +29,10 @@ public class BotAutoplayService {
     private static final long BOT_ROLL_DELAY_MS = 1500;
     /** Opoznienie miedzy postawieniem pendingPurchase a decyzja bota. */
     private static final long BOT_DECISION_DELAY_MS = 1300;
-    /** Czas na decyzje gracza-czlowieka. */
+    /** Czas na decyzje gracza-czlowieka (kupno pola). */
     private static final long HUMAN_DECISION_TIMEOUT_SECONDS = 10;
+    /** Czas na splate zadluzenia (sprzedaz, pozyczka). */
+    private static final long HUMAN_PAYMENT_TIMEOUT_SECONDS = 30;
 
     private final GameSessionRepository sessionRepository;
     private final GameService gameService;
@@ -59,8 +61,29 @@ public class BotAutoplayService {
             GameSession s = sessionRepository.findById(sessionId).orElse(null);
             if (s == null) return;
             if (s.getPlayers().isEmpty()) return;
+            if (s.getStatus() == pl.pb.monopoly.domain.GameStatus.FINISHED) return;
 
-            // 1) Aktywna decyzja - zaplanuj akcje decydenta
+            // 1) Aktywna splata zadluzenia
+            if (s.getPendingPaymentDebtorId() != null && s.getPendingPaymentAmount() != null) {
+                Long debtorId = s.getPendingPaymentDebtorId();
+                int snapAmount = s.getPendingPaymentAmount();
+                GamePlayer debtor = s.getPlayers().stream()
+                        .filter(p -> p.getId().equals(debtorId))
+                        .findFirst().orElse(null);
+                if (debtor == null) return;
+                if (debtor.getUser() == null) {
+                    scheduler.schedule(
+                            () -> safeCall(() -> gameService.resolvePaymentAsBot(sessionId, debtorId, snapAmount)),
+                            BOT_DECISION_DELAY_MS, TimeUnit.MILLISECONDS);
+                } else {
+                    scheduler.schedule(
+                            () -> safeCall(() -> gameService.autoPaymentTimeout(sessionId, snapAmount)),
+                            HUMAN_PAYMENT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                }
+                return;
+            }
+
+            // 2) Aktywna decyzja kupna - zaplanuj akcje decydenta
             if (s.getPendingPurchasePos() != null) {
                 Long deciderId = s.getPendingDeciderId();
                 if (deciderId == null) return;
@@ -83,7 +106,7 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 2) Brak decyzji - jesli aktywny gracz to bot, rzuc za niego
+            // 3) Brak decyzji - jesli aktywny gracz to bot, rzuc za niego
             GamePlayer current = s.getPlayers().get(s.getCurrentTurn() % s.getPlayers().size());
             if (current.getUser() == null && !current.isBankrupt()) {
                 Long botId = current.getId();

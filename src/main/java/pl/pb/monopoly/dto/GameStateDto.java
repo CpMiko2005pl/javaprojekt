@@ -25,8 +25,11 @@ public record GameStateDto(
         List<String> tileNames,
         List<String> tileEffects,
         PendingPurchaseDto pendingPurchase,
+        PendingPaymentDto pendingPayment,
         Map<Integer, Long> ownership,
         List<Integer> tilePrices,
-        ChanceCardDto chanceCard
+        ChanceCardDto chanceCard,
+        Long winnerId,
+        String winnerName
 ) {
 }

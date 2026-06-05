@@ -19,4 +19,8 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
            "where p.user.username = :username and s.status = pl.pb.monopoly.domain.GameStatus.ACTIVE " +
            "order by s.createdAt desc")
     List<GameSession> findActiveByUser(@Param("username") String username);
+
+    /** Wszystkie aktywne sesje (dla moderatora). */
+    @Query("select s from GameSession s where s.status = pl.pb.monopoly.domain.GameStatus.ACTIVE order by s.createdAt desc")
+    List<GameSession> findAllActive();
 }

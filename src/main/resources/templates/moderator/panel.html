@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pl"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Panel moderatora')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Moderacja</span>
+        <h1>Panel moderatora</h1>
+        <p class="lead">Przeglad aktywnych gier, zarzadzanie sesjami i uzytkownikami.</p>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <!-- Statystyki globalne -->
+    <section class="stat-grid">
+        <div class="stat">
+            <div class="value" th:text="${activeSessions.size()}">0</div>
+            <div class="label">Aktywne gry</div>
+        </div>
+        <div class="stat">
+            <div class="value" th:text="${users.size()}">0</div>
+            <div class="label">Uzytkownikow</div>
+        </div>
+        <div class="stat">
+            <div class="value gold" th:text="${totalMatches}">0</div>
+            <div class="label">Wszystkich meczow</div>
+        </div>
+    </section>
+
+    <!-- Aktywne sesje gier -->
+    <h2 style="margin-top:2rem;"><i class="fa-solid fa-dice"></i> Aktywne sesje gier</h2>
+    <table th:if="${!activeSessions.isEmpty()}">
+        <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Nazwa pokoju</th>
+            <th scope="col">Kod</th>
+            <th scope="col">Graczy</th>
+            <th scope="col">Utworzona</th>
+            <th scope="col">Akcja</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="s : ${activeSessions}">
+            <td th:text="${s.id}">1</td>
+            <td th:text="${s.name}">Pokoj</td>
+            <td><code th:text="${s.code}">ABCDEF</code></td>
+            <td th:text="${s.players.size()}">0</td>
+            <td th:text="${#temporals.format(s.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</td>
+            <td>
+                <a th:href="@{/game/{id}(id=${s.id})}" class="btn btn-secondary btn-small">
+                    <i class="fa-solid fa-eye"></i> Podglad
+                </a>
+                <form th:action="@{/moderator/sessions/{id}/end(id=${s.id})}" method="post"
+                      class="inline-form"
+                      onsubmit="return confirm('Na pewno zakonczyc te sesje?');">
+                    <button type="submit" class="btn btn-danger btn-small">
+                        <i class="fa-solid fa-stop"></i> Zakoncz
+                    </button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="muted" th:if="${activeSessions.isEmpty()}">Brak aktywnych sesji.</p>
+
+    <!-- Lista uzytkownikow (uproszczona) -->
+    <h2 style="margin-top:2rem;"><i class="fa-solid fa-users"></i> Uzytkownicy</h2>
+    <table>
+        <thead>
+        <tr>
+            <th scope="col">Login</th>
+            <th scope="col">E-mail</th>
+            <th scope="col">Rola</th>
+            <th scope="col">Status</th>
+            <th scope="col">ELO</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="u : ${users}">
+            <td th:text="${u.username}">login</td>
+            <td th:text="${u.email}">email</td>
+            <td>
+                <span th:text="${u.role.displayName}"
+                      th:classappend="${u.role.name() == 'ADMIN'} ? 'badge badge-ok' : (${u.role.name() == 'MODERATOR'} ? 'badge badge-no' : '')">
+                    Rola
+                </span>
+            </td>
+            <td>
+                <span th:if="${u.verified}" class="badge badge-ok">zweryfikowany</span>
+                <span th:unless="${u.verified}" class="badge badge-no">nie</span>
+            </td>
+            <td th:text="${u.statistics != null} ? ${u.statistics.eloPoints} : '—'">1000</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Link do panelu admina jezeli admin -->
+    <div sec:authorize="hasRole('ADMIN')" style="margin-top:2rem;">
+        <a th:href="@{/admin/users}" class="btn"><i class="fa-solid fa-shield-halved"></i> Panel administratora</a>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

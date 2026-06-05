@@ -64,6 +64,15 @@ public class HomeController {
     public String dashboard(Authentication authentication,
                             @RequestParam(value = "q", required = false) String query,
                             Model model) {
+        // Moderatorzy i adminowie maja wlasny panel - nie profil gracza
+        boolean isMod = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_MODERATOR"));
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (isMod && !isAdmin) {
+            return "redirect:/moderator";
+        }
+
         // Codzienna darmowa skrzynka
         lootboxService.grantDailyIfNeeded(authentication.getName());
 
@@ -92,6 +101,7 @@ public class HomeController {
             m.put("ownedId", o.getId());
             m.put("slug", o.getItemSlug());
             m.put("obtainedAt", o.getObtainedAt());
+            m.put("equipped", o.isEquipped());
             if (t != null) {
                 m.put("name", t.name());
                 m.put("rarity", t.rarity().name());
@@ -106,6 +116,7 @@ public class HomeController {
                 m.put("rarityLabel", "Common");
                 m.put("rarityColor", "#9ca3af");
                 m.put("iconClass", "fa-solid fa-cube");
+                m.put("category", "Przedmiot");
             }
             return m;
         }).collect(Collectors.toList());

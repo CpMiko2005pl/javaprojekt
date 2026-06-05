@@ -51,6 +51,20 @@ public class GameSession {
     @Column(name = "pending_decider_id")
     private Long pendingDeciderId;
 
+    /** Gracz, ktory musi uregulowac zobowiazanie (brak siana na oplate). */
+    @Column(name = "pending_payment_debtor_id")
+    private Long pendingPaymentDebtorId;
+
+    @Column(name = "pending_payment_amount")
+    private Integer pendingPaymentAmount;
+
+    /** Wlasciciel pola / odbiorca czynszu; null = oplata do banku (podatek, karta). */
+    @Column(name = "pending_payment_creditor_id")
+    private Long pendingPaymentCreditorId;
+
+    @Column(name = "pending_payment_reason", length = 120)
+    private String pendingPaymentReason;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("turnOrder asc")
     private List<GamePlayer> players = new ArrayList<>();
@@ -148,5 +162,44 @@ public class GameSession {
         this.pendingPurchasePos = null;
         this.pendingPurchasePrice = null;
         this.pendingDeciderId = null;
+    }
+
+    public Long getPendingPaymentDebtorId() {
+        return pendingPaymentDebtorId;
+    }
+
+    public void setPendingPaymentDebtorId(Long pendingPaymentDebtorId) {
+        this.pendingPaymentDebtorId = pendingPaymentDebtorId;
+    }
+
+    public Integer getPendingPaymentAmount() {
+        return pendingPaymentAmount;
+    }
+
+    public void setPendingPaymentAmount(Integer pendingPaymentAmount) {
+        this.pendingPaymentAmount = pendingPaymentAmount;
+    }
+
+    public Long getPendingPaymentCreditorId() {
+        return pendingPaymentCreditorId;
+    }
+
+    public void setPendingPaymentCreditorId(Long pendingPaymentCreditorId) {
+        this.pendingPaymentCreditorId = pendingPaymentCreditorId;
+    }
+
+    public String getPendingPaymentReason() {
+        return pendingPaymentReason;
+    }
+
+    public void setPendingPaymentReason(String pendingPaymentReason) {
+        this.pendingPaymentReason = pendingPaymentReason;
+    }
+
+    public void clearPendingPayment() {
+        this.pendingPaymentDebtorId = null;
+        this.pendingPaymentAmount = null;
+        this.pendingPaymentCreditorId = null;
+        this.pendingPaymentReason = null;
     }
 }

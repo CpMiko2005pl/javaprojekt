@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pl.pb.monopoly.dto.GameStateDto;
+import pl.pb.monopoly.dto.SellPropertyRequest;
 import pl.pb.monopoly.dto.TransferRequest;
 import pl.pb.monopoly.service.GameService;
 
@@ -78,6 +79,35 @@ public class GameRestController {
         try {
             int amount = body.getOrDefault("amount", 0);
             return ResponseEntity.ok(gameService.bid(id, auth.getName(), amount));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/sell")
+    public ResponseEntity<?> sell(@PathVariable Long id,
+                                  @RequestBody SellPropertyRequest req,
+                                  Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.sellProperty(id, auth.getName(), req.position()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/pay-debt")
+    public ResponseEntity<?> payDebt(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.payDebt(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/bankrupt")
+    public ResponseEntity<?> bankrupt(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.declareBankruptcy(id, auth.getName()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }

@@ -657,8 +657,10 @@
                    kamera trzyma sie pionka az decyzja zostanie podjeta.
                    Wpp. po krotkiej chwili oddalamy widok. */
                 setTimeout(function () {
-                    var stillPending = lastState && lastState.pendingPurchase &&
-                        lastState.pendingPurchase.deciderId === playerId;
+                    var stillPending = lastState && (
+                        (lastState.pendingPurchase && lastState.pendingPurchase.deciderId === playerId) ||
+                        (lastState.pendingPayment && lastState.pendingPayment.debtorId === playerId)
+                    );
                     if (stillPending) {
                         /* Zostawiamy followPlayerId i cinematic = true,
                            updateCameraTarget bedzie podtrzymywac sledzenie. */
@@ -823,7 +825,13 @@
            niezaleznie od recznego przeciagniecia (override userPanned). */
         var pendingDecision = lastState && lastState.pendingPurchase &&
             lastState.pendingPurchase.deciderId != null;
-        if (pendingDecision) {
+        var pendingPay = lastState && lastState.pendingPayment &&
+            lastState.pendingPayment.debtorId != null;
+        if (pendingPay) {
+            camState.followPlayerId = lastState.pendingPayment.debtorId;
+            camState.cinematic = true;
+            camState.userPanned = false;
+        } else if (pendingDecision) {
             camState.followPlayerId = lastState.pendingPurchase.deciderId;
             camState.cinematic = true;
             camState.userPanned = false;
@@ -831,7 +839,7 @@
 
         /* Kiedy uzytkownik recznie przesunal/obrocil kamere - nie nadpisuj,
            ale tylko gdy NIE ma decyzji do podjecia. */
-        if (camState.userPanned && !pendingDecision) return;
+        if (camState.userPanned && !pendingDecision && !pendingPay) return;
 
         var followId = camState.followPlayerId;
         var targetMesh = followId != null ? playerMeshes[String(followId)] : null;
@@ -1024,10 +1032,11 @@
         state.players.forEach(function (p, idx) {
             var turn = state.currentTurnPlayerId === p.id;
             var chip = document.createElement("div");
-            chip.className = "player-chip" + (turn ? " turn" : "");
+            chip.className = "player-chip" + (turn ? " turn" : "") + (p.bankrupt ? " bankrupt" : "");
             chip.innerHTML =
                 '<span class="token-dot" style="background:' + p.color + '"></span>' +
-                '<span class="player-name">' + escapeHtml(p.name) + (p.isMe ? " (Ty)" : "") + '</span>' +
+                '<span class="player-name">' + escapeHtml(p.name) + (p.isMe ? " (Ty)" : "") +
+                (p.bankrupt ? " [bankrut]" : "") + '</span>' +
                 '<span class="cash">' + formatCash(p.cash) + ' PLN</span>';
             if (box) box.appendChild(chip);
 
@@ -1048,7 +1057,7 @@
         });
 
         if (sel) {
-            state.players.filter(function (p) { return p.id !== myPlayerId; }).forEach(function (p) {
+            state.players.filter(function (p) { return p.id !== myPlayerId && !p.bankrupt; }).forEach(function (p) {
                 var opt = document.createElement("option");
                 opt.value = p.id;
                 opt.textContent = p.name + " (" + formatCash(p.cash) + " PLN)";
@@ -1059,8 +1068,10 @@
         var online = document.getElementById("onlineCount");
         if (online) online.textContent = state.players.length;
 
-        if (rollBtn) rollBtn.disabled = animating || !state.myTurn || !!state.pendingPurchase;
+        if (rollBtn) rollBtn.disabled = animating || !state.myTurn || !!state.pendingPurchase
+            || !!state.pendingPayment || state.status === "FINISHED";
         updateCenterDicePanel(state);
+        updateWinnerBanner(state);
         if (state.message) {
             var logEl = document.getElementById("log");
             if (logEl) logEl.textContent = state.message;
@@ -1084,9 +1095,15 @@
             || state.players[0];
         var displayName = current ? (current.name || "Gracz") : "Gracz";
 
-        if (state.pendingPurchase) {
+        if (state.pendingPurchase || state.pendingPayment) {
             /* Faza decyzji — ukryj caly panel rzutu zeby nie kolidowal z panelem akcji. */
             rollPanel.style.display = "none";
+            return;
+        }
+        if (state.status === "FINISHED") {
+            rollPanel.style.display = "none";
+            if (label) label.textContent = "Gra zakonczona";
+            if (hint) hint.textContent = state.winnerName ? (state.winnerName + " wygral!") : "Koniec";
             return;
         }
         rollPanel.style.display = "";
@@ -1169,7 +1186,23 @@
             return pushToast(actor + "laduje w Dziekanacie!", "jail", "fa-lock");
         }
         if (/BANKRUCTWO/.test(message)) {
+            /* Pokaz overlay jezeli to moj gracz */
+            if (lastState && lastState.players) {
+                var me = lastState.players.find(function(p){ return p.isMe; });
+                if (me && me.bankrupt) showGameEndOverlay(lastState);
+            }
             return pushToast(actor + "bankrutuje!", "rent", "fa-skull");
+        }
+        if (/WYGRYWA GRE/.test(message)) {
+            var mw = message.match(/([^.]+?) WYGRYWA GRE/);
+            return pushToast((mw ? escapeHtml(mw[1]) : "Gracz") + " wygrywa gre!", "buy", "fa-trophy");
+        }
+        if (/Brakuje siana/.test(message)) {
+            return pushToast(actor + "nie stac na oplate — sprzedaj lub popros o pozyczke", "rent", "fa-coins");
+        }
+        if (/sprzedaje/.test(message)) {
+            var msell = message.match(/sprzedaje ([^"]+?) za (\d+)/);
+            if (msell) return pushToast(actor + "sprzedal " + escapeHtml(msell[1]) + " za " + msell[2] + " PLN", "skip", "fa-hand-holding-dollar");
         }
         if (/przejscie przez START/i.test(message)) {
             return pushToast(actor + "przeszedl przez START (+200 PLN)", "buy", "fa-flag-checkered");
@@ -1211,9 +1244,90 @@
         }, 100);
     }
 
+    var gameEndShown = false;
+    var gameEndCountdown = null;
+
+    function updateWinnerBanner(state) {
+        var banner = document.getElementById("winnerBanner");
+        if (!banner) return;
+        if (state.status === "FINISHED" && state.winnerName) {
+            banner.style.display = "block";
+            banner.innerHTML = '<i class="fa-solid fa-trophy"></i> <strong>' + escapeHtml(state.winnerName) + '</strong> wygrywa gre!';
+        } else {
+            banner.style.display = "none";
+            banner.innerHTML = "";
+        }
+        showGameEndOverlay(state);
+    }
+
+    function showGameEndOverlay(state) {
+        if (gameEndShown) return;
+        var overlay = document.getElementById("gameEndOverlay");
+        if (!overlay) return;
+
+        /* Pokaz overlay jezeli: gra sie skonczyla LUB moj gracz zbankrutowal */
+        var iFinished = state.status === "FINISHED";
+        var myPlayer = state.players ? state.players.find(function(p){ return p.isMe; }) : null;
+        var iBankrupt = myPlayer && myPlayer.bankrupt;
+
+        if (!iFinished && !iBankrupt) return;
+
+        gameEndShown = true;
+        var icon = document.getElementById("gameEndIcon");
+        var title = document.getElementById("gameEndTitle");
+        var sub = document.getElementById("gameEndSub");
+        var timer = document.getElementById("gameEndTimer");
+
+        if (iFinished && state.winnerName) {
+            var iWon = myPlayer && String(myPlayer.id) === String(state.winnerId);
+            if (iWon) {
+                icon.innerHTML = '<i class="fa-solid fa-trophy" style="color:#f59e0b;"></i>';
+                title.textContent = "ZWYCIĘSTWO!";
+                title.style.color = "#f59e0b";
+                sub.textContent = "Gratulacje, " + escapeHtml(state.winnerName) + "! Wygrałeś grę Kampus PB!";
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-flag-checkered" style="color:#64748b;"></i>';
+                title.textContent = "KONIEC GRY";
+                title.style.color = "#64748b";
+                sub.textContent = "Wygrywa: " + escapeHtml(state.winnerName);
+            }
+        } else if (iFinished) {
+            icon.innerHTML = '<i class="fa-solid fa-skull" style="color:#ef4444;"></i>';
+            title.textContent = "REMIS";
+            title.style.color = "#ef4444";
+            sub.textContent = "Wszyscy zbankrutowali.";
+        } else if (iBankrupt) {
+            icon.innerHTML = '<i class="fa-solid fa-skull" style="color:#ef4444;"></i>';
+            title.textContent = "BANKRUCTWO";
+            title.style.color = "#ef4444";
+            sub.textContent = "Straciłeś wszystkie zasoby. Gra trwa dla pozostałych graczy.";
+        }
+
+        overlay.style.display = "flex";
+
+        /* Odliczanie do przekierowania tylko jesli gra sie skonczyla */
+        if (iFinished) {
+            var secs = 10;
+            function tick() {
+                if (timer) timer.textContent = "Powrót do profilu za " + secs + "s...";
+                if (secs <= 0) {
+                    clearInterval(gameEndCountdown);
+                    window.location.href = "/dashboard";
+                }
+                secs--;
+            }
+            tick();
+            gameEndCountdown = setInterval(tick, 1000);
+        }
+    }
+
     function renderActionPanel(state) {
         var ap = document.getElementById("actionPanel");
         if (!ap) return;
+        if (state.pendingPayment) {
+            renderPaymentPanel(state, ap);
+            return;
+        }
         if (!state.pendingPurchase) {
             /* Decyzja zostala podjeta - pozwolmy kamerze plynnie wrocic na widok ogolny. */
             ap.style.display = "none";
@@ -1278,6 +1392,81 @@
             var amount = parseInt(document.getElementById("bidAmount").value, 10);
             postAction("/bid", { amount: amount });
         });
+    }
+
+    function renderPaymentPanel(state, ap) {
+        var pp = state.pendingPayment;
+        var debtor = state.players.find(function (p) { return p.id === pp.debtorId; }) || {};
+        var sellKeys = pp.sellPrices ? Object.keys(pp.sellPrices).sort().join(",") : "";
+        var panelKey = "pay|" + pp.debtorId + "|" + pp.amount + "|" + (debtor.cash != null ? debtor.cash : 0) + "|" + sellKeys;
+        if (panelKey === lastActionPanelKey) return;
+        lastActionPanelKey = panelKey;
+
+        var amDebtor = state.players.some(function (p) { return p.isMe && p.id === pp.debtorId; });
+        var debtorName = debtor.name || "Gracz";
+        var creditor = pp.creditorId
+            ? state.players.find(function (p) { return p.id === pp.creditorId; })
+            : null;
+        var creditorLabel = creditor ? creditor.name : "bank";
+
+        var html = '<div class="hud-panel-head">' +
+            '<h2>Brak siana</h2>' +
+            (amDebtor ? '<span id="actionTimerLabel" class="action-timer-label">30s</span>' : '') +
+            '</div>';
+        if (amDebtor) {
+            html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
+        }
+        html += '<p class="action-tile-name"><i class="fa-solid fa-coins"></i> ' + escapeHtml(pp.reason || "Oplata") + '</p>' +
+            '<p class="muted action-tile-price">Do zaplaty: <strong>' + pp.amount + ' PLN</strong>' +
+            (creditor ? ' dla <strong>' + escapeHtml(creditorLabel) + '</strong>' : '') + '</p>' +
+            '<p class="muted small">Twoje siano: <strong>' + (debtor.cash != null ? debtor.cash : 0) + ' PLN</strong></p>';
+
+        if (amDebtor) {
+            var sellPrices = pp.sellPrices || {};
+            var positions = Object.keys(sellPrices);
+            if (positions.length > 0) {
+                html += '<p class="action-bid-label">Sprzedaj nieruchomosc (50% ceny):</p><div class="action-buttons">';
+                positions.forEach(function (posKey) {
+                    var pos = parseInt(posKey, 10);
+                    var tileName = (state.tileNames && state.tileNames[pos]) ? state.tileNames[pos] : ("Pole " + pos);
+                    html += '<button class="btn btn-secondary btn-roll btn-sell" data-pos="' + pos + '">' +
+                        escapeHtml(tileName) + ' (' + sellPrices[posKey] + ' PLN)</button>';
+                });
+                html += '</div>';
+            } else {
+                html += '<p class="muted small">Nie masz nieruchomosci do sprzedazy — popros innego gracza o pozyczke (panel Transfer).</p>';
+            }
+            html += '<div class="action-buttons" style="margin-top:0.5rem">' +
+                '<button class="btn btn-bt-roll" id="btnPayDebt"><i class="fa-solid fa-check"></i> Oplac ' + pp.amount + ' PLN</button>' +
+                '<button class="btn btn-secondary btn-roll" id="btnBankrupt"><i class="fa-solid fa-skull"></i> Bankructwo</button>' +
+                '</div>' +
+                '<p class="muted small">Sprzedaj pola, popros o pozyczke lub oplac gdy masz wystarczajaco siana. Po 30s auto-splata/bankructwo.</p>';
+        } else {
+            html += '<p class="muted small"><strong>' + escapeHtml(debtorName) + '</strong> musi uzbierac ' + pp.amount +
+                ' PLN. Mozesz przelac mu siano w panelu Transfer (pozyczka).</p>';
+        }
+        html += '<p class="error" id="actionErr" style="display:none;"></p>';
+        ap.style.display = "block";
+        ap.innerHTML = html;
+
+        if (amDebtor) startActionTimer(Date.now() + 30000);
+        else clearActionTimer();
+
+        if (camState.cinematic !== true) {
+            camState.cinematic = true;
+            camState.followPlayerId = pp.debtorId;
+        }
+
+        document.querySelectorAll(".btn-sell").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var pos = parseInt(btn.getAttribute("data-pos"), 10);
+                postAction("/sell", { position: pos });
+            });
+        });
+        var btnPay = document.getElementById("btnPayDebt");
+        if (btnPay) btnPay.addEventListener("click", function () { postAction("/pay-debt"); });
+        var btnBankrupt = document.getElementById("btnBankrupt");
+        if (btnBankrupt) btnBankrupt.addEventListener("click", function () { postAction("/bankrupt"); });
     }
 
     function postAction(path, body) {
@@ -1433,7 +1622,8 @@
                 } else {
                     /* Nowszy stan juz wyrenderowany - tylko odswiezamy guziki/panel. */
                     if (lastState) {
-                        if (rollBtn) rollBtn.disabled = animating || !lastState.myTurn || !!lastState.pendingPurchase;
+                        if (rollBtn) rollBtn.disabled = animating || !lastState.myTurn || !!lastState.pendingPurchase
+                            || !!lastState.pendingPayment || lastState.status === "FINISHED";
                         updateCenterDicePanel(lastState);
                     }
                 }

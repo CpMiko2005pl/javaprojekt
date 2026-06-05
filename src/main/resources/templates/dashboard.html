@@ -114,19 +114,33 @@
 
     <!-- INWENTARZ -->
     <h2 style="margin-top:2rem;"><i class="fa-solid fa-toolbox"></i> Twoj ekwipunek (<span th:text="${inventory.size()}">0</span>)</h2>
+    <p class="muted" style="margin-top:-.5rem;margin-bottom:.8rem;">
+        Elementy z kategorii <strong>Kolor pionka</strong> zmieniaja kolor Twojego pionka w grze.
+        Kliknij item, by go zalozyc lub zdejac.
+    </p>
     <div id="inventoryGrid" class="inventory-grid">
-        <div th:each="i : ${inventory}" class="inventory-item"
-             th:classappend="' rarity-' + ${#strings.toLowerCase(i.rarity)}"
-             th:style="'border-color:' + ${i.rarityColor}">
+        <div th:each="i : ${inventory}"
+             class="inventory-item"
+             th:classappend="' rarity-' + ${#strings.toLowerCase(i.rarity)} + (${i.equipped} ? ' item-equipped' : '')"
+             th:style="'border-color:' + ${i.rarityColor}"
+             th:data-item-id="${i.ownedId}">
             <div class="inventory-icon" th:style="'color:' + ${i.rarityColor}">
                 <i th:class="${i.iconClass}"></i>
             </div>
-            <div>
+            <div style="flex:1">
                 <strong th:text="${i.name}">Item</strong>
                 <span class="inventory-rarity" th:style="'color:' + ${i.rarityColor}">
                     <span th:text="${i.rarityLabel}">Common</span> &middot;
                     <span th:text="${i.category}">Awatar</span>
                 </span>
+            </div>
+            <div>
+                <span th:if="${i.equipped}" class="badge badge-ok" style="font-size:.7rem;">
+                    <i class="fa-solid fa-check"></i> Zalozony
+                </span>
+                <button class="btn btn-small btn-equip"
+                        th:data-id="${i.ownedId}"
+                        th:text="${i.equipped} ? 'Zdejmij' : 'Zaloz'">Zaloz</button>
             </div>
         </div>
         <p th:if="${inventory.isEmpty()}" class="muted" style="grid-column:1/-1;">
@@ -245,5 +259,57 @@
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
 <script th:src="@{/js/lootbox.js}"></script>
+<script>
+/* Equip/unequip items */
+function csrfHeaders() {
+    var t = document.querySelector('meta[name="_csrf"]');
+    var h = document.querySelector('meta[name="_csrf_header"]');
+    var headers = { 'X-Requested-With': 'XMLHttpRequest' };
+    if (t && h) headers[h.content] = t.content;
+    return headers;
+}
+document.querySelectorAll('.btn-equip').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var id = btn.getAttribute('data-id');
+        fetch('/inventory/' + id + '/equip', { method: 'POST',
+            headers: csrfHeaders() })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var item = btn.closest('.inventory-item');
+            var equipped = data.equipped;
+            btn.textContent = equipped ? 'Zdejmij' : 'Zaloz';
+            var badge = item.querySelector('.badge-ok');
+            if (equipped) {
+                item.classList.add('item-equipped');
+                if (!badge) {
+                    var b = document.createElement('span');
+                    b.className = 'badge badge-ok';
+                    b.style.fontSize = '.7rem';
+                    b.innerHTML = '<i class="fa-solid fa-check"></i> Zalozony';
+                    btn.before(b);
+                }
+                /* zdejmij badge z innych tego samego rodzaju */
+                var cat = item.querySelector('.inventory-rarity span:last-child');
+                var catText = cat ? cat.textContent : '';
+                document.querySelectorAll('.inventory-item').forEach(function(other) {
+                    if (other === item) return;
+                    var oc = other.querySelector('.inventory-rarity span:last-child');
+                    if (oc && oc.textContent === catText) {
+                        other.classList.remove('item-equipped');
+                        var ob = other.querySelector('.badge-ok');
+                        if (ob) ob.remove();
+                        var ob2 = other.querySelector('.btn-equip');
+                        if (ob2) ob2.textContent = 'Zaloz';
+                    }
+                });
+            } else {
+                item.classList.remove('item-equipped');
+                if (badge) badge.remove();
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>
