@@ -897,7 +897,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
 
 .cta-section {
     padding: 4.5rem 1.4rem;
-    background: rgba(11,15,25,.55);
+    background: rgba(255, 255, 255, 0.55);
     border-top: 1px solid var(--border);
 }
 .cta-grid {
