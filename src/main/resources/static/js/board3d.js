@@ -1635,6 +1635,9 @@
                 if (animationQueue[qi]._animKey === key) return;
             }
             state._animKey = key;
+            /* Sync UI od razu — panel kupna musi odpowiadac stanowi serwera zanim skonczy sie animacja. */
+            lastState = state;
+            refreshUiOnly(state);
             animationQueue.push(state);
             processAnimationQueue();
             return;
@@ -1706,7 +1709,7 @@
                    w trakcie animacji (np. z szybkiej decyzji bota lub non-anim WS-state).
                    Jesli sie pojawilo - stary state nie nadpisze nowszego. */
                 if (hudSeq === seqAtStart) {
-                    renderHud(state);
+                    renderHud(lastState || state);
                 } else {
                     /* Nowszy stan juz wyrenderowany - tylko odswiezamy guziki/panel. */
                     if (lastState) {
