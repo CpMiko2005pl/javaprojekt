@@ -1,71 +1,110 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Profil publiczny')}"></head>
+<head th:replace="~{fragments/layout :: head('Profil gracza')}"></head>
 <body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
-<main id="main">
 
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+<div class="lp-faceit" id="main">
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}" style="margin-bottom:16px;"></div>
 
     <div th:if="${profileUser != null}">
-        <div class="page-header">
-            <span class="section-kicker"><i class="fa-solid fa-user"></i> Profil publiczny</span>
-            <h1 th:text="${profileUser.username}">gracz</h1>
-        </div>
 
-        <section class="profile-header">
-            <img th:src="@{/api/avatar/{u}(u=${profileUser.username})}" alt="Awatar"
-                 class="avatar-img" width="64" height="64" loading="lazy"
-                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="avatar" style="display:none"
-                 th:text="${#strings.toUpperCase(#strings.substring(profileUser.username,0,1))}">G</div>
-            <div>
-                <h2 style="margin:.2rem 0;" th:text="${profileUser.username}">gracz</h2>
-                <p class="muted" th:text="${profileUser.firstName} + ' ' + ${profileUser.lastName}">Imie</p>
-                <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem;">
-                    <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
-                    <span class="elo-pill" th:if="${stats != null}"><i class="fa-solid fa-bolt"></i> <span th:text="${stats.eloPoints}">1000</span> ELO</span>
-                    <span th:if="${profileUser.verified}" class="badge badge-ok">zweryfikowany</span>
+        <!-- PROFILE HEADER (FACEIT style) -->
+        <div class="lp-ph" style="margin-bottom:24px;">
+            <div class="lp-ph-banner"
+                 th:style="${profileUser.bannerUrl != null and !#strings.isEmpty(profileUser.bannerUrl)} ?
+                     'background:url(\'' + ${profileUser.bannerUrl} + '\') center/cover no-repeat;' : ''">
+            </div>
+            <div class="lp-ph-row">
+                <div class="lp-ph-identity">
+                    <div class="lp-ph-avatar profile-avatar-frame">
+                        <img th:src="@{/api/avatar/{u}(u=${profileUser.username})}" alt="Awatar"
+                             width="120" height="120" loading="lazy"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <span style="display:none;font-family:var(--font-display);font-size:48px;font-weight:800;color:#fff;"
+                              th:text="${#strings.toUpperCase(#strings.substring(profileUser.username,0,1))}">G</span>
+                    </div>
+                    <div class="lp-ph-details">
+                        <h2 th:text="${profileUser.username}">gracz</h2>
+                        <p class="lp-role" th:text="${profileUser.role.displayName}">Rola</p>
+                        <p th:if="${profileUser.bio != null and !#strings.isEmpty(profileUser.bio)}"
+                           style="font-size:.83rem;color:#475569;margin:3px 0 0;max-width:400px;"
+                           th:text="${profileUser.bio}"></p>
+                        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+                            <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
+                            <span class="elo-pill" th:if="${stats != null}"><i class="fa-solid fa-bolt"></i> <span th:text="${stats.eloPoints}">1000</span> ELO</span>
+                            <span th:if="${profileUser.verified}" class="badge badge-ok">zweryfikowany</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section class="stat-grid" th:if="${stats != null}">
-            <div class="stat"><div class="value" th:text="${stats.gamesPlayed}">0</div><div class="label">Rozegrane mecze</div></div>
-            <div class="stat"><div class="value win" th:text="${stats.gamesWon}">0</div><div class="label">Wygrane</div></div>
-            <div class="stat"><div class="value gold" th:text="${stats.winRate} + '%'">0%</div><div class="label">Win rate</div></div>
-            <div class="stat"><div class="value" th:text="${stats.winStreak}">0</div><div class="label">Seria zwyciestw</div></div>
-        </section>
+        <!-- CONTENT GRID -->
+        <div class="lp-pg">
+            <!-- SIDEBAR: statystyki -->
+            <aside class="lp-sidebar">
+                <div class="lp-stat-panel" th:if="${stats != null}">
+                    <div class="lp-s-row">
+                        <span class="lp-s-lbl">ELO</span>
+                        <span class="lp-s-val green" th:text="${stats.eloPoints}">1000</span>
+                    </div>
+                    <div class="lp-s-row">
+                        <span class="lp-s-lbl">Mecze</span>
+                        <span class="lp-s-val" th:text="${stats.gamesPlayed}">0</span>
+                    </div>
+                    <div class="lp-s-row">
+                        <span class="lp-s-lbl">Wygrane</span>
+                        <span class="lp-s-val green" th:text="${stats.gamesWon}">0</span>
+                    </div>
+                    <div class="lp-s-row">
+                        <span class="lp-s-lbl">Win rate</span>
+                        <span class="lp-s-val" th:text="${stats.winRate} + '%'">0%</span>
+                    </div>
+                    <div class="lp-s-row">
+                        <span class="lp-s-lbl">Seria zwyciestw</span>
+                        <span class="lp-s-val" th:text="${stats.winStreak}">0</span>
+                    </div>
+                </div>
+                <div class="lp-mini-panel" th:if="${stats == null}">
+                    <p class="muted" style="margin:0;font-size:.85rem;">Brak statystyk.</p>
+                </div>
+            </aside>
 
-        <h2 style="margin-top:1.5rem;">Historia meczow</h2>
-        <table>
-            <caption class="sr-only">Historia rozegranych meczow</caption>
-            <thead>
-            <tr>
-                <th scope="col">Data</th><th scope="col">Wynik</th>
-                <th scope="col">Miejsce</th><th scope="col">Graczy</th>
-                <th scope="col">Siano</th><th scope="col">ELO</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="m : ${matches}">
-                <td th:text="${#temporals.format(m.playedAt,'dd.MM.yyyy')}">-</td>
-                <td><span th:if="${m.won}" class="result-w">WYGRANA</span>
-                    <span th:unless="${m.won}" class="result-l">PRZEGRANA</span></td>
-                <td th:text="${m.placement} + '/' + ${m.playersCount}">-</td>
-                <td th:text="${m.playersCount}">-</td>
-                <td th:text="${m.finalCash} + ' PLN'">-</td>
-                <td><span th:class="${m.eloChange >= 0} ? 'elo-up' : 'elo-down'"
-                          th:text="(${m.eloChange >= 0} ? '+' : '') + ${m.eloChange}">+0</span></td>
-            </tr>
-            <tr th:if="${matches.isEmpty()}">
-                <td colspan="6" class="muted">Brak rozegranych meczow.</td>
-            </tr>
-            </tbody>
-        </table>
+            <!-- MAIN: historia meczów -->
+            <div class="lp-main">
+                <div class="lp-sc">
+                    <div class="lp-sc-head">
+                        <h3>Historia meczów</h3>
+                        <span th:text="${matches.size()} + ' meczy'">0 meczy</span>
+                    </div>
+                    <div class="lp-match-list" th:if="${!matches.isEmpty()}">
+                        <div class="lp-m-card" th:each="m : ${matches}">
+                            <span class="lp-m-result" th:classappend="${m.won} ? ' lp-m-win' : ' lp-m-loss'"
+                                  th:text="${m.won} ? 'WIN' : 'LOSS'">WIN</span>
+                            <div class="lp-m-info">
+                                <div class="lp-m-opp" th:text="${m.boardName}">Kampus PB</div>
+                                <div class="lp-m-date" th:text="${#temporals.format(m.playedAt,'dd.MM.yyyy HH:mm')} + ' · ' + ${m.durationMinutes} + ' min'">01.01.2026</div>
+                            </div>
+                            <div class="lp-m-elo"
+                                 th:classappend="${m.eloChange >= 0} ? ' lp-elo-pos' : ' lp-elo-neg'"
+                                 th:text="(${m.eloChange >= 0} ? '+' : '') + ${m.eloChange} + ' ELO'">+20 ELO</div>
+                            <div class="lp-m-place"
+                                 th:text="${m.placement} + '. / ' + ${m.playersCount} + ' graczy'">1. / 4 graczy</div>
+                        </div>
+                    </div>
+                    <p class="muted" th:if="${matches.isEmpty()}" style="margin:0;">
+                        Brak rozegranych meczów.
+                    </p>
+                </div>
+            </div>
+        </div>
+
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
+</div>
+
+<footer th:replace="~{fragments/layout :: lp-footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
 </body>
 </html>

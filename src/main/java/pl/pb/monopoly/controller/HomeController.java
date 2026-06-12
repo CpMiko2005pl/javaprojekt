@@ -70,7 +70,11 @@ public class HomeController {
         model.addAttribute("user", user);
         model.addAttribute("stats", user.getStatistics());
         model.addAttribute("matches", matchHistoryRepository.findByUserIdOrderByPlayedAtDesc(user.getId()));
-        model.addAttribute("activeSessions", gameService.myActiveSessions(user.getUsername()));
+        var activeSessions = gameService.myActiveSessions(user.getUsername());
+        model.addAttribute("activeSessions", activeSessions);
+        model.addAttribute("gameUrl", activeSessions.isEmpty()
+                ? "/game"
+                : "/game/" + activeSessions.get(0).getId());
         model.addAttribute("canSpin", wheelService.canSpinToday(user.getUsername()));
         model.addAttribute("friends", friendService.friendsOf(user.getUsername()));
         model.addAttribute("requests", friendService.pendingFor(user.getUsername()));
