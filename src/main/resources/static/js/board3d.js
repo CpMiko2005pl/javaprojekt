@@ -2,6 +2,7 @@
    spojne ciemne sukno + drewniana rama, czytelne pola z opcja PNG, paski wlasciciela. */
 (function () {
     "use strict";
+    console.info("[board3d] build 20250612-buyfix");
 
     var main = document.getElementById("main");
     if (!main) return;

@@ -7,8 +7,10 @@ import pl.pb.monopoly.domain.GamePlayer;
 import pl.pb.monopoly.domain.GameSession;
 import pl.pb.monopoly.repository.GameSessionRepository;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,6 +39,8 @@ public class BotAutoplayService {
     private final GameSessionRepository sessionRepository;
     private final GameService gameService;
     private final ScheduledExecutorService scheduler;
+    /** Anuluj poprzedni timer sesji — bez tego stare auto-skipy kasuja aktywne kupno. */
+    private final ConcurrentHashMap<Long, ScheduledFuture<?>> pendingTasks = new ConcurrentHashMap<>();
 
     public BotAutoplayService(GameSessionRepository sessionRepository,
                               @Lazy GameService gameService) {
@@ -72,12 +76,12 @@ public class BotAutoplayService {
                         .findFirst().orElse(null);
                 if (debtor == null) return;
                 if (debtor.getUser() == null) {
-                    scheduler.schedule(
-                            () -> safeCall(() -> gameService.resolvePaymentAsBot(sessionId, debtorId, snapAmount)),
+                    scheduleOnce(sessionId,
+                            () -> gameService.resolvePaymentAsBot(sessionId, debtorId, snapAmount),
                             BOT_DECISION_DELAY_MS, TimeUnit.MILLISECONDS);
                 } else {
-                    scheduler.schedule(
-                            () -> safeCall(() -> gameService.autoPaymentTimeout(sessionId, snapAmount)),
+                    scheduleOnce(sessionId,
+                            () -> gameService.autoPaymentTimeout(sessionId, snapAmount),
                             HUMAN_PAYMENT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 }
                 return;
@@ -87,8 +91,8 @@ public class BotAutoplayService {
             if (s.getPendingUpgradePos() != null) {
                 int snapUpgradePos = s.getPendingUpgradePos();
                 Long snapUpgradePlayer = s.getPendingUpgradePlayerId();
-                scheduler.schedule(
-                        () -> safeCall(() -> gameService.autoUpgradeTimeout(sessionId, snapUpgradePos, snapUpgradePlayer)),
+                scheduleOnce(sessionId,
+                        () -> gameService.autoUpgradeTimeout(sessionId, snapUpgradePos, snapUpgradePlayer),
                         15, TimeUnit.SECONDS);
                 return;
             }
@@ -103,14 +107,12 @@ public class BotAutoplayService {
                 if (decider == null) return;
                 int snapPos = s.getPendingPurchasePos();
                 if (decider.getUser() == null) {
-                    // Bot decyduje (cala logika w GameService.botDecide w nowej transakcji)
-                    scheduler.schedule(
-                            () -> safeCall(() -> gameService.botDecide(sessionId, decider.getId(), snapPos)),
+                    scheduleOnce(sessionId,
+                            () -> gameService.botDecide(sessionId, decider.getId(), snapPos),
                             BOT_DECISION_DELAY_MS, TimeUnit.MILLISECONDS);
                 } else {
-                    // Czlowiek - 10s na decyzje, potem auto-skip
-                    scheduler.schedule(
-                            () -> safeCall(() -> gameService.autoSkipTimeout(sessionId, snapPos)),
+                    scheduleOnce(sessionId,
+                            () -> gameService.autoSkipTimeout(sessionId, snapPos),
                             HUMAN_DECISION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 }
                 return;
@@ -120,12 +122,28 @@ public class BotAutoplayService {
             GamePlayer current = s.getPlayers().get(s.getCurrentTurn() % s.getPlayers().size());
             if (current.getUser() == null && !current.isBankrupt()) {
                 Long botId = current.getId();
-                scheduler.schedule(
-                        () -> safeCall(() -> gameService.rollAsBot(sessionId, botId)),
+                scheduleOnce(sessionId,
+                        () -> gameService.rollAsBot(sessionId, botId),
                         BOT_ROLL_DELAY_MS, TimeUnit.MILLISECONDS);
             }
         } catch (Exception ignored) {
             // best-effort: bledy nie powinny wywalac silnika gry
+        }
+    }
+
+    private void scheduleOnce(Long sessionId, Runnable task, long delay, TimeUnit unit) {
+        cancelPending(sessionId);
+        ScheduledFuture<?> future = scheduler.schedule(() -> {
+            pendingTasks.remove(sessionId);
+            safeCall(task);
+        }, delay, unit);
+        pendingTasks.put(sessionId, future);
+    }
+
+    private void cancelPending(Long sessionId) {
+        ScheduledFuture<?> existing = pendingTasks.remove(sessionId);
+        if (existing != null) {
+            existing.cancel(false);
         }
     }
 
