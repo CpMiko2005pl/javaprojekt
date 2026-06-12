@@ -1,5 +1,7 @@
 package pl.pb.monopoly.service;
 
+
+
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,46 +79,46 @@ public class GameService {
     };
 
     public static final String[] TILE_EFFECTS = {
-            "Przejscie: +200 PLN",
-            "Nieruchomosc — 140 PLN",
+            "Stan na START: +500 PLN! Przejscie: +300 PLN",
+            "Nieruchomosc — 140 PLN / czynsz 21",
             "Stypendium +200 PLN",
-            "Nieruchomosc — 140 PLN",
+            "Nieruchomosc — 140 PLN / czynsz 21",
             "Oplata — 200 PLN",
-            "Dworzec — czynsz x25",
-            "Wydzial — 280 PLN / czynsz 24",
+            "Dworzec — czynsz 50/100/200/400",
+            "Wydzial — 280 PLN / czynsz 36",
             "Losuj karte zdarzenia",
-            "Wydzial — 260 PLN / czynsz 22",
-            "Wydzial — 260 PLN / czynsz 22",
+            "Wydzial — 260 PLN / czynsz 33",
+            "Wydzial — 260 PLN / czynsz 33",
             "WIEZIENIE: lapowka 100 PLN",
-            "Nieruchomosc — 180 PLN",
-            "Wydzial — 240 PLN / czynsz 20",
-            "Nieruchomosc — 160 PLN",
-            "Biblioteka — 220 PLN",
-            "Dworzec — czynsz x25",
-            "W-8 Informatyki — 320 PLN",
+            "Nieruchomosc — 180 PLN / czynsz 27",
+            "Wydzial — 240 PLN / czynsz 30",
+            "Nieruchomosc — 160 PLN / czynsz 24",
+            "Biblioteka — 220 PLN / czynsz 33",
+            "Dworzec — czynsz 50/100/200/400",
+            "W-8 Informatyki — 320 PLN / czynsz 48",
             "Stypendium +200 PLN",
-            "Wydzial — 240 PLN",
-            "Wydzial — 220 PLN",
+            "Wydzial — 240 PLN / czynsz 36",
+            "Wydzial — 220 PLN / czynsz 33",
             "Postoj — bez oplaty",
-            "Nieruchomosc — 300 PLN",
+            "Nieruchomosc — 300 PLN / czynsz 45",
             "Losuj karte zdarzenia",
-            "Nieruchomosc — 260 PLN",
-            "Rektorat — 350 PLN",
-            "Dworzec — czynsz x25",
-            "Nieruchomosc — 280 PLN",
-            "Nieruchomosc — 260 PLN",
-            "Urzadzenia — czynsz x4",
-            "Nieruchomosc — 240 PLN",
+            "Nieruchomosc — 260 PLN / czynsz 39",
+            "Rektorat — 350 PLN / czynsz 53",
+            "Dworzec — czynsz 50/100/200/400",
+            "Nieruchomosc — 280 PLN / czynsz 42",
+            "Nieruchomosc — 260 PLN / czynsz 39",
+            "Urzadzenia — czynsz x6 oczek",
+            "Nieruchomosc — 240 PLN / czynsz 36",
             "Idz na Dziekanat (poz. 10)",
-            "Nieruchomosc — 200 PLN",
-            "Nieruchomosc — 180 PLN",
+            "Nieruchomosc — 200 PLN / czynsz 30",
+            "Nieruchomosc — 180 PLN / czynsz 27",
             "Stypendium +200 PLN",
-            "Gmach Glowny — 400 PLN",
-            "Dworzec — czynsz x25",
+            "Gmach Glowny — 400 PLN / czynsz 60",
+            "Dworzec — czynsz 50/100/200/400",
             "Losuj karte zdarzenia",
-            "Aula — 380 PLN",
+            "Aula — 380 PLN / czynsz 57",
             "Oplata — 100 PLN",
-            "Bonus okragowy +200 PLN"
+            "Meta — Bonus okrazenia +200 PLN"
     };
 
     /** Ceny zakupu pol. -1 = nie do kupienia. */
@@ -129,10 +131,10 @@ public class GameService {
 
     /** Bazowy czynsz (gdy gracz posiada pojedyncze pole). 0 = nie do kupienia. */
     public static final int[] TILE_RENT = {
-            0, 14, 0, 14, 0, 25, 24, 0, 22, 22,
-            0, 18, 20, 16, 22, 25, 32, 0, 24, 22,
-            0, 30, 0, 26, 35, 25, 28, 26, 15, 24,
-            0, 20, 18, 0, 40, 25, 0, 38, 0, 0
+            0, 21, 0, 21, 0, 38, 36, 0, 33, 33,
+            0, 27, 30, 24, 33, 38, 48, 0, 36, 33,
+            0, 45, 0, 39, 53, 38, 42, 39, 23, 36,
+            0, 30, 27, 0, 60, 38, 0, 57, 0, 0
     };
 
     public static final int POS_START = 0;
@@ -398,8 +400,8 @@ public class GameService {
                 .append(d1).append("+").append(d2).append("=").append(steps).append(". ");
 
         if (oldPos + steps >= 40) {
-            current.setCash(current.getCash() + 200);
-            msg.append("Przejscie przez START (+200 PLN). ");
+            current.setCash(current.getCash() + 300);
+            msg.append("Przejscie przez START (+300 PLN). ");
         }
 
         if (newPos == POS_GO_TO_JAIL) {
@@ -468,10 +470,10 @@ public class GameService {
                         session.setPendingUpgradePlayerId(current.getId());
                         session.setPendingUpgradeCost(upgradeCost);
                         int newRent = computeRentForLevel(newPos, level + 1);
-                        msg.append("Odwiedzasz to pole ponownie! Mozesz ulepszyc do ")
-                                .append(level == 0 ? "Domku" : "Hotelu").append(" za ")
-                                .append(upgradeCost).append(" PLN (nowy czynsz: ")
-                                .append(newRent).append(" PLN). ");
+                        msg.append("Odwiedzasz swoje pole ponownie! Mozesz ulepszyc do ")
+                                .append(level == 0 ? "Domku (czynsz x3)" : "Hotelu (czynsz x6)")
+                                .append(" za ").append(upgradeCost)
+                                .append(" PLN (nowy czynsz: ").append(newRent).append(" PLN). ");
                     }
                 }
             }
@@ -796,6 +798,11 @@ public class GameService {
 
     private void applyTileEffect(GamePlayer player, int pos, int diceSum, GameSession session, StringBuilder msg) {
         switch (pos) {
+            case POS_START -> {
+                // Lądowanie dokładnie na START — bonus ratunkowy nieruchomości
+                player.setCash(player.getCash() + 200);
+                msg.append("STAN NA START — Bonus ratunkowy nieruchomosci (+200 PLN EXTRA, lacznie +500 PLN)! ");
+            }
             case 4 -> {
                 chargePlayer(session, player, 200, null, "Oplata za warunki", msg);
                 msg.append("Oplata za warunki (-200 PLN). ");
@@ -810,6 +817,10 @@ public class GameService {
             case 38 -> {
                 chargePlayer(session, player, 100, null, "Oplata luksusowa", msg);
                 msg.append("Oplata luksusowa (-100 PLN). ");
+            }
+            case 39 -> {
+                player.setCash(player.getCash() + 200);
+                msg.append("Meta — Bonus okrazenia (+200 PLN). ");
             }
             case 2, 17, 33 -> {
                 player.setCash(player.getCash() + 200);
@@ -838,8 +849,8 @@ public class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("Nie grasz w tej sesji"));
     }
 
-    /** Czynsz dworcow — jak w klasycznym Monopoly: 25 / 50 / 100 / 200. */
-    private static final int[] STATION_RENT = {0, 25, 50, 100, 200};
+    /** Czynsz dworcow — 50 / 100 / 200 / 400 PLN za 1–4 dworce. */
+    private static final int[] STATION_RENT = {0, 50, 100, 200, 400};
 
     /** Liczy czynsz uwzgledniajac poziom ulepszenia. */
     private int computeRent(GameSession session, GamePlayer owner, int pos, int diceSum) {
@@ -851,7 +862,7 @@ public class GameService {
             return STATION_RENT[Math.min(stations, STATION_RENT.length - 1)];
         }
         if (pos == POS_UTILITY) {
-            return diceSum * 4;
+            return diceSum * 6;
         }
         int level = owner.getPropertyLevels().getOrDefault(pos, 0);
         return computeRentForLevel(pos, level);
@@ -861,8 +872,8 @@ public class GameService {
     static int computeRentForLevel(int pos, int level) {
         int base = TILE_RENT[pos];
         return switch (level) {
-            case 1 -> base * 2;
-            case 2 -> base * 4;
+            case 1 -> base * 3;
+            case 2 -> base * 6;
             default -> base;
         };
     }
