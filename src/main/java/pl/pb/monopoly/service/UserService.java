@@ -93,6 +93,36 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    /** Aktualizacja danych profilu (email, bio, banner). */
+    @Transactional
+    public void updateProfile(String username, String newEmail, String bio, String bannerUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika"));
+        if (!user.getEmail().equalsIgnoreCase(newEmail)
+                && userRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("Ten adres e-mail jest już zajęty.");
+        }
+        if (newEmail != null && !newEmail.isBlank()) {
+            user.setEmail(newEmail.strip());
+        }
+        user.setBio(bio != null ? bio.strip() : null);
+        user.setBannerUrl(bannerUrl != null && !bannerUrl.isBlank() ? bannerUrl.strip() : null);
+    }
+
+    /** Zmiana hasla po weryfikacji biezacego. */
+    @Transactional
+    public void changePassword(String username, String currentPwd, String newPwd) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika"));
+        if (!passwordEncoder.matches(currentPwd, user.getPassword())) {
+            throw new IllegalArgumentException("Aktualne hasło jest niepoprawne.");
+        }
+        if (newPwd == null || newPwd.length() < 6) {
+            throw new IllegalArgumentException("Nowe hasło musi mieć co najmniej 6 znaków.");
+        }
+        user.setPassword(passwordEncoder.encode(newPwd));
+    }
+
     /** Dane do uslugi REST: ranking najlepszych graczy wg punktow ELO. */
     @Transactional(readOnly = true)
     public List<RankingEntryDto> topPlayers() {

@@ -75,6 +75,14 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Adres URL banera profilowego (opcjonalne). */
+    @Column(name = "banner_url", length = 512)
+    private String bannerUrl;
+
+    /** Krotki opis gracza widoczny na profilu publicznym. */
+    @Column(name = "bio", length = 200)
+    private String bio;
+
     // --- KOMPOZYCJA ---
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -207,5 +215,21 @@ public class User {
 
     public void setGameLogs(List<GameLog> gameLogs) {
         this.gameLogs = gameLogs;
+    }
+
+    public String getBannerUrl() {
+        return bannerUrl;
+    }
+
+    public void setBannerUrl(String bannerUrl) {
+        this.bannerUrl = bannerUrl;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 }

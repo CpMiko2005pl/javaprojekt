@@ -18,7 +18,10 @@
 
     <!-- PROFILE HEADER -->
     <div class="lp-ph">
-        <div class="lp-ph-banner"></div>
+        <div class="lp-ph-banner"
+             th:style="${user.bannerUrl != null and !#strings.isEmpty(user.bannerUrl)} ?
+                 'background:url(\'' + ${user.bannerUrl} + '\') center/cover no-repeat;' : ''">
+        </div>
         <div class="lp-ph-row">
             <div class="lp-ph-identity">
                 <div class="lp-ph-avatar profile-avatar-frame"
@@ -32,6 +35,9 @@
                 <div class="lp-ph-details">
                     <h2 th:text="${user.username}">gracz</h2>
                     <p class="lp-role" th:text="${user.role.displayName}">Rola</p>
+                    <p th:if="${user.bio != null and !#strings.isEmpty(user.bio)}"
+                       style="font-size:.83rem;color:#475569;margin:3px 0 0;max-width:400px;"
+                       th:text="${user.bio}"></p>
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
                         <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
                         <span class="elo-pill" th:if="${stats != null}"><i class="fa-solid fa-bolt"></i> <span th:text="${stats.eloPoints}">1000</span> ELO</span>
@@ -41,8 +47,14 @@
                 </div>
             </div>
             <div class="lp-ph-actions">
-                <a th:href="@{/game}" class="lp-btn-play" style="animation:none;font-size:13px;padding:10px 20px;">
-                    <i class="fa-solid fa-play"></i> Graj teraz
+                <a th:href="${gameUrl}"
+                   class="lp-btn-play" style="animation:none;font-size:13px;padding:10px 20px;">
+                    <i class="fa-solid fa-play"></i>
+                    <span th:if="${activeSessions.isEmpty()}">Graj teraz</span>
+                    <span th:unless="${activeSessions.isEmpty()}">Wróć do gry</span>
+                </a>
+                <a th:href="@{/settings}" class="lp-btn-outline" style="font-size:13px;padding:9px 16px;">
+                    <i class="fa-solid fa-gear"></i> Ustawienia
                 </a>
                 <a th:if="${isMod}" th:href="@{/moderator}" class="lp-btn-outline" style="font-size:13px;padding:9px 16px;">
                     <i class="fa-solid fa-shield-halved"></i> Moderacja
@@ -108,7 +120,8 @@
                         <div class="lp-q-icon purple"><i class="fa-solid fa-dice"></i></div>
                         <div class="lp-q-text"><strong>Lobby gry</strong><span>Stwórz pokój lub dołącz</span></div>
                     </a>
-                    <a th:href="@{/properties}" class="lp-q-item">
+                    <a sec:authorize="hasAnyRole('ADMIN','MODERATOR')"
+                       th:href="@{/properties}" class="lp-q-item">
                         <div class="lp-q-icon blue"><i class="fa-solid fa-building"></i></div>
                         <div class="lp-q-text"><strong>Nieruchomości</strong><span>Lista pól planszy</span></div>
                     </a>

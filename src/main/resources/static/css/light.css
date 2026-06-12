@@ -288,15 +288,22 @@ body.light-page .lootbox-section {
 ─────────────────────────────────────────────── */
 .lp-faceit { max-width:1180px; margin:28px auto 80px; padding:0 1.5rem; }
 .lp-ph { border-radius:22px; overflow:hidden; background:rgba(255,255,255,.72); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,.88); box-shadow:var(--lp-shadow); margin-bottom:24px; }
-.lp-ph-banner { height:185px; background:linear-gradient(135deg,rgba(0,166,81,.22) 0%,rgba(106,27,154,.28) 100%); position:relative; }
-.lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 55%,rgba(255,255,255,.35)); }
-.lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 24px; transform:translateY(-44px); margin-bottom:-44px; flex-wrap:wrap; gap:13px; }
-.lp-ph-identity { display:flex; align-items:flex-end; gap:17px; }
-.lp-ph-avatar { width:120px; height:120px; border-radius:22px; background:var(--lp-gr); border:5px solid #fff; box-shadow:0 8px 28px rgba(0,166,81,.26); display:grid; place-items:center; font-family:var(--font-display); font-size:46px; font-weight:800; color:#fff; overflow:hidden; flex-shrink:0; }
+.lp-ph-banner { height:160px; background:linear-gradient(135deg,rgba(0,166,81,.22) 0%,rgba(106,27,154,.28) 100%); position:relative; }
+.lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(255,255,255,.28)); pointer-events:none; }
+
+/* Row no longer overlaps banner — avatar pulled up with negative margin instead */
+.lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 28px 24px; flex-wrap:wrap; gap:13px; }
+.lp-ph-identity { display:flex; align-items:flex-start; gap:17px; }
+
+/* Avatar sticks up into the banner via negative margin-top */
+.lp-ph-avatar { width:120px; height:120px; border-radius:22px; background:var(--lp-gr); border:5px solid #fff; box-shadow:0 8px 28px rgba(0,166,81,.26); display:grid; place-items:center; font-family:var(--font-display); font-size:46px; font-weight:800; color:#fff; overflow:hidden; flex-shrink:0; margin-top:-56px; }
 .lp-ph-avatar img { width:100%; height:100%; object-fit:cover; }
-.lp-ph-details h2 { font-size:1.85rem; font-family:var(--font-display); margin-bottom:3px; color:#0f172a; letter-spacing:-0.02em; }
-.lp-ph-details .lp-role { color:#6A1B9A; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:1px; }
-.lp-ph-actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+/* Details always rendered in the white area below the banner */
+.lp-ph-details { padding-top:6px; }
+.lp-ph-details h2 { font-size:1.85rem; font-family:var(--font-display); margin:0 0 3px; color:#0f172a; letter-spacing:-0.02em; }
+.lp-ph-details .lp-role { color:#6A1B9A; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0; }
+.lp-ph-actions { display:flex; gap:8px; flex-wrap:wrap; align-self:flex-end; padding-bottom:4px; }
 
 .lp-pg { display:grid; grid-template-columns:295px 1fr; gap:20px; }
 @media(max-width:860px){ .lp-pg{grid-template-columns:1fr;} }
