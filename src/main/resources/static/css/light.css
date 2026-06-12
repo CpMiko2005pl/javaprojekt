@@ -21,8 +21,8 @@ body.light-page { background:#eef5f2; color:#0f172a; }
 body.light-page::-webkit-scrollbar-track  { background:#eef5f2; }
 body.light-page::-webkit-scrollbar-thumb  { background:rgba(0,166,81,0.22); border-radius:4px; }
 body.light-page::-webkit-scrollbar-thumb:hover { background:#00A651; }
-body.light-page a        { color:#00A651; }
-body.light-page a:hover  { color:#20C96B; }
+body.light-page a        { color:#000000; }
+body.light-page a:hover  { color:#000000; }
 body.light-page h1, body.light-page h2, body.light-page h3 { color:#0f172a; }
 body.light-page .muted   { color:#475569; }
 
@@ -292,7 +292,7 @@ body.light-page .lootbox-section {
 .lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(255,255,255,.28)); pointer-events:none; }
 
 /* Row no longer overlaps banner — avatar pulled up with negative margin instead */
-.lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 28px 24px; flex-wrap:wrap; gap:13px; }
+.lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 28px 24px; flex-wrap:wrap; gap:15px; }
 .lp-ph-identity { display:flex; align-items:flex-start; gap:17px; }
 
 /* Avatar sticks up into the banner via negative margin-top */
