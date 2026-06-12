@@ -36,7 +36,7 @@
                     <h2 th:text="${user.username}">gracz</h2>
                     <p class="lp-role" th:text="${user.role.displayName}">Rola</p>
                     <p th:if="${user.bio != null and !#strings.isEmpty(user.bio)}"
-                       style="font-size:.83rem;color:#475569;margin:3px 0 0;max-width:400px;"
+                       style="font-size:.83rem;color:#475569;margin:auto 0 0;max-width:auto;"
                        th:text="${user.bio}"></p>
                     <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
                         <span class="level-badge" th:if="${stats != null}">LVL <span th:text="${stats.level}">1</span></span>
