@@ -114,6 +114,9 @@
         openBtn.disabled = true;
         if (resultEl) resultEl.classList.remove("visible");
         if (resultEl) resultEl.innerHTML = "";
+        /* Pokazuje karuzele jesli jest ukryta */
+        var carousel = document.getElementById("lootboxCarousel");
+        if (carousel) carousel.style.display = "block";
 
         fetch("/lootbox/open", { method: "POST", headers: authHeaders(false) })
             .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
@@ -128,6 +131,8 @@
                 spinCarousel(res.data.strip, winnerIdx, function () {
                     showResult(res.data.winner);
                     if (availableBadge) availableBadge.textContent = res.data.availableBoxes;
+                    var boxCountLabel = document.getElementById("boxCountLabel");
+                    if (boxCountLabel) boxCountLabel.textContent = res.data.availableBoxes;
                     if (inventoryGrid) {
                         var card = buildInventoryCard(res.data.winner);
                         card.classList.add("just-obtained");
@@ -168,5 +173,8 @@
             '</div>' +
             '</div>';
         resultEl.classList.add("visible");
+        if (typeof showInventoryToast === "function") {
+            showInventoryToast("Wylosowano: " + item.name, false);
+        }
     }
 })();

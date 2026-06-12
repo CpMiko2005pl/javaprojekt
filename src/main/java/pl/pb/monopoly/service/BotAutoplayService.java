@@ -83,7 +83,17 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 2) Aktywna decyzja kupna - zaplanuj akcje decydenta
+            // 2a) Aktywne ulepszenie — po 15s auto-skip (migawka stanu chroni przed starym timerem)
+            if (s.getPendingUpgradePos() != null) {
+                int snapUpgradePos = s.getPendingUpgradePos();
+                Long snapUpgradePlayer = s.getPendingUpgradePlayerId();
+                scheduler.schedule(
+                        () -> safeCall(() -> gameService.autoUpgradeTimeout(sessionId, snapUpgradePos, snapUpgradePlayer)),
+                        15, TimeUnit.SECONDS);
+                return;
+            }
+
+            // 2b) Aktywna decyzja kupna - zaplanuj akcje decydenta
             if (s.getPendingPurchasePos() != null) {
                 Long deciderId = s.getPendingDeciderId();
                 if (deciderId == null) return;

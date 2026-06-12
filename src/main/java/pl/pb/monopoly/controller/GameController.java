@@ -1,5 +1,6 @@
 package pl.pb.monopoly.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -28,11 +29,30 @@ public class GameController {
     }
 
     @GetMapping
-    public String lobby(Authentication auth, Model model) {
+    public String lobby(Authentication auth, Model model, HttpServletRequest request) {
         String me = auth.getName();
         model.addAttribute("activeSessions", gameService.myActiveSessions(me));
         model.addAttribute("friends", friendService.friendsOf(me));
+        model.addAttribute("serverUrl", publicBaseUrl(request));
         return "game/lobby";
+    }
+
+    /** Adres serwera widoczny dla graczy (dziala za ngrok / reverse proxy). */
+    private static String publicBaseUrl(HttpServletRequest request) {
+        String scheme = request.getHeader("X-Forwarded-Proto");
+        if (scheme == null || scheme.isBlank()) {
+            scheme = request.getScheme();
+        }
+        String host = request.getHeader("X-Forwarded-Host");
+        if (host == null || host.isBlank()) {
+            host = request.getServerName();
+            int port = request.getServerPort();
+            boolean def = ("http".equals(scheme) && port == 80) || ("https".equals(scheme) && port == 443);
+            if (!def) {
+                host = host + ":" + port;
+            }
+        }
+        return scheme + "://" + host;
     }
 
     @PostMapping("/create")

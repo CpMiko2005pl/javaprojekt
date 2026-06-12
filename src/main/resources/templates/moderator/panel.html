@@ -3,33 +3,31 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Panel moderatora')}"></head>
-<body>
+<body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <main id="main">
     <div class="page-header">
         <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Moderacja</span>
         <h1>Panel moderatora</h1>
-        <p class="lead">Przeglad aktywnych gier, zarzadzanie sesjami i uzytkownikami.</p>
+        <p class="lead">Przeglad aktywnych gier, weryfikacja graczy i zarzadzanie sesjami.</p>
+        <div style="margin-top:.8rem;display:flex;gap:.5rem;">
+            <a th:href="@{/dashboard}" class="btn btn-secondary btn-small">
+                <i class="fa-solid fa-user"></i> Mój profil gracza
+            </a>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}" class="btn btn-small">
+                <i class="fa-solid fa-shield-halved"></i> Panel admina
+            </a>
+        </div>
     </div>
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 
-    <!-- Statystyki globalne -->
     <section class="stat-grid">
-        <div class="stat">
-            <div class="value" th:text="${activeSessions.size()}">0</div>
-            <div class="label">Aktywne gry</div>
-        </div>
-        <div class="stat">
-            <div class="value" th:text="${users.size()}">0</div>
-            <div class="label">Uzytkownikow</div>
-        </div>
-        <div class="stat">
-            <div class="value gold" th:text="${totalMatches}">0</div>
-            <div class="label">Wszystkich meczow</div>
-        </div>
+        <div class="stat"><div class="value" th:text="${activeSessions.size()}">0</div><div class="label">Aktywne gry</div></div>
+        <div class="stat"><div class="value" th:text="${users.size()}">0</div><div class="label">Uzytkownikow</div></div>
+        <div class="stat"><div class="value gold" th:text="${totalMatches}">0</div><div class="label">Wszystkich meczow</div></div>
     </section>
 
     <!-- Aktywne sesje gier -->
@@ -38,7 +36,7 @@
         <thead>
         <tr>
             <th scope="col">ID</th>
-            <th scope="col">Nazwa pokoju</th>
+            <th scope="col">Pokoj</th>
             <th scope="col">Kod</th>
             <th scope="col">Graczy</th>
             <th scope="col">Utworzona</th>
@@ -51,14 +49,13 @@
             <td th:text="${s.name}">Pokoj</td>
             <td><code th:text="${s.code}">ABCDEF</code></td>
             <td th:text="${s.players.size()}">0</td>
-            <td th:text="${#temporals.format(s.createdAt, 'dd.MM.yyyy HH:mm')}">01.01.2026</td>
-            <td>
+            <td th:text="${#temporals.format(s.createdAt, 'dd.MM.yyyy HH:mm')}">-</td>
+            <td style="display:flex;gap:.3rem;">
                 <a th:href="@{/game/{id}(id=${s.id})}" class="btn btn-secondary btn-small">
                     <i class="fa-solid fa-eye"></i> Podglad
                 </a>
                 <form th:action="@{/moderator/sessions/{id}/end(id=${s.id})}" method="post"
-                      class="inline-form"
-                      onsubmit="return confirm('Na pewno zakonczyc te sesje?');">
+                      class="inline-form" onsubmit="return confirm('Zakonczyc sesje?');">
                     <button type="submit" class="btn btn-danger btn-small">
                         <i class="fa-solid fa-stop"></i> Zakoncz
                     </button>
@@ -69,7 +66,7 @@
     </table>
     <p class="muted" th:if="${activeSessions.isEmpty()}">Brak aktywnych sesji.</p>
 
-    <!-- Lista uzytkownikow (uproszczona) -->
+    <!-- Lista uzytkownikow z akcjami weryfikacji -->
     <h2 style="margin-top:2rem;"><i class="fa-solid fa-users"></i> Uzytkownicy</h2>
     <table>
         <thead>
@@ -79,11 +76,16 @@
             <th scope="col">Rola</th>
             <th scope="col">Status</th>
             <th scope="col">ELO</th>
+            <th scope="col">Akcje</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="u : ${users}">
-            <td th:text="${u.username}">login</td>
+            <td>
+                <!-- BUG FIX: klikalne linki do profili graczy -->
+                <a th:href="@{/u/{u}(u=${u.username})}" target="_blank"
+                   style="font-weight:600;" th:text="${u.username}">login</a>
+            </td>
             <td th:text="${u.email}">email</td>
             <td>
                 <span th:text="${u.role.displayName}"
@@ -96,14 +98,19 @@
                 <span th:unless="${u.verified}" class="badge badge-no">nie</span>
             </td>
             <td th:text="${u.statistics != null} ? ${u.statistics.eloPoints} : '—'">1000</td>
+            <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                <form th:action="@{/moderator/users/{id}/verify(id=${u.id})}" method="post" class="inline-form">
+                    <input type="hidden" name="verified" th:value="${!u.verified}">
+                    <button type="submit" class="btn btn-secondary btn-small"
+                            th:text="${u.verified} ? 'Cofnij weryfikacje' : 'Zweryfikuj'">Zweryfikuj</button>
+                </form>
+                <a th:href="@{/u/{u}(u=${u.username})}" class="btn btn-ghost btn-small" target="_blank">
+                    <i class="fa-solid fa-user"></i>
+                </a>
+            </td>
         </tr>
         </tbody>
     </table>
-
-    <!-- Link do panelu admina jezeli admin -->
-    <div sec:authorize="hasRole('ADMIN')" style="margin-top:2rem;">
-        <a th:href="@{/admin/users}" class="btn"><i class="fa-solid fa-shield-halved"></i> Panel administratora</a>
-    </div>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

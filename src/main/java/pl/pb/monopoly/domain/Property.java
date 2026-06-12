@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Nieruchomosc na planszy (pole, ktore mozna kupic) wraz z cena i czynszem.
@@ -52,6 +53,10 @@ public class Property {
     @Max(5)
     @Column(nullable = false)
     private int houses = 0;
+
+    /** Data dodania nieruchomosci — wymagana do filtrowania wg daty. */
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
@@ -115,6 +120,9 @@ public class Property {
     public void setHouses(int houses) {
         this.houses = houses;
     }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public User getOwner() {
         return owner;

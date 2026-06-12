@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Pelny stan rozgrywki - REST, WebSocket i animacje na planszy 3D.
- * Zawiera dynamiczna mape wlasnosci pol oraz info o ewentualnym pendingPurchase
- * (decyzja kup/pomin) i wylosowanej karcie Szansy.
+ * Pelny stan rozgrywki — REST, WebSocket i animacje na planszy.
+ * myHandCards jest wypelniane TYLKO dla gracza, ktory robi zapytanie (pole prywatne).
  */
 public record GameStateDto(
         Long sessionId,
@@ -30,6 +29,8 @@ public record GameStateDto(
         List<Integer> tilePrices,
         ChanceCardDto chanceCard,
         Long winnerId,
-        String winnerName
+        String winnerName,
+        List<HandCardDto> myHandCards,
+        PendingUpgradeDto pendingUpgrade
 ) {
 }

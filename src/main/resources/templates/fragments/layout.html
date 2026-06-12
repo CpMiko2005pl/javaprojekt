@@ -8,8 +8,28 @@
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
     <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link rel="stylesheet" th:href="@{/css/light.css}">
+</head>
+
+<!-- Wariant dla strony startowej: dodatkowo home-page.css (styl commit8) -->
+<head th:fragment="head-home(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
+    <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link rel="stylesheet" th:href="@{/css/light.css}">
+    <link rel="stylesheet" th:href="@{/css/home-page.css}">
 </head>
 
 <body>
@@ -58,8 +78,39 @@
 
 <footer th:fragment="footer" class="footer">
     <p>Politechnika Monopoly &middot; Projekt studencki PB &middot;
-        Programowanie aplikacji WWW w Javie &middot;
         <span th:text="${#dates.year(#dates.createNow())}">2026</span></p>
+</footer>
+
+<footer th:fragment="lp-footer" class="lp-footer">
+    <div class="lp-footer-grid">
+        <div class="lp-footer-brand">
+            <h3>MONOPOLY PB</h3>
+            <p>Symulator ekonomiczny stworzony przez studentów Politechniki Białostockiej. Graj ze znajomymi i wspinaj się w rankingu ELO.</p>
+        </div>
+        <div class="lp-footer-col">
+            <h4>Gra</h4>
+            <ul>
+                <li><a th:href="@{/game}">Lobby</a></li>
+                <li><a th:href="@{/}">Strona główna</a></li>
+                <li><a th:href="@{/#ranking}">Ranking ELO</a></li>
+            </ul>
+        </div>
+        <div class="lp-footer-col">
+            <h4>Konto</h4>
+            <ul>
+                <li><a th:href="@{/register}">Rejestracja</a></li>
+                <li><a th:href="@{/login}">Logowanie</a></li>
+                <li><a th:href="@{/dashboard}">Mój profil</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="lp-footer-bottom">
+        <span>&copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> Monopoly PB. Projekt edukacyjny.</span>
+        <div class="lp-social">
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+            <a href="#"><i class="fa-brands fa-discord"></i></a>
+        </div>
+    </div>
 </footer>
 
 <script th:fragment="app-js" th:src="@{/js/app.js}"></script>

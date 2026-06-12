@@ -7,6 +7,10 @@
     if (!main) return;
 
     var sessionId = main.dataset.session;
+    /* BUG FIX: uzyj username z atrybutu HTML zamiast polegac na isMe z WS (ktore zawsze = false).
+       Dzieki temu fixIsMe dziala poprawnie nawet gdy WS message przyjdzie przed REST fetch. */
+    var myUsername = main.dataset.username || null;
+
     var container = document.getElementById("game-canvas-container");
     if (!container || typeof THREE === "undefined") return;
 
@@ -298,7 +302,9 @@
 
     function initThree() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x101820);
+        /* Jasny motyw (light-page) — jasne tlo sceny zamiast granatu */
+        var lightTheme = document.body.classList.contains("light-page");
+        scene.background = new THREE.Color(lightTheme ? 0xe9f2ec : 0x101820);
 
         var aspect = container.clientWidth / Math.max(container.clientHeight, 520);
         camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 200);
@@ -311,7 +317,7 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
-        scene.add(new THREE.HemisphereLight(0xffffff, 0x223344, 0.7));
+        scene.add(new THREE.HemisphereLight(0xffffff, lightTheme ? 0xcfe3d8 : 0x223344, lightTheme ? 0.85 : 0.7));
         var sun = new THREE.DirectionalLight(0xffffff, 0.85);
         sun.position.set(8, 22, 12);
         sun.castShadow = true;
@@ -542,10 +548,82 @@
         mesh.position.set(w.x + off.ox, y != null ? y : 0.4, w.z + off.oz);
     }
 
+    /* ===== PIONKI: model 3D /models/CornPawn.glb + kolorowa podstawka gracza.
+       Fallback (model jeszcze sie laduje / blad): dotychczasowy walec + kula. ===== */
+    var pawnTemplate = null;     /* znormalizowany wzorzec GLB do klonowania */
+    var PAWN_HEIGHT = 0.62;      /* docelowa wysokosc pionka w jednostkach planszy */
+
+    function loadPawnModel() {
+        if (typeof THREE.GLTFLoader === "undefined") return;
+        var loader = new THREE.GLTFLoader();
+        loader.load("/models/CornPawn.glb", function (gltf) {
+            var model = gltf.scene;
+            /* Normalizacja: skala do PAWN_HEIGHT, wysrodkowanie XZ, podstawa na y=0 */
+            var box = new THREE.Box3().setFromObject(model);
+            var size = new THREE.Vector3(); box.getSize(size);
+            model.scale.setScalar(PAWN_HEIGHT / Math.max(size.y, 0.0001));
+            box.setFromObject(model);
+            var center = new THREE.Vector3(); box.getCenter(center);
+            model.position.x -= center.x;
+            model.position.z -= center.z;
+            model.position.y -= box.min.y;
+            model.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+            pawnTemplate = new THREE.Group();
+            pawnTemplate.add(model);
+            /* Podmien pionki graczy, ktorzy sa juz na planszy */
+            Object.keys(playerMeshes).forEach(function (key) {
+                var group = playerMeshes[key];
+                setPawnVisual(group, group.userData.color);
+            });
+        }, undefined, function () { /* zostaja proste pionki */ });
+    }
+
+    /* Buduje/wymienia widok pionka w grupie gracza (dziecko [0] = cien, reszta = pionek). */
+    function setPawnVisual(group, colorHex) {
+        var col = new THREE.Color(colorHex || "#e91e63");
+        for (var i = group.children.length - 1; i >= 1; i--) group.remove(group.children[i]);
+        var visual = new THREE.Group();
+        if (pawnTemplate) {
+            var clone = pawnTemplate.clone(true);
+            clone.traverse(function (o) {
+                if (o.isMesh && o.material) {
+                    o.material = o.material.clone();
+                    /* delikatna poswiata w kolorze gracza — tekstura zostaje czytelna */
+                    if (o.material.emissive) o.material.emissive.copy(col).multiplyScalar(0.22);
+                }
+            });
+            visual.add(clone);
+            /* kolorowa podstawka identyfikujaca gracza */
+            var base = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.19, 0.21, 0.05, 20),
+                new THREE.MeshLambertMaterial({ color: col })
+            );
+            base.position.y = 0.025;
+            base.castShadow = true;
+            visual.add(base);
+        } else {
+            var body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.13, 0.17, 0.42, 16),
+                new THREE.MeshLambertMaterial({ color: col })
+            );
+            body.position.y = 0.21;
+            body.castShadow = true;
+            visual.add(body);
+            var head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.14, 16, 16),
+                new THREE.MeshLambertMaterial({ color: col })
+            );
+            head.position.y = 0.5;
+            head.castShadow = true;
+            visual.add(head);
+        }
+        group.add(visual);
+        group.userData.color = colorHex;
+    }
+
     function upsertPlayerMesh(p, index, pos) {
         var key = String(p.id);
         var mesh = playerMeshes[key];
-        var col = new THREE.Color(p.color || "#e91e63");
         if (!mesh) {
             mesh = new THREE.Group();
             var shadow = new THREE.Mesh(
@@ -555,25 +633,12 @@
             shadow.rotation.x = -Math.PI / 2;
             shadow.position.y = 0.005;
             mesh.add(shadow);
-            var body = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.13, 0.17, 0.42, 16),
-                new THREE.MeshLambertMaterial({ color: col })
-            );
-            body.position.y = 0.21;
-            body.castShadow = true;
-            mesh.add(body);
-            var head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.14, 16, 16),
-                new THREE.MeshLambertMaterial({ color: col })
-            );
-            head.position.y = 0.5;
-            head.castShadow = true;
-            mesh.add(head);
+            setPawnVisual(mesh, p.color);
             boardPivot.add(mesh);
             playerMeshes[key] = mesh;
-        } else {
-            mesh.children[1].material.color.copy(col);
-            mesh.children[2].material.color.copy(col);
+        } else if (mesh.userData.color !== p.color) {
+            /* zmiana koloru (np. zalozony item) — przebuduj pionek */
+            setPawnVisual(mesh, p.color);
         }
         /* Nie nadpisuj pozycji animowanego pionka - inaczej teleportuje sie podczas hopu. */
         if (!(mesh.userData && mesh.userData.animating)) {
@@ -918,10 +983,22 @@
     }
 
     function fixIsMe(state) {
-        if (myPlayerId == null) {
-            state.players.forEach(function (p) { if (p.isMe) myPlayerId = p.id; });
+        /* BUG FIX: identyfikuj gracza po username (pewne), nie po isMe z serwera (WS broadcast = null). */
+        if (myUsername) {
+            state.players.forEach(function (p) {
+                if (p.name === myUsername) {
+                    p.isMe = true;
+                    myPlayerId = p.id;
+                } else {
+                    p.isMe = false;
+                }
+            });
+        } else {
+            if (myPlayerId == null) {
+                state.players.forEach(function (p) { if (p.isMe) myPlayerId = p.id; });
+            }
+            state.players.forEach(function (p) { p.isMe = p.id === myPlayerId; });
         }
-        state.players.forEach(function (p) { p.isMe = p.id === myPlayerId; });
         state.myTurn = state.currentTurnPlayerId === myPlayerId;
         return state;
     }
@@ -1027,9 +1104,7 @@
         if (cornerBox) cornerBox.innerHTML = "";
         if (sel) sel.innerHTML = "";
 
-        var corners = ["bt-corner-tl", "bt-corner-tr", "bt-corner-bl", "bt-corner-br"];
-
-        state.players.forEach(function (p, idx) {
+        state.players.forEach(function (p) {
             var turn = state.currentTurnPlayerId === p.id;
             var chip = document.createElement("div");
             chip.className = "player-chip" + (turn ? " turn" : "") + (p.bankrupt ? " bankrupt" : "");
@@ -1042,16 +1117,19 @@
 
             if (cornerBox) {
                 var card = document.createElement("div");
-                card.className = "bt-player-card" + (turn ? " active" : "");
+                card.className = "bt-player-card" + (turn ? " active" : "") + (p.bankrupt ? " bankrupt" : "");
                 card.style.borderColor = p.color;
+                var nameHtml = p.bot
+                    ? '<strong>' + escapeHtml(p.name) + ' <span style="color:var(--slate-400);font-size:.7rem;">BOT</span></strong>'
+                    : '<strong><a href="/u/' + encodeURIComponent(p.name) + '" target="_blank" class="player-profile-link">' + escapeHtml(p.name) + '</a>' +
+                      (p.isMe ? ' <span style="color:var(--brand-emerald);font-size:.68rem;">Ty</span>' : '') +
+                      (p.bankrupt ? ' <span style="color:var(--brand-rose);font-size:.68rem;">💀</span>' : '') + '</strong>';
                 card.innerHTML =
                     '<div class="bt-player-avatar" style="background:' + p.color + '">' +
                     escapeHtml(p.name.charAt(0).toUpperCase()) + '</div>' +
-                    '<div class="bt-player-meta">' +
-                    '<strong>' + escapeHtml(p.name) + (p.isMe ? " - Ty" : "") + '</strong>' +
+                    '<div class="bt-player-meta">' + nameHtml +
                     '<span>' + formatCash(p.cash) + ' PLN</span>' +
                     '</div>';
-                card.classList.add(corners[idx % 4]);
                 cornerBox.appendChild(card);
             }
         });
@@ -1068,8 +1146,9 @@
         var online = document.getElementById("onlineCount");
         if (online) online.textContent = state.players.length;
 
+        /* BUG FIX: dodano pendingUpgrade do warunkow blokujacych przycisk */
         if (rollBtn) rollBtn.disabled = animating || !state.myTurn || !!state.pendingPurchase
-            || !!state.pendingPayment || state.status === "FINISHED";
+            || !!state.pendingPayment || !!state.pendingUpgrade || state.status === "FINISHED";
         updateCenterDicePanel(state);
         updateWinnerBanner(state);
         if (state.message) {
@@ -1079,12 +1158,14 @@
         }
         updateTileInfo(state);
         updateOwnerMarkers(state);
+        updateUpgradeMarkers(state);
         updateActiveTileHighlight(state);
         renderActionPanel(state);
+        renderHandCards(state);
         if (state.chanceCard) showChanceCard(state, state.chanceCard);
     }
 
-    /* === PANEL RZUTU W HUD: aktualizacja etykiety tury i stanu przycisku === */
+    /* === PANEL RZUTU: aktualizacja etykiety tury i stanu przycisku (nowy floating layout) === */
     function updateCenterDicePanel(state) {
         var label = document.getElementById("centerTurnLabel");
         var hint  = document.getElementById("centerHint");
@@ -1095,8 +1176,8 @@
             || state.players[0];
         var displayName = current ? (current.name || "Gracz") : "Gracz";
 
-        if (state.pendingPurchase || state.pendingPayment) {
-            /* Faza decyzji — ukryj caly panel rzutu zeby nie kolidowal z panelem akcji. */
+        /* Faza decyzji — ukryj przycisk rzutu (zastepuje go action panel) */
+        if (state.pendingPurchase || state.pendingPayment || state.pendingUpgrade) {
             rollPanel.style.display = "none";
             return;
         }
@@ -1321,15 +1402,28 @@
         }
     }
 
+    function closeFloatingPopups() {
+        /* BUG FIX: zamknij popupy kart i transferu gdy pojawia sie panel akcji */
+        var hp = document.getElementById("handCardsPanel");
+        var tp = document.getElementById("transferPanel");
+        if (hp) hp.style.display = "none";
+        if (tp) tp.style.display = "none";
+    }
+
     function renderActionPanel(state) {
         var ap = document.getElementById("actionPanel");
         if (!ap) return;
         if (state.pendingPayment) {
+            closeFloatingPopups();
             renderPaymentPanel(state, ap);
             return;
         }
+        if (state.pendingUpgrade) {
+            closeFloatingPopups();
+            renderUpgradePanel(state, ap);
+            return;
+        }
         if (!state.pendingPurchase) {
-            /* Decyzja zostala podjeta - pozwolmy kamerze plynnie wrocic na widok ogolny. */
             ap.style.display = "none";
             ap.innerHTML = "";
             lastActionPanelKey = null;
@@ -1341,43 +1435,41 @@
             return;
         }
         var pp = state.pendingPurchase;
-        /* Klucz panelu = kto + jakie pole. Tylko gdy sie zmienia, restartuj timer + odbuduj DOM. */
         var panelKey = pp.deciderId + "|" + pp.tileName + "|" + pp.basePrice;
         if (panelKey === lastActionPanelKey) return;
         lastActionPanelKey = panelKey;
 
+        closeFloatingPopups();
         var amDecider = state.players.some(function (p) { return p.isMe && p.id === pp.deciderId; });
         var decider = state.players.find(function (p) { return p.id === pp.deciderId; }) || {};
-        var deciderName = decider.name || "Gracz";
         var deciderIsBot = decider.bot === true;
-        var headerExtra = amDecider
-            ? '<span id="actionTimerLabel" class="action-timer-label">10s</span>'
-            : (deciderIsBot ? '<span class="action-timer-label" style="color:var(--brand-emerald)">BOT decyduje...</span>' : '');
-        var html = '<div class="hud-panel-head">' +
-            '<h2>Decyzja</h2>' +
-            headerExtra +
+
+        var html = '<div class="bt-action-header">' +
+            '<i class="fa-solid fa-building" style="color:var(--brand-gold)"></i>' +
+            '<span>Zakup nieruchomosci</span>' +
+            (amDecider ? '<span id="actionTimerLabel" class="action-timer-label">10s</span>'
+                : (deciderIsBot ? '<span class="action-timer-label" style="color:var(--brand-emerald)">BOT...</span>' : '')) +
             '</div>';
         if (amDecider) {
             html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
         }
-        html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pp.tileName) + '</p>' +
-            '<p class="muted action-tile-price">Cena bazowa: <strong>' + pp.basePrice + ' PLN</strong></p>';
+        html += '<p class="bt-action-tile"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pp.tileName) + '</p>' +
+            '<p class="bt-action-price">' + pp.basePrice + ' PLN</p>';
         if (amDecider) {
+            /* USNIETO LICYTACJE — pole po pominieci wraca do banku */
             html += '<div class="action-buttons">' +
-                '<button class="btn btn-bt-roll" id="btnBuy"><i class="fa-solid fa-bag-shopping"></i> Kup za ' + pp.basePrice + ' PLN</button>' +
-                '<button class="btn btn-secondary btn-roll" id="btnSkip">Pomin (licytacja)</button>' +
+                '<button class="btn btn-bt-roll" id="btnBuy">' +
+                '<i class="fa-solid fa-bag-shopping"></i> Kupuj za ' + pp.basePrice + ' PLN</button>' +
+                '<button class="btn btn-secondary" id="btnSkip">Pomin</button>' +
                 '</div>' +
-                '<p class="muted small">Masz 10s na decyzje - po tym czasie automatyczny skip. Inni gracze moga zalicytowac.</p>';
+                '<p class="muted small" style="text-align:center;">Masz 10s — po czasie pole wraca do banku.</p>';
         } else {
-            html += '<p class="muted small">Decyduje: <strong>' + escapeHtml(deciderName) + '</strong></p>' +
-                '<p class="action-bid-label">Mozesz zalicytowac (od ' + pp.minBid + ' PLN):</p>' +
-                '<div class="action-bid-row">' +
-                '<input type="number" id="bidAmount" min="' + pp.minBid + '" value="' + pp.minBid + '">' +
-                '<button class="btn btn-bt btn-roll" id="btnBid"><i class="fa-solid fa-gavel"></i> Licytuj</button>' +
-                '</div>';
+            html += '<p class="muted" style="text-align:center;">Decyduje: <strong>' +
+                escapeHtml(decider.name || "Gracz") + '</strong></p>';
         }
         html += '<p class="error" id="actionErr" style="display:none;"></p>';
         ap.style.display = "block";
+        ap.className = "bt-action-float bt-action-anim";
         ap.innerHTML = html;
 
         if (amDecider) startActionTimer(Date.now() + 10000);
@@ -1387,11 +1479,6 @@
         if (btnBuy) btnBuy.addEventListener("click", function () { postAction("/buy"); });
         var btnSkip = document.getElementById("btnSkip");
         if (btnSkip) btnSkip.addEventListener("click", function () { postAction("/skip"); });
-        var btnBid = document.getElementById("btnBid");
-        if (btnBid) btnBid.addEventListener("click", function () {
-            var amount = parseInt(document.getElementById("bidAmount").value, 10);
-            postAction("/bid", { amount: amount });
-        });
     }
 
     function renderPaymentPanel(state, ap) {
@@ -1447,6 +1534,7 @@
         }
         html += '<p class="error" id="actionErr" style="display:none;"></p>';
         ap.style.display = "block";
+        ap.className = "bt-action-float bt-action-anim";
         ap.innerHTML = html;
 
         if (amDebtor) startActionTimer(Date.now() + 30000);
@@ -1623,7 +1711,7 @@
                     /* Nowszy stan juz wyrenderowany - tylko odswiezamy guziki/panel. */
                     if (lastState) {
                         if (rollBtn) rollBtn.disabled = animating || !lastState.myTurn || !!lastState.pendingPurchase
-                            || !!lastState.pendingPayment || lastState.status === "FINISHED";
+                            || !!lastState.pendingPayment || !!lastState.pendingUpgrade || lastState.status === "FINISHED";
                         updateCenterDicePanel(lastState);
                     }
                 }
@@ -1681,11 +1769,12 @@
     }, 4000);
 
     setInterval(function () {
+        /* BUG FIX: dodano pendingPayment i pendingUpgrade — watchdog nie odpala sie podczas faz decyzji */
         if (!animating && animationQueue.length === 0 &&
-            lastState && lastState.myTurn && !lastState.pendingPurchase &&
+            lastState && lastState.myTurn &&
+            !lastState.pendingPurchase && !lastState.pendingPayment && !lastState.pendingUpgrade &&
+            lastState.status !== "FINISHED" &&
             rollBtn && rollBtn.disabled) {
-            /* Stan desynchronizacji: wedlug lastState to moja tura ale guzik jest wyłączony.
-               Pobierz swiezy stan z serwera. */
             fetch("/api/game/" + sessionId + "/state")
                 .then(function (r) { return r.json(); })
                 .then(function (s) { applyStateWithAnimation(s); })
@@ -1756,6 +1845,256 @@
     }
 
     initThree();
+    loadPawnModel();
     loadState();
+    // ============================================================
+    // KARTY W RECE
+    // ============================================================
+    var pendingDestroyCard = false;
+
+    var handCardsData = []; /* BUG FIX: cache kart — nie czyscimy przy WS broadcast (null) */
+
+    function renderHandCards(state) {
+        var list  = document.getElementById("handCardsList");
+        var count = document.getElementById("handCardCount");
+        if (!list) return;
+
+        /* BUG FIX: jesli serwer nie wyslal kart (WS broadcast = null), zachowaj ostatnie dane */
+        if (state.myHandCards !== null && state.myHandCards !== undefined) {
+            handCardsData = state.myHandCards;
+        }
+        var cards = handCardsData;
+
+        if (count) count.textContent = cards.length > 0 ? cards.length : "";
+        var toggle = document.getElementById("handCardsToggle");
+        if (toggle) {
+            toggle.disabled = !cards || cards.length === 0;
+            toggle.style.opacity = cards.length > 0 ? "1" : "0.45";
+            toggle.title = cards.length > 0 ? "Twoje karty (" + cards.length + ")" : "Brak kart w tej grze";
+        }
+
+        if (!cards || cards.length === 0) {
+            list.innerHTML = '<p class="muted" style="font-size:.82rem;padding:.4rem;">Brak kart — rozdane na poczatku gry.</p>';
+            return;
+        }
+
+        var html = "";
+        cards.forEach(function(card) {
+            html += '<div class="hand-card" data-type="' + escapeHtml(card.type) + '">' +
+                '<div class="hand-card-icon"><i class="' + escapeHtml(card.iconClass) + '"></i></div>' +
+                '<div class="hand-card-body">' +
+                '<strong>' + escapeHtml(card.label) + '</strong>' +
+                '<span class="muted">' + escapeHtml(card.description) + '</span>' +
+                '</div>' +
+                '<button class="btn btn-small btn-play-card" data-type="' + escapeHtml(card.type) + '">' +
+                'Zagraj</button>' +
+                '</div>';
+        });
+        list.innerHTML = html;
+
+        list.querySelectorAll(".btn-play-card").forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                var cardType = btn.getAttribute("data-type");
+                if (cardType === "DESTROY_PROPERTY") {
+                    showDestroyTargetPanel(state, cardType);
+                } else {
+                    playCard(cardType, null);
+                }
+            });
+        });
+    }
+
+    function showDestroyTargetPanel(state, cardType) {
+        var panel = document.getElementById("destroyTargetPanel");
+        var sel   = document.getElementById("destroyTargetSelect");
+        if (!panel || !sel) return;
+
+        sel.innerHTML = "";
+        var me = state.players.find(function(p) { return p.isMe; });
+        // Zbierz pola nalezace do RYWALI
+        state.players.forEach(function(p) {
+            if (!p.isMe && !p.bankrupt && p.ownedPositions) {
+                p.ownedPositions.forEach(function(pos) {
+                    var opt = document.createElement("option");
+                    opt.value = pos;
+                    var names = state.tileNames || [];
+                    opt.textContent = (names[pos] || "Pole " + pos) + " [" + p.name + "]";
+                    sel.appendChild(opt);
+                });
+            }
+        });
+
+        if (sel.options.length === 0) {
+            pushToast("Brak pol rywali do zniszczenia.", "info", "fa-circle-info");
+            return;
+        }
+
+        panel.style.display = "block";
+
+        var confirmBtn = document.getElementById("destroyConfirmBtn");
+        var cancelBtn  = document.getElementById("destroyCancelBtn");
+
+        if (confirmBtn) {
+            confirmBtn.onclick = function() {
+                var targetPos = parseInt(sel.value, 10);
+                panel.style.display = "none";
+                playCard("DESTROY_PROPERTY", targetPos);
+            };
+        }
+        if (cancelBtn) {
+            cancelBtn.onclick = function() { panel.style.display = "none"; };
+        }
+    }
+
+    function playCard(cardType, targetPos) {
+        var body = { cardType: cardType };
+        if (targetPos != null) body.targetPos = targetPos;
+        fetch("/api/game/" + sessionId + "/play-card", {
+            method: "POST",
+            headers: authHeaders(true),
+            body: JSON.stringify(body)
+        })
+        .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+        .then(function(res) {
+            if (!res.ok) {
+                pushToast(res.data.error || "Blad zagrycia karty.", "rent", "fa-circle-xmark");
+                return;
+            }
+            var panel = document.getElementById("handCardsPanel");
+            if (panel) panel.style.display = "none";
+            pushToast("Karta zagrana!", "info", "fa-solid fa-cards-blank");
+            applyStateWithAnimation(res.data);
+        });
+    }
+
+    // ============================================================
+    // PANEL ULEPSZENIA NIERUCHOMOSCI
+    // ============================================================
+    function renderUpgradePanel(state, ap) {
+        var pu = state.pendingUpgrade;
+        if (!pu) { ap.style.display = "none"; ap.innerHTML = ""; return; }
+
+        var amDecider = state.players.some(function(p) { return p.isMe && p.id === pu.deciderId; });
+        var decider   = state.players.find(function(p) { return p.id === pu.deciderId; }) || {};
+        var levelName = pu.currentLevel === 0 ? "Domek" : "Hotel";
+        var icon      = pu.currentLevel === 0 ? "fa-house" : "fa-hotel";
+
+        var html = '<div class="hud-panel-head">' +
+            '<h2><i class="fa-solid ' + icon + '"></i> Ulepszenie</h2>' +
+            '</div>' +
+            '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pu.tileName) + '</p>';
+
+        if (amDecider) {
+            html += '<p class="muted">Budujesz: <strong>' + levelName + '</strong> za <strong>' +
+                pu.cost + ' PLN</strong>.<br>Nowy czynsz: <strong>' + pu.newRent + ' PLN</strong></p>' +
+                '<div class="action-buttons">' +
+                '<button class="btn btn-bt-roll" id="btnUpgrade">' +
+                '<i class="fa-solid ' + icon + '"></i> Ulepsz za ' + pu.cost + ' PLN</button>' +
+                '<button class="btn btn-secondary" id="btnSkipUpgrade">Pomin</button>' +
+                '</div>';
+        } else {
+            html += '<p class="muted">Decyduje: <strong>' + escapeHtml(decider.name || "Gracz") +
+                '</strong> — moze zbudowac ' + levelName + '.</p>';
+        }
+        html += '<p class="error" id="actionErr" style="display:none;"></p>';
+        ap.style.display = "block";
+        ap.className = "bt-action-float bt-action-anim";
+        ap.innerHTML = html;
+
+        var btnUpgrade = document.getElementById("btnUpgrade");
+        if (btnUpgrade) btnUpgrade.addEventListener("click", function() {
+            fetch("/api/game/" + sessionId + "/upgrade", {method:"POST", headers: authHeaders(false)})
+            .then(function(r){ return r.json(); }).then(function(d){ applyStateWithAnimation(d); });
+        });
+        var btnSkipUpgrade = document.getElementById("btnSkipUpgrade");
+        if (btnSkipUpgrade) btnSkipUpgrade.addEventListener("click", function() {
+            fetch("/api/game/" + sessionId + "/skip-upgrade", {method:"POST", headers: authHeaders(false)})
+            .then(function(r){ return r.json(); }).then(function(d){ applyStateWithAnimation(d); });
+        });
+    }
+
+    // ============================================================
+    // RENDEROWANIE DOMKOW / HOTELI NA PLANSZY 3D
+    // ============================================================
+    var upgradeMarkers = {};
+
+    function updateUpgradeMarkers(state) {
+        // Usun stare
+        Object.keys(upgradeMarkers).forEach(function(k) {
+            if (upgradeMarkers[k] && upgradeMarkers[k].parentNode) {
+                boardPivot.remove(upgradeMarkers[k]);
+            }
+        });
+        upgradeMarkers = {};
+
+        if (!boardPivot) return;
+        state.players.forEach(function(p) {
+            if (!p.propertyLevels) return;
+            Object.keys(p.propertyLevels).forEach(function(posStr) {
+                var level = p.propertyLevels[posStr];
+                if (level <= 0) return;
+                var pos = parseInt(posStr, 10);
+                var w = posToWorld(pos);
+                var isHotel = level >= 2;
+                var color = new THREE.Color(p.color || "#ffd700");
+
+                var h = isHotel ? 0.38 : 0.26;
+                var w2 = isHotel ? 0.22 : 0.17;
+                var marker = new THREE.Mesh(
+                    new THREE.BoxGeometry(w2, h, w2),
+                    new THREE.MeshLambertMaterial({ color: isHotel ? 0xe53935 : 0x4caf50 })
+                );
+                marker.position.set(w.x, (h / 2) + 0.22, w.z);
+                marker.castShadow = true;
+                var roofH = isHotel ? 0.16 : 0.12;
+                var roof = new THREE.Mesh(
+                    new THREE.ConeGeometry(w2 * 0.75, roofH, 4),
+                    new THREE.MeshLambertMaterial({ color: color })
+                );
+                roof.position.set(w.x, h + 0.22 + roofH / 2, w.z);
+                roof.rotation.y = Math.PI / 4;
+                boardPivot.add(marker);
+                boardPivot.add(roof);
+                upgradeMarkers[posStr + "_body"] = marker;
+                upgradeMarkers[posStr + "_roof"] = roof;
+            });
+        });
+    }
+
+    /* ===== TOGGLE: Karty w rece ===== */
+    (function () {
+        var toggle = document.getElementById("handCardsToggle");
+        var panel  = document.getElementById("handCardsPanel");
+        var close  = document.getElementById("handCardsClose");
+        if (toggle && panel) {
+            toggle.addEventListener("click", function () {
+                if (toggle.disabled) return;
+                var transferPanel = document.getElementById("transferPanel");
+                if (transferPanel) transferPanel.style.display = "none";
+                panel.style.display = panel.style.display === "none" ? "block" : "none";
+            });
+        }
+        if (close && panel) {
+            close.addEventListener("click", function () { panel.style.display = "none"; });
+        }
+    })();
+
+    /* ===== TOGGLE: Transfer siana ===== */
+    (function () {
+        var toggle = document.getElementById("transferToggle");
+        var panel  = document.getElementById("transferPanel");
+        var close  = document.getElementById("transferClose");
+        if (toggle && panel) {
+            toggle.addEventListener("click", function () {
+                var handPanel = document.getElementById("handCardsPanel");
+                if (handPanel) handPanel.style.display = "none";
+                panel.style.display = panel.style.display === "none" ? "block" : "none";
+            });
+        }
+        if (close && panel) {
+            close.addEventListener("click", function () { panel.style.display = "none"; });
+        }
+    })();
+
     connectWebSocket();
 })();

@@ -3,6 +3,7 @@ package pl.pb.monopoly.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -11,12 +12,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pl.pb.monopoly.domain.Property;
 import pl.pb.monopoly.service.PropertyService;
 
+import java.time.LocalDate;
+
 /**
- * Panel CRUD nieruchomosci (model MVC). Pelny zestaw operacji:
- * lista (z sortowaniem w obu kierunkach wg 3 kryteriow), dodawanie, edycja, usuwanie.
- *
- * Kryteria i kierunek sortowania zapamietujemy w ciasteczku (wymaganie:
- * zapamietanie kierunkow i kryteriow sortowania + uzycie ciasteczek).
+ * Panel CRUD nieruchomosci z sortowaniem, ciasteczkami i filtrowaniem wg daty/grupy.
  */
 @Controller
 @RequestMapping("/properties")
@@ -31,21 +30,24 @@ public class PropertyController {
     @GetMapping
     public String list(@RequestParam(required = false) String sort,
                        @RequestParam(required = false) String dir,
+                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+                       @RequestParam(required = false) String colorGroup,
                        @CookieValue(value = "propSort", required = false) String cookieSort,
                        @CookieValue(value = "propDir", required = false) String cookieDir,
                        HttpServletResponse response,
                        Model model) {
-        // Jesli brak parametru w URL - uzyj zapamietanego w ciasteczku (domyslnie name/asc).
         String sortField = sort != null ? sort : (cookieSort != null ? cookieSort : "name");
         String direction = dir != null ? dir : (cookieDir != null ? cookieDir : "asc");
 
-        // Zapamietanie wyboru w ciasteczku na 7 dni.
         response.addCookie(makeCookie("propSort", sortField));
         response.addCookie(makeCookie("propDir", direction));
 
-        model.addAttribute("properties", propertyService.findAll(sortField, direction));
+        model.addAttribute("properties", propertyService.findAll(sortField, direction, dateFrom, colorGroup));
         model.addAttribute("sort", sortField);
         model.addAttribute("dir", direction);
+        model.addAttribute("dateFrom", dateFrom);
+        model.addAttribute("colorGroup", colorGroup);
+        model.addAttribute("colorGroups", propertyService.colorGroupsByPopularity());
         return "property/list";
     }
 

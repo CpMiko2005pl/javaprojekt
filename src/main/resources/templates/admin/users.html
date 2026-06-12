@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Panel administratora')}"></head>
-<body>
+<body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <main id="main">
@@ -29,7 +29,10 @@
         </thead>
         <tbody>
         <tr th:each="u : ${users}">
-            <td th:text="${u.username}">login</td>
+            <td>
+                <a th:href="@{/u/{u}(u=${u.username})}" target="_blank"
+                   style="font-weight:600;" th:text="${u.username}">login</a>
+            </td>
             <td th:text="${u.email}">email</td>
             <td th:text="${#numbers.formatDecimal(u.balance, 1, 2)}">0,00</td>
 
@@ -67,8 +70,17 @@
                 </form>
             </td>
 
-            <!-- Usuniecie -->
-            <td>
+            <!-- Usuniecie + skrzynka + ekwipunek -->
+            <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                <a th:href="@{/admin/users/{id}/inventory(id=${u.id})}"
+                   class="btn btn-secondary btn-small" title="Ekwipunek">
+                    <i class="fa-solid fa-toolbox"></i>
+                </a>
+                <form th:action="@{/admin/users/{id}/give-lootbox(id=${u.id})}" method="post" class="inline-form">
+                    <button type="submit" class="btn btn-small" title="Daj skrzynke">
+                        <i class="fa-solid fa-box"></i>
+                    </button>
+                </form>
                 <form th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" class="inline-form"
                       onsubmit="return confirm('Na pewno usunac tego uzytkownika?');">
                     <button type="submit" class="btn btn-danger btn-small">Usun</button>

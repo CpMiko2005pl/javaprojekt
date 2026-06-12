@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Graj')}"></head>
-<body>
+<body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <main id="main">
@@ -13,6 +13,17 @@
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <section class="panel" style="margin-bottom:1.2rem;border-color:rgba(56,189,248,.35);">
+        <h2><i class="fa-solid fa-globe"></i> Gra online (LAN / siec)</h2>
+        <p class="muted" style="margin-bottom:.5rem;">
+            Kazdy gracz musi wejsc na <strong>ten sam adres serwera</strong>, zalozyc konto i dolaczyc po kodzie pokoju.
+        </p>
+        <p style="margin:0;">
+            Adres serwera:
+            <code class="code-chip" th:text="${serverUrl}">https://bruising-lizard-deflector.ngrok-free.dev</code>
+        </p>
+    </section>
 
     <!-- Aktywne pokoje -->
     <section class="panel" th:if="${!activeSessions.isEmpty()}" style="margin-bottom:1.2rem;">

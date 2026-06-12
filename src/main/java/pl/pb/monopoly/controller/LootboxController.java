@@ -82,7 +82,23 @@ public class LootboxController {
         }
         item.setEquipped(willEquip);
         ownedItemRepository.save(item);
-        return ResponseEntity.ok(Map.of("equipped", willEquip, "itemId", id));
+
+        String message = willEquip
+                ? switch (category) {
+                    case "Kolor pionka" -> "Kolor pionka zalozony — widoczny w nastepnej/rozpoczetej grze.";
+                    case "Awatar" -> "Awatar zalozony — odswiez profil, by zobaczyc zmiane.";
+                    case "Ramka" -> "Ramka profilu zalozona.";
+                    case "Tytul" -> "Tytul zalozony — wyswietli sie na profilu.";
+                    default -> "Przedmiot zalozony.";
+                }
+                : "Przedmiot zdjety.";
+
+        return ResponseEntity.ok(Map.of(
+                "equipped", willEquip,
+                "itemId", id,
+                "category", category,
+                "message", message
+        ));
     }
 
     private Map<String, Object> toMap(LootboxItem i) {

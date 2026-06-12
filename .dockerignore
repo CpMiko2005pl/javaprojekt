@@ -1,0 +1,7 @@
+target/
+.git/
+.idea/
+*.iml
+pionki/
+*.pdf
+politechnika_monopoly.html

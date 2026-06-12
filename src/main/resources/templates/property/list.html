@@ -3,7 +3,7 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Nieruchomosci')}"></head>
-<body>
+<body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <main id="main">
@@ -20,10 +20,38 @@
         <a th:href="@{/properties/new}" class="btn">+ Dodaj nieruchomosc</a>
     </p>
 
-    <p class="muted">
+    <!-- FILTROWANIE wg daty i grupy kolorow -->
+    <form th:action="@{/properties}" method="get" class="filter-form"
+          style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem;
+                 padding:.8rem;background:var(--brand-dark);border-radius:10px;border:1px solid var(--border);">
+        <div class="field" style="margin:0;flex:1;min-width:180px;">
+            <label for="dateFrom">Data od (filtr)</label>
+            <input type="date" id="dateFrom" name="dateFrom"
+                   th:value="${dateFrom}"
+                   style="width:100%;">
+        </div>
+        <div class="field" style="margin:0;flex:1;min-width:180px;">
+            <label for="colorGroupFilter">Grupa kolorow</label>
+            <select id="colorGroupFilter" name="colorGroup" style="width:100%;">
+                <option value="">Wszystkie</option>
+                <option th:each="cg : ${colorGroups}"
+                        th:value="${cg}"
+                        th:text="${cg}"
+                        th:selected="${cg == colorGroup}">Grupa</option>
+            </select>
+        </div>
+        <input type="hidden" name="sort" th:value="${sort}">
+        <input type="hidden" name="dir" th:value="${dir}">
+        <button type="submit" class="btn btn-secondary">Filtruj</button>
+        <a th:href="@{/properties(sort=${sort},dir=${dir})}" class="btn btn-ghost">Wyczysc</a>
+    </form>
+
+    <p class="muted" style="margin-bottom:.5rem;">
         Sortowanie: klikaj naglowki kolumn. Wybor jest zapamietywany (ciasteczko).
         Aktualnie: <strong th:text="${sort}">name</strong> /
         <strong th:text="${dir}">asc</strong>.
+        <span th:if="${dateFrom != null}"> | Od: <strong th:text="${dateFrom}"></strong></span>
+        <span th:if="${colorGroup != null and !colorGroup.isBlank()}"> | Grupa: <strong th:text="${colorGroup}"></strong></span>
     </p>
 
     <table>

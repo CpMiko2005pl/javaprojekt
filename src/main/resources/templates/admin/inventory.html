@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Ekwipunek gracza')}"></head>
+<body class="light-page">
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main id="main">
+    <div class="page-header">
+        <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Admin</span>
+        <h1>Ekwipunek: <span th:text="${targetUser.username}">gracz</span></h1>
+        <a th:href="@{/admin/users}" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Powrot</a>
+    </div>
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <!-- Dodaj item -->
+    <section class="panel" style="margin-bottom:1.5rem;">
+        <h3 style="margin-top:0;"><i class="fa-solid fa-plus"></i> Dodaj item do ekwipunku</h3>
+        <form th:action="@{/admin/users/{id}/inventory/add(id=${targetUser.id})}" method="post"
+              style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;">
+            <div class="field" style="flex:1;min-width:200px;margin:0;">
+                <label for="addSlug">Wybierz item z katalogu</label>
+                <select id="addSlug" name="slug" style="width:100%;">
+                    <option th:each="item : ${catalog}"
+                            th:value="${item.slug()}"
+                            th:text="${item.rarity().label} + ' — ' + ${item.name()}">Item</option>
+                </select>
+            </div>
+            <button type="submit" class="btn"><i class="fa-solid fa-plus"></i> Dodaj</button>
+        </form>
+    </section>
+
+    <!-- Aktualny ekwipunek -->
+    <h2>Aktualne przedmioty (<span th:text="${inventory.size()}">0</span>)</h2>
+    <table>
+        <caption class="sr-only">Ekwipunek gracza z opcja usuniecia</caption>
+        <thead>
+        <tr>
+            <th scope="col">Slug</th>
+            <th scope="col">Nazwa</th>
+            <th scope="col">Rzadkosc</th>
+            <th scope="col">Kategoria</th>
+            <th scope="col">Zalozony</th>
+            <th scope="col">Data zdobycia</th>
+            <th scope="col">Usun</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="i : ${inventory}">
+            <td><code th:text="${i.slug}">slug</code></td>
+            <td>
+                <i th:class="${i.iconClass}" th:style="'color:' + ${i.rarityColor}"></i>
+                <span th:text="${i.name}">Nazwa</span>
+            </td>
+            <td><span class="badge" th:style="'background:' + ${i.rarityColor} + '22;color:' + ${i.rarityColor}"
+                      th:text="${i.rarityLabel}">Common</span></td>
+            <td th:text="${i.category}">Awatar</td>
+            <td>
+                <span th:if="${i.equipped}" class="badge badge-ok"><i class="fa-solid fa-check"></i> Tak</span>
+                <span th:unless="${i.equipped}" class="muted">Nie</span>
+            </td>
+            <td th:text="${i.obtainedAt != null} ? ${#temporals.format(i.obtainedAt,'dd.MM.yyyy HH:mm')} : '-'">-</td>
+            <td>
+                <form th:action="@{/admin/users/{id}/inventory/{iid}/delete(id=${targetUser.id},iid=${i.ownedId})}"
+                      method="post" class="inline-form"
+                      onsubmit="return confirm('Usunac ten item?');">
+                    <button type="submit" class="btn btn-danger btn-small">Usun</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${inventory.isEmpty()}">
+            <td colspan="7" class="muted">Brak przedmiotow.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

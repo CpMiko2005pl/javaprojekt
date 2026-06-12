@@ -1,47 +1,60 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Logowanie')}"></head>
-<body>
+<body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
-<main id="main">
-    <div class="page-header">
-        <span class="section-kicker"><i class="fa-solid fa-key"></i> Logowanie</span>
-        <h1>Witaj z powrotem na kampusie</h1>
-        <p class="lead">Zaloguj sie, aby wejsc do lobby, planszy 3D i rankingu ELO.</p>
-    </div>
+<div class="lp-auth-wrap" id="main">
+    <div class="lp-auth-box">
 
-    <div class="alert alert-error" role="alert" th:if="${param.error}">
-        Bledny login lub haslo. Sprobuj ponownie.
-    </div>
-    <div class="alert alert-success" role="status" th:if="${registered}">
-        Konto utworzone. Mozesz sie teraz zalogowac.
-    </div>
+        <h1>Witaj z powrotem</h1>
+        <p class="sub">Zaloguj się, aby wejść do lobby i gry.</p>
 
-    <form class="form-card" th:action="@{/login}" method="post">
-        <div class="field">
-            <label for="username">Login</label>
-            <input type="text" id="username" name="username" required autofocus autocomplete="username">
+        <div class="alert alert-error" role="alert" th:if="${param.error}" style="margin-bottom:1rem;">
+            Błędny login lub hasło. Spróbuj ponownie.
         </div>
-        <div class="field">
-            <label for="password">Haslo</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password">
+        <div class="alert alert-success" role="status" th:if="${registered}" style="margin-bottom:1rem;">
+            Konto zostało utworzone. Możesz się zalogować.
         </div>
-        <button type="submit" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Zaloguj sie</button>
-        <p class="muted" style="margin-top:1rem;">Nie masz konta? <a th:href="@{/register}">Zarejestruj sie</a>.</p>
-    </form>
 
-    <aside class="card" style="margin-top:1.5rem; max-width:560px;">
-        <h3><i class="fa-solid fa-flask" style="color:var(--brand-accent);margin-right:.4rem;"></i>Konta testowe</h3>
-        <ul class="muted">
-            <li><strong>admin</strong> / admin123 — administrator</li>
-            <li><strong>moderator</strong> / moderator123 — moderator</li>
-            <li><strong>gracz</strong> / gracz123 — uzytkownik</li>
-        </ul>
-    </aside>
-</main>
+        <div class="lp-auth-card">
+            <form th:action="@{/login}" method="post">
+                <div class="field">
+                    <label for="username">Login</label>
+                    <input type="text" id="username" name="username" required autofocus
+                           autocomplete="username" placeholder="Twój login">
+                </div>
+                <div class="field">
+                    <label for="password">Hasło</label>
+                    <input type="password" id="password" name="password" required
+                           autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <button type="submit" class="lp-btn-play lp-auth-submit" style="animation:none;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
+                </button>
+            </form>
+            <p class="lp-auth-link">Nie masz konta? <a th:href="@{/register}">Zarejestruj się</a></p>
+        </div>
 
-<footer th:replace="~{fragments/layout :: footer}"></footer>
+        <div class="lp-test-card">
+            <div class="lp-test-head">Konta testowe</div>
+            <div class="lp-test-row">
+                <strong>admin</strong>
+                <span style="color:#475569;">admin123 — pełny dostęp</span>
+            </div>
+            <div class="lp-test-row">
+                <strong>moderator</strong>
+                <span style="color:#475569;">moderator123</span>
+            </div>
+            <div class="lp-test-row">
+                <strong>gracz</strong>
+                <span style="color:#475569;">gracz123</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{fragments/layout :: lp-footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
 </body>
 </html>

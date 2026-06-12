@@ -112,4 +112,36 @@ public class GameRestController {
             return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/play-card")
+    public ResponseEntity<?> playCard(@PathVariable Long id,
+                                      @RequestBody Map<String, Object> body,
+                                      Authentication auth) {
+        try {
+            String cardType = (String) body.get("cardType");
+            Integer targetPos = body.get("targetPos") != null
+                    ? ((Number) body.get("targetPos")).intValue() : null;
+            return ResponseEntity.ok(gameService.playCard(id, auth.getName(), cardType, targetPos));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/upgrade")
+    public ResponseEntity<?> upgrade(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.upgrade(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/skip-upgrade")
+    public ResponseEntity<?> skipUpgrade(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.skipUpgrade(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
 }

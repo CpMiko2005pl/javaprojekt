@@ -65,6 +65,20 @@ public class GameSession {
     @Column(name = "pending_payment_reason", length = 120)
     private String pendingPaymentReason;
 
+    /** Oczekujace ulepszenie pola (2. wizyta wlasciciela). */
+    @Column(name = "pending_upgrade_pos")
+    private Integer pendingUpgradePos;
+
+    @Column(name = "pending_upgrade_player_id")
+    private Long pendingUpgradePlayerId;
+
+    @Column(name = "pending_upgrade_cost")
+    private Integer pendingUpgradeCost;
+
+    /** Gracz z aktywna karta "Dodatkowy rzut" — dostaje jeszcze jedna ture. */
+    @Column(name = "pending_extra_roll_player_id")
+    private Long pendingExtraRollPlayerId;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("turnOrder asc")
     private List<GamePlayer> players = new ArrayList<>();
@@ -202,4 +216,22 @@ public class GameSession {
         this.pendingPaymentCreditorId = null;
         this.pendingPaymentReason = null;
     }
+
+    public Integer getPendingUpgradePos() { return pendingUpgradePos; }
+    public void setPendingUpgradePos(Integer pendingUpgradePos) { this.pendingUpgradePos = pendingUpgradePos; }
+
+    public Long getPendingUpgradePlayerId() { return pendingUpgradePlayerId; }
+    public void setPendingUpgradePlayerId(Long pendingUpgradePlayerId) { this.pendingUpgradePlayerId = pendingUpgradePlayerId; }
+
+    public Integer getPendingUpgradeCost() { return pendingUpgradeCost; }
+    public void setPendingUpgradeCost(Integer pendingUpgradeCost) { this.pendingUpgradeCost = pendingUpgradeCost; }
+
+    public void clearPendingUpgrade() {
+        this.pendingUpgradePos = null;
+        this.pendingUpgradePlayerId = null;
+        this.pendingUpgradeCost = null;
+    }
+
+    public Long getPendingExtraRollPlayerId() { return pendingExtraRollPlayerId; }
+    public void setPendingExtraRollPlayerId(Long pendingExtraRollPlayerId) { this.pendingExtraRollPlayerId = pendingExtraRollPlayerId; }
 }

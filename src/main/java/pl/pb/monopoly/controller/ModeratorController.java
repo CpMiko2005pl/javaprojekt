@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pl.pb.monopoly.domain.GameSession;
 import pl.pb.monopoly.domain.GameStatus;
@@ -46,6 +47,16 @@ public class ModeratorController {
         model.addAttribute("totalMatches", matchHistoryRepository.count());
         model.addAttribute("currentUser", auth.getName());
         return "moderator/panel";
+    }
+
+    /** Moderator moze weryfikowac konta graczy. */
+    @PostMapping("/users/{id}/verify")
+    public String verify(@PathVariable Long id,
+                         @RequestParam(defaultValue = "true") boolean verified,
+                         RedirectAttributes ra) {
+        userService.setVerified(id, verified);
+        ra.addFlashAttribute("message", verified ? "Konto zweryfikowane." : "Cofnieto weryfikacje.");
+        return "redirect:/moderator";
     }
 
     @PostMapping("/sessions/{id}/end")

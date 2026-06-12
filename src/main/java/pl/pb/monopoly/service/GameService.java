@@ -7,6 +7,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import pl.pb.monopoly.domain.*;
 import pl.pb.monopoly.dto.*;
+
+import java.util.Arrays;
+import java.util.Collections;
 import pl.pb.monopoly.repository.GameSessionRepository;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.OwnedItemRepository;
@@ -280,10 +283,28 @@ public class GameService {
                     COLORS[session.getPlayers().size() % COLORS.length]));
         }
 
+        // Rozdanie kart ręki każdemu ludzkiemu graczowi (nie botom)
+        for (GamePlayer gp : session.getPlayers()) {
+            if (gp.getUser() != null) {
+                dealHandCards(gp);
+            }
+        }
+
         GameSession saved = sessionRepository.save(session);
         publishPublic(saved.getId(), null, null, null, null, null, null, null);
         scheduleBotUpdate(saved.getId());
         return saved;
+    }
+
+    /** Losuje 3 unikalne karty z puli i przydziela je graczowi. */
+    private void dealHandCards(GamePlayer player) {
+        List<HandCardType> pool = new ArrayList<>(Arrays.asList(HandCardType.values()));
+        Collections.shuffle(pool);
+        List<String> cards = new ArrayList<>();
+        for (int i = 0; i < Math.min(3, pool.size()); i++) {
+            cards.add(pool.get(i).name());
+        }
+        player.setHandCards(cards);
     }
 
     @Transactional
@@ -294,8 +315,10 @@ public class GameService {
         boolean already = session.getPlayers().stream()
                 .anyMatch(p -> p.getUser() != null && p.getUser().getId().equals(u.getId()));
         if (!already) {
-            GamePlayer gp = new GamePlayer(u.getUsername(), COLORS[session.getPlayers().size() % COLORS.length]);
+            String color = equippedColor(u, COLORS[session.getPlayers().size() % COLORS.length]);
+            GamePlayer gp = new GamePlayer(u.getUsername(), color);
             gp.setUser(u);
+            dealHandCards(gp);
             session.addPlayer(gp);
             sessionRepository.save(session);
             publishPublic(session.getId(), null, null, u.getUsername() + " dolaczyl do gry!", null, null, null, null);
@@ -417,20 +440,55 @@ public class GameService {
                     msg.append("Za malo siana, by kupic - pole zostaje wolne. ");
                 }
             } else if (!ownerOfTile.getId().equals(current.getId()) && !ownerOfTile.isBankrupt()) {
-                int rent = computeRent(session, ownerOfTile, newPos, steps);
-                if (chargePlayer(session, current, rent, ownerOfTile,
-                        "Czynsz: " + TILES[newPos], msg)) {
-                    msg.append(current.getDisplayName()).append(" placi czynsz ")
-                            .append(rent).append(" PLN dla ")
-                            .append(ownerOfTile.getDisplayName()).append(". ");
+                // Karta SKIP_RENT blokuje oplaty
+                if (current.isSkipNextRent()) {
+                    current.setSkipNextRent(false);
+                    msg.append("Karta Ochrony! ").append(current.getDisplayName())
+                            .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
+                } else {
+                    int rent = computeRent(session, ownerOfTile, newPos, steps);
+                    if (chargePlayer(session, current, rent, ownerOfTile,
+                            "Czynsz: " + TILES[newPos], msg)) {
+                        msg.append(current.getDisplayName()).append(" placi czynsz ")
+                                .append(rent).append(" PLN dla ")
+                                .append(ownerOfTile.getDisplayName()).append(". ");
+                    }
                 }
             } else if (ownerOfTile.getId().equals(current.getId())) {
                 msg.append("To Twoje pole - bez czynszu. ");
+                // Sledzenie ladowan wlasciciela na WLASNYM polu (dla ulepszenia)
+                if (!STATION_TILES[newPos] && newPos != POS_UTILITY && !CHANCE_TILES[newPos]) {
+                    int count = current.getLandingCounts().getOrDefault(newPos, 0);
+                    current.getLandingCounts().put(newPos, count + 1);
+                    int level = current.getPropertyLevels().getOrDefault(newPos, 0);
+                    int upgradeCost = TILE_PRICE[newPos] / 2;
+                    if (count >= 1 && level < 2 && current.getCash() >= upgradeCost
+                            && session.getPendingUpgradePos() == null) {
+                        session.setPendingUpgradePos(newPos);
+                        session.setPendingUpgradePlayerId(current.getId());
+                        session.setPendingUpgradeCost(upgradeCost);
+                        int newRent = computeRentForLevel(newPos, level + 1);
+                        msg.append("Odwiedzasz to pole ponownie! Mozesz ulepszyc do ")
+                                .append(level == 0 ? "Domku" : "Hotelu").append(" za ")
+                                .append(upgradeCost).append(" PLN (nowy czynsz: ")
+                                .append(newRent).append(" PLN). ");
+                    }
+                }
             }
         }
 
-        if (session.getPendingPurchasePos() == null && session.getPendingPaymentDebtorId() == null) {
-            advanceTurn(session);
+        if (session.getPendingPurchasePos() == null
+                && session.getPendingPaymentDebtorId() == null
+                && session.getPendingUpgradePos() == null) {
+            // Extra roll: jesli gracz gral karte "Dodatkowy rzut", nie zmieniamy tury
+            if (session.getPendingExtraRollPlayerId() != null
+                    && session.getPendingExtraRollPlayerId().equals(current.getId())) {
+                session.setPendingExtraRollPlayerId(null);
+                msg.append(current.getDisplayName()).append(" gra dodatkowy rzut! ");
+                // Nie wywolujemy advanceTurn - gracz rzuca ponownie
+            } else {
+                advanceTurn(session);
+            }
         }
         checkGameEnd(session, msg);
         sessionRepository.save(session);
@@ -780,17 +838,38 @@ public class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("Nie grasz w tej sesji"));
     }
 
-    /** Liczy czynsz na podstawie typu pola (zwykle / dworzec / wodociagi) i posiadanych pol. */
+    /** Czynsz dworcow — jak w klasycznym Monopoly: 25 / 50 / 100 / 200. */
+    private static final int[] STATION_RENT = {0, 25, 50, 100, 200};
+
+    /** Liczy czynsz uwzgledniajac poziom ulepszenia. */
     private int computeRent(GameSession session, GamePlayer owner, int pos, int diceSum) {
         if (STATION_TILES[pos]) {
             int stations = 0;
-            for (int i = 0; i < 40; i++) if (STATION_TILES[i] && owner.getOwnedPositions().contains(i)) stations++;
-            return 25 * stations;
+            for (int i = 0; i < 40; i++) {
+                if (STATION_TILES[i] && owner.getOwnedPositions().contains(i)) stations++;
+            }
+            return STATION_RENT[Math.min(stations, STATION_RENT.length - 1)];
         }
         if (pos == POS_UTILITY) {
             return diceSum * 4;
         }
-        return TILE_RENT[pos];
+        int level = owner.getPropertyLevels().getOrDefault(pos, 0);
+        return computeRentForLevel(pos, level);
+    }
+
+    /** Bazowy czynsz przemnozony przez mnoznik poziomu. */
+    static int computeRentForLevel(int pos, int level) {
+        int base = TILE_RENT[pos];
+        return switch (level) {
+            case 1 -> base * 2;
+            case 2 -> base * 4;
+            default -> base;
+        };
+    }
+
+    /** Koszt ulepszenia pola — polowa ceny zakupu. */
+    static int upgradeCost(int pos) {
+        return Math.max(50, TILE_PRICE[pos] / 2);
     }
 
     /** Po bankructwie zwalnia pola gracza. */
@@ -811,12 +890,22 @@ public class GameService {
     }
 
     /**
-     * Pobiera oplate od gracza. Gdy brak siana — uruchamia faze splaty zamiast ujemnego salda.
+     * Pobiera oplate od gracza. Tarcza Akademicka pokrywa do 300 PLN jednorazowo.
+     * Gdy brak siana — uruchamia faze splaty zamiast ujemnego salda.
      * @return true gdy oplacono od razu, false gdy trwa pending payment
      */
     private boolean chargePlayer(GameSession session, GamePlayer debtor, int amount,
                                  GamePlayer creditor, String reason, StringBuilder msg) {
         if (amount <= 0) return true;
+
+        // Karta Tarcza Akademicka
+        if (debtor.isShieldActive() && amount <= 300) {
+            debtor.setShieldActive(false);
+            msg.append("Tarcza Akademicka absorbuje oplate ").append(amount).append(" PLN! ");
+            if (creditor != null) creditor.setCash(creditor.getCash() + amount); // placi bank
+            return true;
+        }
+
         if (debtor.getCash() >= amount) {
             debtor.setCash(debtor.getCash() - amount);
             if (creditor != null) {
@@ -914,23 +1003,38 @@ public class GameService {
 
     /** Zapisuje MatchHistory i aktualizuje PlayerStatistics po koncu gry. */
     private void persistGameResults(GameSession session, GamePlayer winner) {
-        int totalPlayers = (int) session.getPlayers().stream().filter(p -> p.getUser() != null).count();
-        if (totalPlayers == 0) return;
+        long humanPlayers = session.getPlayers().stream().filter(p -> p.getUser() != null).count();
+        if (humanPlayers == 0) return;
+        int allPlayers = session.getPlayers().size();
         long durationMinutes = ChronoUnit.MINUTES.between(session.getCreatedAt(), LocalDateTime.now());
+
+        // Miejsca: zwyciezca 1., pozostali wg gotowki na koniec gry (bankruci na koncu)
+        List<GamePlayer> ranked = new ArrayList<>(session.getPlayers());
+        ranked.sort((a, b) -> {
+            boolean aWon = winner != null && winner.getId().equals(a.getId());
+            boolean bWon = winner != null && winner.getId().equals(b.getId());
+            if (aWon != bWon) return aWon ? -1 : 1;
+            if (a.isBankrupt() != b.isBankrupt()) return a.isBankrupt() ? 1 : -1;
+            return Integer.compare(b.getCash(), a.getCash());
+        });
+        Map<Long, Integer> placements = new HashMap<>();
+        for (int i = 0; i < ranked.size(); i++) {
+            placements.put(ranked.get(i).getId(), i + 1);
+        }
 
         for (GamePlayer gp : session.getPlayers()) {
             if (gp.getUser() == null) continue;
             User user = userRepository.findById(gp.getUser().getId()).orElse(null);
             if (user == null) continue;
             boolean won = winner != null && winner.getId().equals(gp.getId());
-            int eloChange = won ? 20 + (totalPlayers - 1) * 5 : -10;
-            int placement = won ? 1 : 2;
+            int eloChange = won ? 20 + (allPlayers - 1) * 5 : -10;
 
             MatchHistory mh = new MatchHistory();
             mh.setUser(user);
+            mh.setBoardName("Kampus PB");
             mh.setWon(won);
-            mh.setPlacement(placement);
-            mh.setPlayersCount(totalPlayers);
+            mh.setPlacement(placements.getOrDefault(gp.getId(), allPlayers));
+            mh.setPlayersCount(allPlayers);
             mh.setFinalCash(gp.getCash());
             mh.setDurationMinutes((int) Math.max(1, durationMinutes));
             mh.setEloChange(eloChange);
@@ -942,6 +1046,8 @@ public class GameService {
                 if (won) {
                     stats.setGamesWon(stats.getGamesWon() + 1);
                     stats.setWinStreak(stats.getWinStreak() + 1);
+                    // Lootbox za wygraną (max 10 w zapasie)
+                    stats.setAvailableLootboxes(Math.min(stats.getAvailableLootboxes() + 1, 10));
                 } else {
                     stats.setWinStreak(0);
                 }
@@ -1031,7 +1137,8 @@ public class GameService {
             boolean isBot = p.getUser() == null;
             dtos.add(new GamePlayerDto(p.getId(), p.getDisplayName(), p.getCash(),
                     p.getPosition(), p.getColor(), p.isBankrupt(), isMe, isBot,
-                    new ArrayList<>(p.getOwnedPositions())));
+                    new ArrayList<>(p.getOwnedPositions()),
+                    new HashMap<>(p.getPropertyLevels())));
         }
         Long currentId = players.isEmpty() ? null
                 : players.get(session.getCurrentTurn() % players.size()).getId();
@@ -1077,10 +1184,197 @@ public class GameService {
         List<Integer> prices = new ArrayList<>();
         for (int v : TILE_PRICE) prices.add(v);
 
+        // Karty reki — tylko dla gracza, ktory robi zapytanie
+        List<HandCardDto> myHandCards = null;
+        if (username != null) {
+            for (GamePlayer p : players) {
+                if (p.getUser() != null && p.getUser().getUsername().equals(username)) {
+                    myHandCards = p.getHandCards().stream().map(name -> {
+                        HandCardType t = HandCardType.valueOf(name);
+                        return new HandCardDto(name, t.label, t.description, t.iconClass);
+                    }).toList();
+                    break;
+                }
+            }
+        }
+
+        // Pending upgrade
+        PendingUpgradeDto pendingUpgrade = null;
+        if (session.getPendingUpgradePos() != null) {
+            int uPos = session.getPendingUpgradePos();
+            int curLevel = 0;
+            if (session.getPendingUpgradePlayerId() != null) {
+                GamePlayer decider = players.stream()
+                        .filter(p -> p.getId().equals(session.getPendingUpgradePlayerId()))
+                        .findFirst().orElse(null);
+                if (decider != null) curLevel = decider.getPropertyLevels().getOrDefault(uPos, 0);
+            }
+            pendingUpgrade = new PendingUpgradeDto(
+                    uPos, TILES[uPos],
+                    session.getPendingUpgradeCost() != null ? session.getPendingUpgradeCost() : upgradeCost(uPos),
+                    curLevel, computeRentForLevel(uPos, curLevel + 1),
+                    session.getPendingUpgradePlayerId());
+        }
+
         return new GameStateDto(session.getId(), session.getCode(), session.getName(),
                 session.getStatus().name(), dtos, currentId, d1, d2, message,
                 movedId, fromPos, toPos, myTurn, tileNamesList(), tileEffectsList(),
-                pending, pendingPayment, ownership, prices, card, winnerId, winnerName);
+                pending, pendingPayment, ownership, prices, card, winnerId, winnerName,
+                myHandCards, pendingUpgrade);
+    }
+
+    // ========== KARTY W RECE ==========
+
+    /**
+     * Gracz zagrywa karte z reki.
+     * @param targetPos pozycja pola (wymagana dla DESTROY_PROPERTY, ignorowana dla reszty)
+     */
+    @Transactional
+    public GameStateDto playCard(Long sessionId, String username, String cardType, Integer targetPos) {
+        GameSession session = getSession(sessionId);
+        requireParticipant(session, username);
+        requireActiveGame(session);
+
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getHandCards().contains(cardType)) {
+            throw new IllegalArgumentException("Nie masz tej karty: " + cardType);
+        }
+
+        HandCardType type = HandCardType.valueOf(cardType);
+        StringBuilder msg = new StringBuilder();
+        msg.append(me.getDisplayName()).append(" zagrywa kartę: ").append(type.label).append(". ");
+
+        switch (type) {
+            case SKIP_RENT -> {
+                me.setSkipNextRent(true);
+                msg.append("Nastepny czynsz zostanie pominiety. ");
+            }
+            case EXTRA_ROLL -> {
+                session.setPendingExtraRollPlayerId(me.getId());
+                msg.append("Gracz dostaje dodatkowy rzut po tej turze. ");
+            }
+            case ADD_CASH -> {
+                me.setCash(me.getCash() + 300);
+                msg.append("+300 PLN od banku! ");
+            }
+            case SHIELD -> {
+                me.setShieldActive(true);
+                msg.append("Tarcza Akademicka aktywna — absorbuje nastepna oplate do 300 PLN. ");
+            }
+            case DESTROY_PROPERTY -> {
+                if (targetPos == null) {
+                    throw new IllegalArgumentException("Podaj pozycje pola do zniszczenia.");
+                }
+                GamePlayer owner = findOwner(session, targetPos);
+                if (owner == null) {
+                    throw new IllegalArgumentException("To pole nie ma wlasciciela.");
+                }
+                if (owner.getId().equals(me.getId())) {
+                    throw new IllegalArgumentException("Nie mozesz zniszczyc wlasnego pola.");
+                }
+                owner.getOwnedPositions().remove(targetPos);
+                owner.getPropertyLevels().remove(targetPos);
+                owner.getLandingCounts().remove(targetPos);
+                msg.append("Pole ").append(TILES[targetPos])
+                        .append(" wrocilo do banku! ");
+            }
+        }
+
+        me.getHandCards().remove(cardType);
+        sessionRepository.save(session);
+
+        publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg.toString(), null, null, null, null);
+    }
+
+    // ========== ULEPSZENIA NIERUCHOMOSCI ==========
+
+    /** Wlasciciel ulepsza pole (Domek lub Hotel). */
+    @Transactional
+    public GameStateDto upgrade(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireParticipant(session, username);
+        requireActiveGame(session);
+
+        if (session.getPendingUpgradePos() == null) {
+            throw new IllegalArgumentException("Brak aktywnego ulepszenia.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingUpgradePlayerId())) {
+            throw new IllegalArgumentException("To nie Twoje pole do ulepszenia.");
+        }
+
+        int pos = session.getPendingUpgradePos();
+        int cost = session.getPendingUpgradeCost();
+        if (me.getCash() < cost) {
+            throw new IllegalArgumentException("Za malo siana na ulepszenie (" + cost + " PLN).");
+        }
+
+        int currentLevel = me.getPropertyLevels().getOrDefault(pos, 0);
+        int newLevel = currentLevel + 1;
+        me.setCash(me.getCash() - cost);
+        me.getPropertyLevels().put(pos, newLevel);
+        session.clearPendingUpgrade();
+        advanceTurn(session);
+        sessionRepository.save(session);
+
+        String levelName = newLevel == 1 ? "Domek" : "Hotel";
+        int newRent = computeRentForLevel(pos, newLevel);
+        String msg = me.getDisplayName() + " buduje " + levelName + " na " + TILES[pos]
+                + " za " + cost + " PLN! Nowy czynsz: " + newRent + " PLN.";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /**
+     * Auto-timeout ulepszenia (15s) — wywolywane przez BotAutoplayService.
+     * snapPos/snapPlayerId to migawka z chwili zaplanowania timera — przeterminowany
+     * timer z poprzedniego ulepszenia nie skasuje nowszej, cudzej decyzji.
+     */
+    @Transactional
+    public GameStateDto autoUpgradeTimeout(Long sessionId, int snapPos, Long snapPlayerId) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingUpgradePos() == null) return null;
+        if (session.getPendingUpgradePos() != snapPos) return null;
+        Long deciderId = session.getPendingUpgradePlayerId();
+        if (deciderId == null || !deciderId.equals(snapPlayerId)) return null;
+        GamePlayer decider = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(deciderId))
+                .findFirst().orElse(null);
+        if (decider == null) return null;
+        String username = decider.getUser() != null ? decider.getUser().getUsername() : null;
+        session.clearPendingUpgrade();
+        advanceTurn(session);
+        checkGameEnd(session, new StringBuilder());
+        sessionRepository.save(session);
+        String msg = (username != null ? username : "Gracz") + " pomija ulepszenie (czas minal).";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Wlasciciel pomija ulepszenie pola. */
+    @Transactional
+    public GameStateDto skipUpgrade(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireParticipant(session, username);
+        if (session.getPendingUpgradePos() == null) {
+            throw new IllegalArgumentException("Brak aktywnego ulepszenia.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingUpgradePlayerId())) {
+            throw new IllegalArgumentException("To nie Twoje pole.");
+        }
+        session.clearPendingUpgrade();
+        advanceTurn(session);
+        sessionRepository.save(session);
+
+        String msg = me.getDisplayName() + " pomija ulepszenie pola.";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
     }
 
     private String generateCode() {

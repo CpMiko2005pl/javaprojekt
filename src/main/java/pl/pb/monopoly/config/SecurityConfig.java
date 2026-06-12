@@ -3,6 +3,7 @@ package pl.pb.monopoly.config;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,6 +35,7 @@ public class SecurityConfig {
      */
     @Bean
     @Order(1)
+    @Profile("h2")
     public SecurityFilterChain h2ConsoleSecurityChain(HttpSecurity http) throws Exception {
         http
             .securityMatcher(PathRequest.toH2Console())
@@ -54,6 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico").permitAll()
                 .requestMatchers("/ws/**").authenticated()
                 .requestMatchers("/api/ranking-najlepszych").permitAll()
+                .requestMatchers("/api/avatar/**").permitAll()
+                .requestMatchers("/u/**").permitAll()
                 // panel administracyjny
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 // panel moderatora

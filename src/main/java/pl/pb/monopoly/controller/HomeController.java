@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import pl.pb.monopoly.domain.OwnedItem;
 import pl.pb.monopoly.domain.User;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
+import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.FriendService;
 import pl.pb.monopoly.service.GameService;
@@ -22,11 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Strony ogolne: strona powitalna oraz panel gracza w stylu FACEIT
- * (poziom, ELO, statystyki, historia meczow, znajomi, szybki dostep do funkcji,
- * lootbox + ekwipunek).
- */
 @Controller
 public class HomeController {
 
@@ -37,6 +33,7 @@ public class HomeController {
     private final UserService userService;
     private final FriendService friendService;
     private final LootboxService lootboxService;
+    private final OwnedItemRepository ownedItemRepository;
 
     public HomeController(UserRepository userRepository,
                           MatchHistoryRepository matchHistoryRepository,
@@ -44,7 +41,8 @@ public class HomeController {
                           WheelService wheelService,
                           UserService userService,
                           FriendService friendService,
-                          LootboxService lootboxService) {
+                          LootboxService lootboxService,
+                          OwnedItemRepository ownedItemRepository) {
         this.userRepository = userRepository;
         this.matchHistoryRepository = matchHistoryRepository;
         this.gameService = gameService;
@@ -52,6 +50,7 @@ public class HomeController {
         this.userService = userService;
         this.friendService = friendService;
         this.lootboxService = lootboxService;
+        this.ownedItemRepository = ownedItemRepository;
     }
 
     @GetMapping("/")
@@ -64,19 +63,10 @@ public class HomeController {
     public String dashboard(Authentication authentication,
                             @RequestParam(value = "q", required = false) String query,
                             Model model) {
-        // Moderatorzy i adminowie maja wlasny panel - nie profil gracza
-        boolean isMod = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_MODERATOR"));
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        if (isMod && !isAdmin) {
-            return "redirect:/moderator";
-        }
-
-        // Codzienna darmowa skrzynka
-        lootboxService.grantDailyIfNeeded(authentication.getName());
-
+        // BUG FIX: moderator tez ma profil gracza
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
+        lootboxService.grantDailyIfNeeded(user.getUsername());
+        user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         model.addAttribute("user", user);
         model.addAttribute("stats", user.getStatistics());
         model.addAttribute("matches", matchHistoryRepository.findByUserIdOrderByPlayedAtDesc(user.getId()));
@@ -89,6 +79,30 @@ public class HomeController {
         model.addAttribute("availableBoxes", user.getStatistics() != null
                 ? user.getStatistics().getAvailableLootboxes() : 0);
         model.addAttribute("inventory", buildInventory(user));
+        model.addAttribute("wheelSegments", WheelService.REWARDS);
+
+        // BUG FIX: zalozonej ramki (frame) — pozwala pokazac efekt wizualny
+        String equippedFrame = ownedItemRepository.findByUserIdAndEquipped(user.getId(), true)
+                .stream()
+                .map(OwnedItem::getItemSlug)
+                .filter(s -> s.startsWith("frame-"))
+                .findFirst().orElse(null);
+        model.addAttribute("equippedFrame", equippedFrame);
+
+        String equippedTitleName = ownedItemRepository.findByUserIdAndEquipped(user.getId(), true)
+                .stream()
+                .map(OwnedItem::getItemSlug)
+                .map(LootboxService::findBySlug)
+                .filter(t -> t != null && "Tytul".equals(t.category()))
+                .map(LootboxItem::name)
+                .findFirst().orElse(null);
+        model.addAttribute("equippedTitleName", equippedTitleName);
+
+        // Moderatorzy dostaja dodatkowy link do panelu mod
+        boolean isMod = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_MODERATOR"));
+        model.addAttribute("isMod", isMod);
+
         return "dashboard";
     }
 

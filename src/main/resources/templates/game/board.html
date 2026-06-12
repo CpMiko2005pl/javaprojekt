@@ -1,142 +1,166 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Plansza')}"></head>
-<body class="board-page board-fullscreen">
+<body class="light-page board-page board-fullscreen">
 
-<main id="main" class="board-fullscreen-main" th:attr="data-session=${sessionId}">
-    <div class="board-topbar">
-        <div class="board-topbar-info">
-            <span class="board-topbar-brand">Politechnika Monopoly</span>
-            <span class="board-topbar-room" th:text="${sessionName}">Pokoj</span>
-            <span class="muted">Kod:</span>
-            <span class="code-chip" th:text="${sessionCode}">ABC123</span>
+<main id="main" class="board-fullscreen-main"
+      th:attr="data-session=${sessionId},data-username=${#authentication.name}">
+
+    <div class="canvas-shell board-canvas-shell bt-fullboard">
+        <!-- Renderowanie Three.js -->
+        <div id="game-canvas-container"></div>
+
+        <!-- Loader -->
+        <div id="game-canvas-loader" class="canvas-loader">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#ffd54f;margin-bottom:1rem;"></i>
+            <span>Ladowanie planszy Kampus PB...</span>
         </div>
-        <a th:href="@{/game}" class="btn btn-danger btn-small">
-            <i class="fa-solid fa-right-from-bracket"></i> Wyjscie
-        </a>
-    </div>
 
-    <div class="game-layout board-layout-bt">
-        <div class="canvas-shell board-canvas-shell">
-            <div id="game-canvas-container"></div>
-
-            <div id="cornerPlayers" class="bt-corner-players" aria-live="polite"></div>
-
-            <div id="diceToast" class="bt-dice-toast" aria-hidden="true">
-                <span class="bt-dice-label">Rzut kostka...</span>
-                <span id="diceToastSum" class="bt-dice-sum">-</span>
+        <!-- Topbar -->
+        <div class="bt-topbar-float">
+            <div class="bt-topbar-left">
+                <span class="board-topbar-brand">Politechnika Monopoly</span>
+                <span class="board-topbar-room" th:text="${sessionName}">Pokoj</span>
+                <span class="code-chip" th:text="${sessionCode}">ABC123</span>
+                <span id="liveBadge" class="hud-badge bt-live">Laczenie...</span>
             </div>
-
-            <div class="canvas-hud bt-canvas-hud">
-                <span><i class="fa-solid fa-chess-board" style="color:#ffd54f;margin-right:.35rem;"></i>Plansza PB</span>
-                <span class="muted" style="font-size:.78rem;">
-                    <i class="fa-solid fa-arrows-up-down-left-right"></i> Przeciagnij | 
-                    <i class="fa-solid fa-rotate"></i> Shift+drag = obrot | 
-                    <i class="fa-solid fa-magnifying-glass"></i> Scroll = zoom
-                </span>
+            <div class="bt-topbar-right">
                 <div class="bt-zoom-group">
-                    <button type="button" id="zoom-in-btn" class="btn btn-bt btn-small" title="Przyblizenie (+)">
+                    <button type="button" id="zoom-in-btn" class="btn btn-bt btn-small" title="Przyblizenie">
                         <i class="fa-solid fa-magnifying-glass-plus"></i>
                     </button>
-                    <button type="button" id="zoom-out-btn" class="btn btn-bt btn-small" title="Oddalenie (-)">
+                    <button type="button" id="zoom-out-btn" class="btn btn-bt btn-small" title="Oddalenie">
                         <i class="fa-solid fa-magnifying-glass-minus"></i>
                     </button>
                 </div>
-                <span id="liveBadge" class="hud-badge bt-live">Laczenie...</span>
+                <a th:href="@{/game}" class="btn btn-danger btn-small">
+                    <i class="fa-solid fa-right-from-bracket"></i> Wyjscie
+                </a>
+            </div>
+        </div>
+
+        <!-- Pasek graczy pod belka (nie nachodzi na topbar) -->
+        <div id="cornerPlayers" class="bt-players-strip" aria-live="polite"></div>
+
+        <!-- Dice badge -->
+        <div id="diceBadge" class="bt-dice-badge" aria-hidden="true">
+            <span class="bt-dice-badge-d" id="diceBadgeD1">-</span>
+            <span class="bt-dice-badge-plus">+</span>
+            <span class="bt-dice-badge-d" id="diceBadgeD2">-</span>
+            <span class="bt-dice-badge-eq">=</span>
+            <span class="bt-dice-badge-sum" id="diceBadgeSum">-</span>
+        </div>
+
+        <!-- Toast feed -->
+        <div id="actionToasts" class="bt-toast-feed" aria-live="polite"></div>
+
+        <!-- Tile info — maly badge u gory nad przyciskiem -->
+        <div id="tileInfoPanel" class="bt-tile-info-float">
+            <div id="tileInfo" class="log-box bt-log"></div>
+        </div>
+
+        <!-- Chance modal -->
+        <div id="chanceModal" class="chance-modal" aria-hidden="true">
+            <div class="chance-card">
+                <div class="chance-kind" id="chanceKind">SZANSA - PB</div>
+                <div class="chance-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                <h3 class="chance-title" id="chanceTitle">Tytul karty</h3>
+                <p class="chance-desc" id="chanceDesc">Opis efektu</p>
+                <div class="chance-effect" id="chanceEffect">+0 PLN</div>
+            </div>
+        </div>
+
+        <!-- Winner banner (maly, u gory) -->
+        <div id="winnerBanner" class="bt-winner-float" style="display:none;"></div>
+
+        <!-- Game-end overlay -->
+        <div id="gameEndOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
+             background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+             flex-direction:column;align-items:center;justify-content:center;
+             gap:1.5rem;text-align:center;">
+            <div id="gameEndIcon" style="font-size:5rem;"></div>
+            <h1 id="gameEndTitle" style="font-size:2.5rem;margin:0;"></h1>
+            <p id="gameEndSub" style="font-size:1.2rem;color:var(--slate-300);margin:0;"></p>
+            <div id="gameEndTimer" style="font-size:1rem;color:var(--slate-400);"></div>
+            <a href="/dashboard" class="btn btn-bt-roll" style="font-size:1.1rem;padding:.9rem 2.5rem;">
+                <i class="fa-solid fa-house"></i> Wroc do profilu
+            </a>
+        </div>
+
+        <!-- ===== FLOATING ACTION PANEL (zamiast side panelu) ===== -->
+        <!-- Wyswietlany centralnie nad planszą gdy jest decyzja do podjecia -->
+        <div id="actionPanel" class="bt-action-float" style="display:none;"></div>
+
+        <!-- ===== BOTTOM HUD ===== -->
+        <div class="bt-bottom-hud">
+
+            <!-- LEWA: Karty w rece -->
+            <div class="bt-hud-left">
+                <button id="handCardsToggle" class="bt-float-icon-btn" title="Twoje karty">
+                    <i class="fa-solid fa-cards-blank"></i>
+                    <span id="handCardCount" class="bt-float-badge">0</span>
+                </button>
+                <div id="handCardsPanel" class="bt-hand-popup" style="display:none;">
+                    <div class="bt-hand-popup-header">
+                        <strong><i class="fa-solid fa-cards-blank"></i> Twoje karty</strong>
+                        <button id="handCardsClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="handCardsList"></div>
+                    <div id="destroyTargetPanel" style="display:none;border-top:1px solid var(--border);padding:.5rem;margin-top:.4rem;">
+                        <p class="muted" style="font-size:.8rem;margin:.2rem 0;">Wybierz pole rywala do zniszczenia:</p>
+                        <select id="destroyTargetSelect" style="width:100%;margin-bottom:.4rem;"></select>
+                        <div style="display:flex;gap:.4rem;">
+                            <button id="destroyConfirmBtn" class="btn btn-danger btn-small">Zniszcz</button>
+                            <button id="destroyCancelBtn" class="btn btn-ghost btn-small">Anuluj</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="game-canvas-loader" class="canvas-loader">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:#ffd54f;margin-bottom:1rem;"></i>
-                <span>Ladowanie planszy Kampus PB...</span>
+            <!-- SRODEK: Roll + tura -->
+            <div class="bt-hud-center" id="rollPanel">
+                <div class="bt-turn-label-row">
+                    <span id="centerHint" class="hud-badge bt-live">Rzuc!</span>
+                    <h2 id="centerTurnLabel" class="bt-turn-h2">Twoja kolej</h2>
+                </div>
+                <button id="rollBtn" class="btn btn-bt-roll bt-roll-big" type="button">
+                    <i class="fa-solid fa-dice"></i> RZUC KOSTKA
+                </button>
             </div>
 
-            <!-- Kostki 3D sa renderowane przez Three.js na planszy (showBoardDice).
-                 Wynik rzutu pokazywany jest jako maly toast-badge nad planszą. -->
-            <div id="diceBadge" class="bt-dice-badge" aria-hidden="true">
-                <span class="bt-dice-badge-d" id="diceBadgeD1">-</span>
-                <span class="bt-dice-badge-plus">+</span>
-                <span class="bt-dice-badge-d" id="diceBadgeD2">-</span>
-                <span class="bt-dice-badge-eq">=</span>
-                <span class="bt-dice-badge-sum" id="diceBadgeSum">-</span>
-            </div>
-
-            <!-- Pasek krotkich komunikatow (toast feed) u dolu planszy. -->
-            <div id="actionToasts" class="bt-toast-feed" aria-live="polite"></div>
-
-            <!-- Modal karty Szansy / Wydarzenia -->
-            <div id="chanceModal" class="chance-modal" aria-hidden="true">
-                <div class="chance-card">
-                    <div class="chance-kind" id="chanceKind">SZANSA - PB</div>
-                    <div class="chance-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-                    <h3 class="chance-title" id="chanceTitle">Tytul karty</h3>
-                    <p class="chance-desc" id="chanceDesc">Opis efektu</p>
-                    <div class="chance-effect" id="chanceEffect">+0 PLN</div>
+            <!-- PRAWA: Transfer siana -->
+            <div class="bt-hud-right">
+                <button id="transferToggle" class="bt-float-icon-btn" title="Transfer siana">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                </button>
+                <div id="transferPanel" class="bt-transfer-popup" style="display:none;">
+                    <div class="bt-hand-popup-header">
+                        <strong><i class="fa-solid fa-money-bill-transfer"></i> Transfer siana</strong>
+                        <button id="transferClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="field" style="margin:.4rem 0;">
+                        <label for="toPlayer" style="font-size:.8rem;">Do gracza</label>
+                        <select id="toPlayer" style="width:100%;"></select>
+                    </div>
+                    <div class="field" style="margin:.4rem 0;">
+                        <label for="amount" style="font-size:.8rem;">Kwota (PLN)</label>
+                        <input type="number" id="amount" min="1" value="100" style="width:100%;">
+                    </div>
+                    <button id="transferBtn" class="btn btn-bt btn-small" type="button" style="width:100%;">
+                        Przelej siano
+                    </button>
+                    <p class="error" id="transferErr" style="display:none;font-size:.78rem;margin-top:.3rem;"></p>
                 </div>
             </div>
         </div>
 
-        <aside class="game-hud game-hud-bt">
-            <!-- Panel rzutu -->
-            <div id="winnerBanner" class="hud-panel bt-panel" style="display:none;text-align:center;color:var(--brand-gold);"></div>
-
-<!-- Overlay konca gry (wygrana / bankructwo) - na pelnym ekranie -->
-<div id="gameEndOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
-     background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
-     display:none;flex-direction:column;align-items:center;justify-content:center;
-     gap:1.5rem;text-align:center;">
-    <div id="gameEndIcon" style="font-size:5rem;"></div>
-    <h1 id="gameEndTitle" style="font-size:2.5rem;margin:0;"></h1>
-    <p id="gameEndSub" style="font-size:1.2rem;color:var(--slate-300);margin:0;"></p>
-    <div id="gameEndTimer" style="font-size:1rem;color:var(--slate-400);"></div>
-    <a href="/dashboard" class="btn btn-bt-roll" style="font-size:1.1rem;padding:.9rem 2.5rem;">
-        <i class="fa-solid fa-house"></i> Wróć do profilu
-    </a>
-</div>
-
-            <div class="hud-panel bt-panel" id="rollPanel">
-                <div class="hud-panel-head">
-                    <h2 id="centerTurnLabel">Twoja kolej</h2>
-                    <span id="centerHint" class="hud-badge bt-live">Rzuć!</span>
-                </div>
-                <button id="rollBtn" class="btn btn-bt-roll hud-roll-btn" type="button">
-                    <i class="fa-solid fa-dice"></i> RZUĆ KOSTKĄ
-                </button>
-            </div>
-
-            <div class="hud-panel bt-panel">
-                <div class="hud-panel-head">
-                    <h2>Gracze</h2>
-                    <span class="hud-badge bt-badge"><span id="onlineCount">0</span> online</span>
-                </div>
-                <div id="players"><p class="muted">Ladowanie...</p></div>
-            </div>
-
-            <div class="hud-panel bt-panel" id="tileInfoPanel">
-                <div class="hud-panel-head"><h2>Aktualne pole</h2></div>
-                <div id="tileInfo" class="log-box bt-log">Tura startuje na planszy Kampus PB.</div>
-            </div>
-
-            <!-- Panel decyzji: KUP / POMIN / LICYTUJ - widoczny tylko gdy backend zaznaczy pendingPurchase -->
-            <div class="hud-panel bt-panel action-panel" id="actionPanel" style="display:none;"></div>
-
-            <div class="hud-panel bt-panel" id="transferPanel">
-                <div class="hud-panel-head"><h2>Transfer siana</h2></div>
-                <div class="field">
-                    <label for="toPlayer">Do gracza</label>
-                    <select id="toPlayer"></select>
-                </div>
-                <div class="field">
-                    <label for="amount">Kwota (PLN)</label>
-                    <input type="number" id="amount" min="1" value="100">
-                </div>
-                <button id="transferBtn" class="btn btn-bt btn-roll" type="button">Przelej siano</button>
-                <p class="error" id="transferErr" style="display:none;"></p>
-            </div>
-        </aside>
+        <!-- hidden: online count referenced by JS -->
+        <span id="onlineCount" style="display:none;">0</span>
     </div>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script th:src="@{/js/board3d.js}"></script>
