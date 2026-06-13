@@ -2,7 +2,7 @@
    spojne ciemne sukno + drewniana rama, czytelne pola z opcja PNG, paski wlasciciela. */
 (function () {
     "use strict";
-    console.info("[board3d] build 20250613-resync");
+    console.info("[board3d] build 20250613-pipeline");
 
     var main = document.getElementById("main");
     if (!main) return;
@@ -1313,11 +1313,14 @@
 
     function startActionTimer(deadlineMs) {
         clearActionTimer();
+        /* Calkowity czas (s) liczony raz na starcie — pasek to procent pozostalego,
+           dziala tak samo dla 10s (kupno) jak i 30s (splata). */
+        var totalSec = Math.max(1, Math.ceil((deadlineMs - Date.now()) / 1000));
         actionTimerInterval = setInterval(function () {
             var remaining = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
             var bar = document.getElementById("actionTimerBar");
             var label = document.getElementById("actionTimerLabel");
-            if (bar) bar.style.width = (remaining * 10) + "%";
+            if (bar) bar.style.width = Math.min(100, (remaining / totalSec) * 100) + "%";
             if (label) label.textContent = remaining + "s";
             if (remaining <= 0) {
                 clearActionTimer();
@@ -1457,7 +1460,7 @@
         var html = '<div class="bt-action-header">' +
             '<i class="fa-solid fa-building" style="color:var(--brand-gold)"></i>' +
             '<span>Zakup nieruchomosci</span>' +
-            (amDecider ? '<span id="actionTimerLabel" class="action-timer-label">10s</span>'
+            (amDecider ? '<span id="actionTimerLabel" class="action-timer-label">25s</span>'
                 : (deciderIsBot ? '<span class="action-timer-label" style="color:var(--brand-emerald)">BOT...</span>' : '')) +
             '</div>';
         if (amDecider) {
@@ -1472,7 +1475,7 @@
                 '<i class="fa-solid fa-bag-shopping"></i> Kupuj za ' + pp.basePrice + ' PLN</button>' +
                 '<button class="btn btn-secondary" id="btnSkip">Pomin</button>' +
                 '</div>' +
-                '<p class="muted small" style="text-align:center;">Masz 10s — po czasie pole wraca do banku.</p>';
+                '<p class="muted small" style="text-align:center;">Masz 25s — po czasie pole wraca do banku.</p>';
         } else {
             html += '<p class="muted" style="text-align:center;">Decyduje: <strong>' +
                 escapeHtml(decider.name || "Gracz") + '</strong></p>';
@@ -1482,7 +1485,7 @@
         ap.className = "bt-action-float bt-action-anim";
         ap.innerHTML = html;
 
-        if (amDecider) startActionTimer(Date.now() + 10000);
+        if (amDecider) startActionTimer(Date.now() + 25000);
         else clearActionTimer();
 
         var btnBuy = document.getElementById("btnBuy");
@@ -1656,9 +1659,10 @@
                 if (animationQueue[qi]._animKey === key) return;
             }
             state._animKey = key;
-            /* Sync UI od razu — panel kupna musi odpowiadac stanowi serwera zanim skonczy sie animacja. */
+            /* Zapamietujemy najnowszy stan (dla watchdoga / kamery), ale NIE renderujemy
+               jeszcze panelu — panel kupna/akcji ma sie pojawic dopiero gdy pionek doleci
+               na pole (na koncu animacji), inaczej "pole wyswietla sie juz z kupnem". */
             lastState = state;
-            refreshUiOnly(state);
             animationQueue.push(state);
             processAnimationQueue();
             return;
@@ -1669,10 +1673,12 @@
                                  Po skonczeniu animacji, callback i tak ustawi koncowe pozycje.
            - Gdy animating=false: bezpiecznie ustawiamy pozycje wszystkich pionkow. */
         refreshUiOnly(state);
-        if (!animating) {
+        if (!animating && animationQueue.length === 0) {
+            /* Nic sie nie animuje i nic nie czeka w kolejce — bezpiecznie ustaw wszystkie pionki. */
             state.players.forEach(function (p, idx) { upsertPlayerMesh(p, idx, p.position); });
         } else {
-            /* Tworzymy meshe nowych graczy, ale nie zmieniamy pozycji animowanego. */
+            /* Trwa lub czeka animacja ruchu — NIE przestawiaj istniejacych pionkow (teleport!),
+               twórz tylko meshe nowych graczy. Pozycje ustawi callback po animacji. */
             state.players.forEach(function (p, idx) {
                 if (!playerMeshes[String(p.id)]) upsertPlayerMesh(p, idx, p.position);
             });
@@ -1730,7 +1736,10 @@
                    w trakcie animacji (np. z szybkiej decyzji bota lub non-anim WS-state).
                    Jesli sie pojawilo - stary state nie nadpisze nowszego. */
                 if (hudSeq === seqAtStart) {
-                    renderHud(lastState || state);
+                    /* Renderuj stan WLASNIE zakonczonej animacji — panel kupna/akcji
+                       pojawia sie dokladnie gdy pionek doleci na pole. renderHud sam
+                       ustawi lastState, wiec pozostaje on spojny z tym co widac. */
+                    renderHud(state);
                 } else {
                     /* Nowszy stan juz wyrenderowany - tylko odswiezamy guziki/panel. */
                     if (lastState) {

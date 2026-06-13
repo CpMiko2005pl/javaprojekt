@@ -31,8 +31,9 @@ public class BotAutoplayService {
     private static final long BOT_ROLL_DELAY_MS = 1500;
     /** Opoznienie miedzy postawieniem pendingPurchase a decyzja bota. */
     private static final long BOT_DECISION_DELAY_MS = 1300;
-    /** Czas na decyzje gracza-czlowieka (kupno pola). */
-    private static final long HUMAN_DECISION_TIMEOUT_SECONDS = 10;
+    /** Czas na decyzje gracza-czlowieka (kupno pola). Liczony od rzutu, a animacja
+        pionka u klienta trwa kilka sekund — stad zapas, by zdazyc kliknac Kupuj/Pomin. */
+    private static final long HUMAN_DECISION_TIMEOUT_SECONDS = 25;
     /** Czas na splate zadluzenia (sprzedaz, pozyczka). */
     private static final long HUMAN_PAYMENT_TIMEOUT_SECONDS = 30;
 
