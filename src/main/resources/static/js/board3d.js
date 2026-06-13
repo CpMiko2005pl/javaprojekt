@@ -2,7 +2,7 @@
    spojne ciemne sukno + drewniana rama, czytelne pola z opcja PNG, paski wlasciciela. */
 (function () {
     "use strict";
-    console.info("[board3d] build 20250612-buyfix");
+    console.info("[board3d] build 20250613-resync");
 
     var main = document.getElementById("main");
     if (!main) return;
@@ -1322,6 +1322,15 @@
             if (remaining <= 0) {
                 clearActionTimer();
                 if (label) label.textContent = "0s - czas minal";
+                /* Serwer po uplywie czasu robi auto-skip/auto-splate. Jesli broadcast WS
+                   sie zgubi, panel zostalby z martwymi przyciskami ("Brak aktywnego pola").
+                   Po krotkiej karencji pobieramy swiezy stan, by panel sam sie zsynchronizowal. */
+                setTimeout(function () {
+                    fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
+                        .then(function (r) { return r.json(); })
+                        .then(function (s) { applyStateWithAnimation(s); })
+                        .catch(function () {});
+                }, 1500);
             }
         }, 100);
     }
@@ -1566,9 +1575,20 @@
             .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
             .then(function (res) {
                 if (!res.ok) {
+                    var errMsg = (res.data && res.data.error) || "Blad operacji.";
                     if (errBox) {
-                        errBox.textContent = res.data.error || "Blad operacji.";
+                        errBox.textContent = errMsg;
                         errBox.style.display = "block";
+                    }
+                    /* DESYNC RECOVERY: jesli serwer twierdzi, ze nie ma juz aktywnego pola/decyzji
+                       (np. zadzialal auto-skip albo zgubilismy WS-broadcast), panel jest nieaktualny.
+                       Pobieramy swiezy stan, by panel zniknal i mozna bylo grac dalej zamiast utknac. */
+                    if (/Brak aktywneg|Brak aktywnej|To nie Ty|Najpierw zakoncz/i.test(errMsg)) {
+                        lastActionPanelKey = null;
+                        fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
+                            .then(function (r) { return r.json(); })
+                            .then(function (s) { applyStateWithAnimation(s); })
+                            .catch(function () {});
                     }
                     return;
                 }
