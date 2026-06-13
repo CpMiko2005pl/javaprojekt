@@ -75,6 +75,10 @@ public class User {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    /** Adres URL niestandardowego awatara (opcjonalne). */
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
     /** Adres URL banera profilowego (opcjonalne). */
     @Column(name = "banner_url", length = 512)
     private String bannerUrl;
@@ -215,6 +219,14 @@ public class User {
 
     public void setGameLogs(List<GameLog> gameLogs) {
         this.gameLogs = gameLogs;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public String getBannerUrl() {

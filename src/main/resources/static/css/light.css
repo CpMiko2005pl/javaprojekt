@@ -173,7 +173,7 @@ body.light-page .lootbox-section {
 .lp-btn-play {
     display:inline-flex; align-items:center; justify-content:center; gap:10px;
     font-size:15px; padding:14px 32px; border-radius:16px;
-    background:#00A651; color:#fff; border:2px solid rgba(255,255,255,0.18); cursor:pointer;
+    background:#00A651; color:#fff !important; border:2px solid rgba(255,255,255,0.18); cursor:pointer;
     font-weight:700; font-family:var(--font-display); letter-spacing:.04em; text-transform:uppercase;
     box-shadow:0 12px 28px rgba(0,166,81,.35),inset 0 2px 0 rgba(255,255,255,.22);
     text-decoration:none; transition:var(--lp-tr);
@@ -183,7 +183,7 @@ body.light-page .lootbox-section {
     0%,100%{box-shadow:0 12px 28px rgba(0,166,81,.35),inset 0 2px 0 rgba(255,255,255,.22)}
     50%{box-shadow:0 14px 34px rgba(0,166,81,.58),0 0 38px rgba(0,166,81,.18),inset 0 2px 0 rgba(255,255,255,.22)}
 }
-.lp-btn-play:hover { transform:translateY(-3px) scale(1.02); background:#20C96B; color:#fff; }
+.lp-btn-play:hover { transform:translateY(-3px) scale(1.02); background:#20C96B; color:#fff !important; }
 
 .lp-btn-outline {
     display:inline-flex; align-items:center; gap:8px;
@@ -277,33 +277,37 @@ body.light-page .lootbox-section {
 .lp-footer-col h4   { color:#fff; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:16px; font-weight:700; }
 .lp-footer-col ul   { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
 .lp-footer-col a    { color:#94a3b8; text-decoration:none; font-size:13px; transition:color .2s; }
-.lp-footer-col a:hover { color:#20C96B; }
+.lp-footer-col a.linki       { color:#ffffff; }
+.lp-footer-col a:hover,
+.lp-footer-col a.linki:hover { color:#20C96B; }
 .lp-footer-bottom { max-width:1160px; margin:0 auto; padding-top:20px; border-top:1px solid rgba(255,255,255,.08); display:flex; justify-content:space-between; align-items:center; font-size:12px; }
 .lp-social { display:flex; gap:12px; }
 .lp-social a { color:#94a3b8; font-size:18px; transition:color .2s; }
-.lp-social a:hover { color:#fff; }
+.lp-social a.linki { color:#94a3b8; }
+.lp-social a:hover, .lp-social a.linki:hover { color:#fff; }
 
 /* ───────────────────────────────────────────────
    FACEIT-STYLE DASHBOARD
 ─────────────────────────────────────────────── */
 .lp-faceit { max-width:1180px; margin:28px auto 80px; padding:0 1.5rem; }
 .lp-ph { border-radius:22px; overflow:hidden; background:rgba(255,255,255,.72); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,.88); box-shadow:var(--lp-shadow); margin-bottom:24px; }
-.lp-ph-banner { height:160px; background:linear-gradient(135deg,rgba(0,166,81,.22) 0%,rgba(106,27,154,.28) 100%); position:relative; }
-.lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(255,255,255,.28)); pointer-events:none; }
+.lp-ph-banner { aspect-ratio:1920/336; background:linear-gradient(135deg,rgba(0,166,81,.22) 0%,rgba(106,27,154,.28) 100%); position:relative; overflow:hidden; }
+.lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(255,255,255,.28)); pointer-events:none; z-index:1; }
+.lp-ph-banner-img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; position:relative; z-index:0; }
 
 /* Row no longer overlaps banner — avatar pulled up with negative margin instead */
 .lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 28px 24px; flex-wrap:wrap; gap:15px; }
 .lp-ph-identity { display:flex; align-items:flex-start; gap:17px; }
 
 /* Avatar sticks up into the banner via negative margin-top */
-.lp-ph-avatar { width:120px; height:120px; border-radius:22px; background:var(--lp-gr); border:5px solid #fff; box-shadow:0 8px 28px rgba(0,166,81,.26); display:grid; place-items:center; font-family:var(--font-display); font-size:46px; font-weight:800; color:#fff; overflow:hidden; flex-shrink:0; margin-top:-56px; }
+.lp-ph-avatar { width:120px; height:120px; border-radius:22px; background:var(--lp-gr); border:5px solid #fff; box-shadow:0 8px 28px rgba(0,166,81,.26); display:grid; place-items:center; font-family:var(--font-display); font-size:46px; font-weight:800; color:#fff; overflow:hidden; flex-shrink:0; margin-top:-68px; }
 .lp-ph-avatar img { width:100%; height:100%; object-fit:cover; }
 
 /* Details always rendered in the white area below the banner */
 .lp-ph-details { padding-top:6px; }
 .lp-ph-details h2 { font-size:1.85rem; font-family:var(--font-display); margin:0 0 3px; color:#0f172a; letter-spacing:-0.02em; }
 .lp-ph-details .lp-role { color:#6A1B9A; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0; }
-.lp-ph-actions { display:flex; gap:8px; flex-wrap:wrap; align-self:flex-end; padding-bottom:4px; }
+.lp-ph-actions { display:flex; gap:8px; flex-wrap:wrap; align-self:flex-end; padding-bottom:4px; margin-left:auto; }
 
 .lp-pg { display:grid; grid-template-columns:295px 1fr; gap:20px; }
 @media(max-width:860px){ .lp-pg{grid-template-columns:1fr;} }

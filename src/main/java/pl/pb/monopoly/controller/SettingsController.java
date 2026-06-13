@@ -36,9 +36,10 @@ public class SettingsController {
                                 @RequestParam String email,
                                 @RequestParam(required = false) String bio,
                                 @RequestParam(required = false) String bannerUrl,
+                                @RequestParam(required = false) String avatarUrl,
                                 RedirectAttributes ra) {
         try {
-            userService.updateProfile(auth.getName(), email, bio, bannerUrl);
+            userService.updateProfile(auth.getName(), email, bio, bannerUrl, avatarUrl);
             ra.addFlashAttribute("message", "Profil został zaktualizowany.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());

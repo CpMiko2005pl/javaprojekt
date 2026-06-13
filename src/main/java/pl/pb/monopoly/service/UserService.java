@@ -93,9 +93,10 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    /** Aktualizacja danych profilu (email, bio, banner). */
+    /** Aktualizacja danych profilu (email, bio, banner, awatar). */
     @Transactional
-    public void updateProfile(String username, String newEmail, String bio, String bannerUrl) {
+    public void updateProfile(String username, String newEmail, String bio,
+                              String bannerUrl, String avatarUrl) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika"));
         if (!user.getEmail().equalsIgnoreCase(newEmail)
@@ -107,6 +108,7 @@ public class UserService {
         }
         user.setBio(bio != null ? bio.strip() : null);
         user.setBannerUrl(bannerUrl != null && !bannerUrl.isBlank() ? bannerUrl.strip() : null);
+        user.setAvatarUrl(avatarUrl != null && !avatarUrl.isBlank() ? avatarUrl.strip() : null);
     }
 
     /** Zmiana hasla po weryfikacji biezacego. */

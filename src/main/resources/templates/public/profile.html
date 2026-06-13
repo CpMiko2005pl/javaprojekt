@@ -12,9 +12,10 @@
 
         <!-- PROFILE HEADER (FACEIT style) -->
         <div class="lp-ph" style="margin-bottom:24px;">
-            <div class="lp-ph-banner"
-                 th:style="${profileUser.bannerUrl != null and !#strings.isEmpty(profileUser.bannerUrl)} ?
-                     'background:url(\'' + ${profileUser.bannerUrl} + '\') center/cover no-repeat;' : ''">
+            <div class="lp-ph-banner">
+                <img th:if="${profileUser.bannerUrl != null and !#strings.isEmpty(profileUser.bannerUrl)}"
+                     th:src="${profileUser.bannerUrl}" alt="Banner profilu" class="lp-ph-banner-img"
+                     onerror="this.style.display='none'">
             </div>
             <div class="lp-ph-row">
                 <div class="lp-ph-identity">

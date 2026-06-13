@@ -1,5 +1,6 @@
 package pl.pb.monopoly.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +10,8 @@ import org.springframework.web.client.RestClient;
 import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.LootboxService;
+
+import java.net.URI;
 
 import java.util.Map;
 
@@ -49,10 +52,22 @@ public class AvatarController {
     @GetMapping("/api/avatar/{username}")
     public ResponseEntity<byte[]> avatar(@PathVariable String username) {
         try {
+            var userOpt = userRepository.findByUsername(username);
+
+            // Jezeli uzytkownik ma ustawiony wlasny URL awatara — przekieruj tam
+            if (userOpt.isPresent()) {
+                String customUrl = userOpt.get().getAvatarUrl();
+                if (customUrl != null && !customUrl.isBlank()) {
+                    return ResponseEntity.status(HttpStatus.FOUND)
+                            .location(URI.create(customUrl))
+                            .build();
+                }
+            }
+
+            // Standardowy awatar z DiceBear (z uwzglednieniem ekwipunku)
             String style = "pixel-art";
             String seed = username;
 
-            var userOpt = userRepository.findByUsername(username);
             if (userOpt.isPresent()) {
                 var equippedAvatar = ownedItemRepository.findByUserIdAndEquipped(userOpt.get().getId(), true)
                         .stream()

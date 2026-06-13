@@ -90,25 +90,25 @@
         <div class="lp-footer-col">
             <h4>Gra</h4>
             <ul>
-                <li><a th:href="@{/game}">Lobby</a></li>
-                <li><a th:href="@{/}">Strona główna</a></li>
-                <li><a th:href="@{/#ranking}">Ranking ELO</a></li>
+                <li><a class="linki" th:href="@{/game}">Lobby</a></li>
+                <li><a class="linki" th:href="@{/}">Strona główna</a></li>
+                <li><a class="linki" th:href="@{/#ranking}">Ranking ELO</a></li>
             </ul>
         </div>
         <div class="lp-footer-col">
             <h4>Konto</h4>
             <ul>
-                <li><a th:href="@{/register}">Rejestracja</a></li>
-                <li><a th:href="@{/login}">Logowanie</a></li>
-                <li><a th:href="@{/dashboard}">Mój profil</a></li>
+                <li><a class="linki" th:href="@{/register}">Rejestracja</a></li>
+                <li><a class="linki" th:href="@{/login}">Logowanie</a></li>
+                <li><a class="linki" th:href="@{/dashboard}">Mój profil</a></li>
             </ul>
         </div>
     </div>
     <div class="lp-footer-bottom">
         <span>&copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> Monopoly PB. Projekt edukacyjny.</span>
         <div class="lp-social">
-            <a href="#"><i class="fa-brands fa-github"></i></a>
-            <a href="#"><i class="fa-brands fa-discord"></i></a>
+            <a class="linki" href="#"><i class="fa-brands fa-github"></i></a>
+            <a class="linki" href="#"><i class="fa-brands fa-discord"></i></a>
         </div>
     </div>
 </footer>

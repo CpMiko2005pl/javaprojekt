@@ -18,9 +18,10 @@
 
     <!-- PROFILE HEADER -->
     <div class="lp-ph">
-        <div class="lp-ph-banner"
-             th:style="${user.bannerUrl != null and !#strings.isEmpty(user.bannerUrl)} ?
-                 'background:url(\'' + ${user.bannerUrl} + '\') center/cover no-repeat;' : ''">
+        <div class="lp-ph-banner">
+            <img th:if="${user.bannerUrl != null and !#strings.isEmpty(user.bannerUrl)}"
+                 th:src="${user.bannerUrl}" alt="Banner profilu" class="lp-ph-banner-img"
+                 onerror="this.style.display='none'">
         </div>
         <div class="lp-ph-row">
             <div class="lp-ph-identity">
@@ -136,7 +137,13 @@
             <div class="lp-mini-panel">
                 <h3>Znajomi (<span th:text="${friends.size()}">0</span>)</h3>
                 <div class="lp-friend-row" th:each="f : ${friends}">
-                    <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</div>
+                    <div class="mini-avatar" style="padding:0;overflow:hidden;">
+                        <img th:src="@{/api/avatar/{u}(u=${f.username})}" alt=""
+                             style="width:100%;height:100%;object-fit:cover;display:block;"
+                             th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
+                        <span style="display:none;width:100%;height:100%;place-items:center;font-weight:800;font-size:.9rem;"
+                              th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</span>
+                    </div>
                     <div style="flex:1;">
                         <strong style="font-size:.88rem;" th:text="${f.username}">login</strong><br>
                         <span class="muted" style="font-size:.75rem;">LVL <span th:text="${f.level}">1</span> · <span th:text="${f.eloPoints}">1000</span> ELO</span>
@@ -149,7 +156,13 @@
                         Zaproszenia (<span th:text="${requests.size()}">0</span>)
                     </p>
                     <div class="lp-friend-row" th:each="r : ${requests}">
-                        <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</div>
+                        <div class="mini-avatar" style="padding:0;overflow:hidden;">
+                            <img th:src="@{/api/avatar/{u}(u=${r.fromUsername})}" alt=""
+                                 style="width:100%;height:100%;object-fit:cover;display:block;"
+                                 th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
+                            <span style="display:none;width:100%;height:100%;place-items:center;font-weight:800;font-size:.9rem;"
+                                  th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</span>
+                        </div>
                         <div style="flex:1;font-size:.85rem;"><strong th:text="${r.fromUsername}">login</strong></div>
                         <form th:action="@{/friends/{id}/accept(id=${r.friendshipId})}" method="post" class="inline-form">
                             <input type="hidden" name="from" value="dashboard">
@@ -297,7 +310,13 @@
                 </form>
                 <div th:if="${results != null and !results.isEmpty()}">
                     <div class="lp-friend-row" th:each="u : ${results}">
-                        <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</div>
+                        <div class="mini-avatar" style="padding:0;overflow:hidden;">
+                            <img th:src="@{/api/avatar/{u2}(u2=${u.username})}" alt=""
+                                 style="width:100%;height:100%;object-fit:cover;display:block;"
+                                 th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
+                            <span style="display:none;width:100%;height:100%;place-items:center;font-weight:800;font-size:.9rem;"
+                                  th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</span>
+                        </div>
                         <div style="flex:1;font-size:.875rem;">
                             <strong th:text="${u.username}">login</strong>
                             <span class="muted"> · LVL <span th:text="${u.level}">1</span></span>
