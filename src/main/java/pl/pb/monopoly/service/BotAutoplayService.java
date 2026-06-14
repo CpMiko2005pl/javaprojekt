@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.pb.monopoly.domain.GamePlayer;
 import pl.pb.monopoly.domain.GameSession;
+import pl.pb.monopoly.domain.HandCardType;
+import pl.pb.monopoly.dto.GameStateDto;
 import pl.pb.monopoly.repository.GameSessionRepository;
 
 import java.util.List;
@@ -208,19 +210,58 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 3) Brak decyzji - jesli aktywny gracz to bot, rzuc za niego
+            // 3) Brak decyzji - jesli aktywny gracz to bot, zagraj karte (opcjonalnie) i rzuc
             int turnIdx = activeTurnIndex(s.getPlayers(), s.getCurrentTurn());
             GamePlayer current = s.getPlayers().get(turnIdx);
             if (current.getUser() == null && !current.isBankrupt()) {
                 Long botId = current.getId();
-                scheduleOnce(sessionId,
-                        () -> gameService.rollAsBot(sessionId, botId),
-                        BOT_ROLL_DELAY_MS, TimeUnit.MILLISECONDS);
+                // Bot heurystycznie gra karte przed rzutem jezeli jest korzystna
+                String cardToPlay = chooseBotCard(current, s);
+                if (cardToPlay != null) {
+                    final String card = cardToPlay;
+                    scheduleOnce(sessionId,
+                            () -> {
+                                GameStateDto result = gameService.playCard(sessionId, botId, card);
+                                if (result == null) {
+                                    // Karta nie zagrana (np. wymagala targetPos) — rzuc normalnie
+                                    gameService.rollAsBot(sessionId, botId);
+                                }
+                            },
+                            BOT_DECISION_DELAY_MS, TimeUnit.MILLISECONDS);
+                } else {
+                    scheduleOnce(sessionId,
+                            () -> gameService.rollAsBot(sessionId, botId),
+                            BOT_ROLL_DELAY_MS, TimeUnit.MILLISECONDS);
+                }
             }
         } catch (Exception ex) {
             log.warn("onTurnUpdate failed for session {}: {}", sessionId, ex.getMessage());
             scheduleRecovery(sessionId);
         }
+    }
+
+    /**
+     * Bot wybiera karte do zagrania przed rzutem (heurystycznie).
+     * Zwraca name() karty lub null jezeli bot nie chce grac zadnej.
+     */
+    private static String chooseBotCard(GamePlayer bot, GameSession s) {
+        List<String> hand = bot.getHandCards();
+        if (hand == null || hand.isEmpty()) return null;
+
+        // Priorytet: EXTRA_ROLL > SCHOLARSHIP_ALL > ADD_CASH (jak malo siana) > DOUBLE_RENT_NEXT
+        for (String c : hand) {
+            if (HandCardType.EXTRA_ROLL.name().equals(c)) return c;
+        }
+        for (String c : hand) {
+            if (HandCardType.SCHOLARSHIP_ALL.name().equals(c)) return c;
+        }
+        for (String c : hand) {
+            if (HandCardType.ADD_CASH.name().equals(c) && bot.getCash() < 500_000) return c;
+        }
+        for (String c : hand) {
+            if (HandCardType.DOUBLE_RENT_NEXT.name().equals(c)) return c;
+        }
+        return null;
     }
 
     /** Indeks pierwszego niebankruta od biezacej tury (jak normalizeCurrentTurn, bez zapisu). */

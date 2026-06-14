@@ -2,6 +2,7 @@ package pl.pb.monopoly.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pl.pb.monopoly.domain.HandCardType;
 import pl.pb.monopoly.domain.OwnedItem;
 import pl.pb.monopoly.domain.PlayerStatistics;
 import pl.pb.monopoly.domain.User;
@@ -57,35 +58,48 @@ public class LootboxService {
             String description
     ) {}
 
-    /** Pelny katalog itemow - rozszerzaj dowolnie. */
+    /** Mapowanie slug karty bonusowej na HandCardType. */
+    public static final java.util.Map<String, HandCardType> BONUS_CARD_MAP = java.util.Map.of(
+            "card-bonus-upgrade", HandCardType.FREE_UPGRADE,
+            "card-bonus-shield", HandCardType.SHIELD,
+            "card-bonus-cash", HandCardType.ADD_CASH,
+            "card-bonus-teleport", HandCardType.TELEPORT,
+            "card-bonus-double", HandCardType.DOUBLE_RENT_NEXT
+    );
+
+    /** Pelny katalog itemow — bez awatarów (upload w ustawieniach profilu), z rozbudowanymi ramkami i kartami bonusowymi. */
     public static final List<LootboxItem> LOOTBOX_ITEMS = List.of(
-            // COMMON
-            new LootboxItem("avatar-student", "Awatar: Student PB", Rarity.COMMON, "Awatar",
-                    "fa-solid fa-user-graduate", "Klasyczny student z plecakiem."),
-            new LootboxItem("avatar-zmeczony", "Awatar: Zmeczony zaliczeniami", Rarity.COMMON, "Awatar",
-                    "fa-solid fa-bed", "Po sesji wyglada tak kazdy."),
+            // ===== COMMON =====
             new LootboxItem("color-blue", "Pionek: Kobalt PB", Rarity.COMMON, "Kolor pionka",
                     "fa-solid fa-circle", "Niebieski pionek w barwach uczelni."),
             new LootboxItem("color-red", "Pionek: Czerwien Wydzialu", Rarity.COMMON, "Kolor pionka",
                     "fa-solid fa-circle", "Klasyczna czerwien."),
             new LootboxItem("emoji-coffee", "Naklejka: Kawa z USOSweb", Rarity.COMMON, "Naklejka",
-                    "fa-solid fa-mug-saucy", "Nieskonczona ilosc kofeiny."),
+                    "fa-solid fa-mug-hot", "Nieskonczona ilosc kofeiny."),
             new LootboxItem("emoji-pizza", "Naklejka: Pizza ze Stolowki", Rarity.COMMON, "Naklejka",
                     "fa-solid fa-pizza-slice", "Tylko za 8 PLN po promocji."),
-            new LootboxItem("frame-bronze", "Ramka profilu: Brazowa", Rarity.COMMON, "Ramka",
+            new LootboxItem("frame-bronze", "Ramka: Brazowa", Rarity.COMMON, "Ramka",
                     "fa-solid fa-square-poll-vertical", "Skromna, ale wlasna."),
+            new LootboxItem("frame-pixel", "Ramka: Pixel Retro", Rarity.COMMON, "Ramka",
+                    "fa-solid fa-gamepad", "8-bit styl rodem z lat 80."),
+            new LootboxItem("card-bonus-shield", "Karta bonusowa: Tarcza Akademicka", Rarity.COMMON, "Karta bonusowa",
+                    "fa-solid fa-user-shield", "Dodana do reki na START nastepnej gry."),
+            new LootboxItem("card-bonus-cash", "Karta bonusowa: Stypendium Rektora", Rarity.COMMON, "Karta bonusowa",
+                    "fa-solid fa-coins", "Dodana do reki na START nastepnej gry."),
 
-            // RARE
-            new LootboxItem("avatar-bibliotekarz", "Awatar: Bibliotekarz", Rarity.RARE, "Awatar",
-                    "fa-solid fa-book-open-reader", "Wie wszystko o terminach."),
-            new LootboxItem("avatar-gwint", "Awatar: Krol Gwintu", Rarity.RARE, "Awatar",
-                    "fa-solid fa-cards-blank", "Mistrz wieczornych rozgrywek."),
+            // ===== RARE =====
             new LootboxItem("color-emerald", "Pionek: Szmaragd", Rarity.RARE, "Kolor pionka",
-                    "fa-solid fa-circle", "Zieleń kampusowych traw."),
+                    "fa-solid fa-circle", "Zielen kampusowych traw."),
             new LootboxItem("color-pink", "Pionek: Pink Hype", Rarity.RARE, "Kolor pionka",
                     "fa-solid fa-circle", "Dla odwaznych."),
-            new LootboxItem("frame-silver", "Ramka profilu: Srebrna", Rarity.RARE, "Ramka",
+            new LootboxItem("frame-silver", "Ramka: Srebrna", Rarity.RARE, "Ramka",
                     "fa-solid fa-medal", "Stylowa, blyszczy w ciemnosci."),
+            new LootboxItem("frame-midnight", "Ramka: Polnocna Biblioteka", Rarity.RARE, "Ramka",
+                    "fa-solid fa-moon", "Ciemny granat — klimat nocnych sesji."),
+            new LootboxItem("frame-ice", "Ramka: Lodowa", Rarity.RARE, "Ramka",
+                    "fa-solid fa-snowflake", "Blekitna ramka z lodowym efektem."),
+            new LootboxItem("frame-dice", "Ramka: Kostki", Rarity.RARE, "Ramka",
+                    "fa-solid fa-dice", "Kostki w rogach — dla hardkorowcow planszowek."),
             new LootboxItem("title-stypendysta", "Tytul: Stypendysta", Rarity.RARE, "Tytul",
                     "fa-solid fa-award", "Nadawany w panelu profilu."),
             new LootboxItem("pawn-3d-skeleton", "Pionek 3D: Szkielet", Rarity.RARE, "Pionek 3D",
@@ -96,14 +110,22 @@ public class LootboxService {
                     "fa-solid fa-user-ninja", "Najezdzca z wioski — strzela do konkurencji."),
             new LootboxItem("pawn-3d-goblin", "Pionek 3D: Goblin", Rarity.RARE, "Pionek 3D",
                     "fa-solid fa-frog", "Zlosliwy stwor — widoczny na planszy 3D."),
+            new LootboxItem("card-bonus-upgrade", "Karta bonusowa: Akademickie Pozwolenie Budowlane", Rarity.RARE, "Karta bonusowa",
+                    "fa-solid fa-hard-hat", "Dodana do reki na START nastepnej gry."),
+            new LootboxItem("card-bonus-double", "Karta bonusowa: Podwojny Wymagacz", Rarity.RARE, "Karta bonusowa",
+                    "fa-solid fa-sack-dollar", "Dodana do reki na START nastepnej gry."),
 
-            // EPIC
-            new LootboxItem("avatar-dziekan", "Awatar: Dziekan w gniewie", Rarity.EPIC, "Awatar",
-                    "fa-solid fa-user-tie", "Idz na konsultacje! Idz!"),
+            // ===== EPIC =====
             new LootboxItem("color-neon", "Pionek: Neon Cyber", Rarity.EPIC, "Kolor pionka",
                     "fa-solid fa-circle-radiation", "Swieci w 3D na planszy."),
-            new LootboxItem("frame-gold", "Ramka profilu: Zlota", Rarity.EPIC, "Ramka",
+            new LootboxItem("frame-gold", "Ramka: Zlota", Rarity.EPIC, "Ramka",
                     "fa-solid fa-crown", "Tylko dla najlepszych."),
+            new LootboxItem("frame-neon-green", "Ramka: Neon Kampus", Rarity.EPIC, "Ramka",
+                    "fa-solid fa-bolt", "Zielona poswata w barwach PB."),
+            new LootboxItem("frame-fire", "Ramka: Ognista", Rarity.EPIC, "Ramka",
+                    "fa-solid fa-fire", "Pomaranczowo-czerwona flaga zwyciestwa."),
+            new LootboxItem("frame-monopoly", "Ramka: Plansza PB", Rarity.EPIC, "Ramka",
+                    "fa-solid fa-chess-board", "Miniaturowa plansza w ramce."),
             new LootboxItem("title-dziekan", "Tytul: Postrach Dziekanatu", Rarity.EPIC, "Tytul",
                     "fa-solid fa-skull", "Stoisz tam czesciej niz wykladowca."),
             new LootboxItem("emoji-trophy", "Naklejka: Puchar Spartakiady", Rarity.EPIC, "Naklejka",
@@ -114,12 +136,14 @@ public class LootboxService {
                     "fa-solid fa-ghost", "Wysoki, cienisty — idealny na nocne rozgrywki."),
             new LootboxItem("pawn-3d-penguin", "Pionek 3D: Pingwin", Rarity.EPIC, "Pionek 3D",
                     "fa-solid fa-snowflake", "Pingwin z blockowego swiata — rzadki drop."),
+            new LootboxItem("card-bonus-teleport", "Karta bonusowa: Teleport Kampusowy", Rarity.EPIC, "Karta bonusowa",
+                    "fa-solid fa-rocket", "Dodana do reki na START nastepnej gry."),
 
-            // LEGENDARY
-            new LootboxItem("avatar-rektor", "Awatar: Rektor PB", Rarity.LEGENDARY, "Awatar",
-                    "fa-solid fa-chess-king", "Najwyzsza wladza na kampusie."),
-            new LootboxItem("frame-rainbow", "Ramka profilu: Tecza", Rarity.LEGENDARY, "Ramka",
+            // ===== LEGENDARY =====
+            new LootboxItem("frame-rainbow", "Ramka: Tecza", Rarity.LEGENDARY, "Ramka",
                     "fa-solid fa-rainbow", "Animowana, spektakularna."),
+            new LootboxItem("frame-champion", "Ramka: Mistrz Areny", Rarity.LEGENDARY, "Ramka",
+                    "fa-solid fa-chess-king", "Zloto i korona — dla prawdziwych mistrzow planszy."),
             new LootboxItem("title-legenda", "Tytul: Legenda Kampusu", Rarity.LEGENDARY, "Tytul",
                     "fa-solid fa-star", "Wszyscy o Tobie slyszeli."),
             new LootboxItem("pawn-3d-corn", "Pionek 3D: Zlota Kukurydza", Rarity.LEGENDARY, "Pionek 3D",
@@ -190,8 +214,23 @@ public class LootboxService {
         OwnedItem owned = ownedItemRepository.save(new OwnedItem(user, rolled.slug()));
         if (PawnModelCatalog.isPawn3dItem(rolled)) {
             equipPawn3d(user, owned);
+        } else if ("Karta bonusowa".equals(rolled.category())) {
+            equipBonusCard(user, owned);
         }
         return new OpenResult(rolled, true, null);
+    }
+
+    /** Auto-ustawienie karty bonusowej — zapisuje pending_wheel_card na nastepna gre. */
+    private void equipBonusCard(User user, OwnedItem item) {
+        HandCardType cardType = BONUS_CARD_MAP.get(item.getItemSlug());
+        if (cardType == null) return;
+        PlayerStatistics stats = user.getStatistics();
+        if (stats == null) return;
+        if (stats.getPendingWheelCard() == null) {
+            stats.setPendingWheelCard(cardType.name());
+            item.setEquipped(true);
+            ownedItemRepository.save(item);
+        }
     }
 
     /** Auto-zalozenie pionka 3D po wylosowaniu ze skrzynki. */

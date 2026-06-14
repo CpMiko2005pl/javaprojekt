@@ -6,7 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import pl.pb.monopoly.domain.HandCardType;
 import pl.pb.monopoly.domain.OwnedItem;
+import pl.pb.monopoly.domain.PlayerStatistics;
 import pl.pb.monopoly.domain.User;
 import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
@@ -88,6 +90,19 @@ public class LootboxController {
         item.setEquipped(willEquip);
         ownedItemRepository.save(item);
 
+        // Dla kart bonusowych: equip = ustaw pending_wheel_card; unequip = clear
+        if ("Karta bonusowa".equals(category)) {
+            HandCardType cardType = LootboxService.BONUS_CARD_MAP.get(item.getItemSlug());
+            PlayerStatistics stats = user.getStatistics();
+            if (cardType != null && stats != null) {
+                if (willEquip) {
+                    stats.setPendingWheelCard(cardType.name());
+                } else if (cardType.name().equals(stats.getPendingWheelCard())) {
+                    stats.setPendingWheelCard(null);
+                }
+            }
+        }
+
         String message = willEquip
                 ? switch (category) {
                     case "Kolor pionka" -> "Kolor pionka zalozony — widoczny w nastepnej/rozpoczetej grze.";
@@ -95,6 +110,7 @@ public class LootboxController {
                     case "Awatar" -> "Awatar zalozony — odswiez profil, by zobaczyc zmiane.";
                     case "Ramka" -> "Ramka profilu zalozona.";
                     case "Tytul" -> "Tytul zalozony — wyswietli sie na profilu.";
+                    case "Karta bonusowa" -> "Karta bonusowa dodana — pojawi sie w rece na START nastepnej gry.";
                     default -> "Przedmiot zalozony.";
                 }
                 : "Przedmiot zdjety.";

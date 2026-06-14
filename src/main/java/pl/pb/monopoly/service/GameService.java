@@ -298,11 +298,9 @@ public class GameService {
             }
         }
 
-        // Rozdanie kart ręki każdemu ludzkiemu graczowi (nie botom)
+        // Rozdanie kart ręki każdemu graczowi (ludzkim i botom)
         for (GamePlayer gp : session.getPlayers()) {
-            if (gp.getUser() != null) {
-                dealHandCards(gp);
-            }
+            dealHandCards(gp);
         }
 
         GameSession saved = sessionRepository.save(session);
@@ -830,11 +828,18 @@ public class GameService {
                                 .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
                     } else {
                         int rent = computeRent(session, ownerOfTile, newPos, steps);
+                        // Karta DOUBLE_RENT_NEXT — wlasciciel zbiera 2x czynsz
+                        boolean doubled = ownerOfTile.isDoubleRentNext();
+                        if (doubled) {
+                            rent *= 2;
+                            ownerOfTile.setDoubleRentNext(false);
+                        }
                         if (chargePlayer(session, current, rent, ownerOfTile,
                                 "Czynsz: " + TILES[newPos], msg)) {
                             msg.append(current.getDisplayName()).append(" placi czynsz ")
                                     .append(rent).append(" PLN dla ")
-                                    .append(ownerOfTile.getDisplayName()).append(". ");
+                                    .append(ownerOfTile.getDisplayName())
+                                    .append(doubled ? " (PODWOJONY)! " : ". ");
                         }
                     }
                 } else if (ownerOfTile.getId().equals(current.getId())) {
@@ -1263,7 +1268,10 @@ public class GameService {
                 }
             }
             case POS_JAIL -> {
-                if (chargePlayer(session, player, GameEconomy.JAIL_BAIL, null, "Lapowka w Dziekanacie", msg)) {
+                if (player.isJailPassActive()) {
+                    player.setJailPassActive(false);
+                    msg.append("Przepustka z Dziekanatu! Brak oplaty za wizyte w Dziekanacie. ");
+                } else if (chargePlayer(session, player, GameEconomy.JAIL_BAIL, null, "Lapowka w Dziekanacie", msg)) {
                     msg.append("Dziekanat (wiezienie): lapowka ").append(GameEconomy.JAIL_BAIL).append(" PLN. ");
                 } else {
                     msg.append("Dziekanat (wiezienie): lapowka ").append(GameEconomy.JAIL_BAIL)
@@ -2066,6 +2074,69 @@ public class GameService {
     // ========== KARTY W RECE ==========
 
     /**
+     * Bot zagrywa karte z reki (uzywane przez BotAutoplayService).
+     * Nie wymaga username — identyfikacja po botPlayerId.
+     */
+    @Transactional
+    public GameStateDto playCard(Long sessionId, Long botPlayerId, String cardType) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        GamePlayer me = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(botPlayerId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Bot nie znaleziony: " + botPlayerId));
+        if (!me.getHandCards().contains(cardType)) return null;
+        HandCardType type;
+        try {
+            type = HandCardType.valueOf(cardType);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+        // Boty graja proste karty: ADD_CASH, EXTRA_ROLL, SCHOLARSHIP_ALL, DOUBLE_RENT_NEXT
+        // Karty wymagajace targetPos (TELEPORT, FREE_UPGRADE, DESTROY_PROPERTY) pomijane
+        if (type == HandCardType.TELEPORT || type == HandCardType.FREE_UPGRADE
+                || type == HandCardType.DESTROY_PROPERTY) {
+            return null;
+        }
+        me.getHandCards().remove(cardType);
+        StringBuilder msg = new StringBuilder();
+        msg.append(me.getDisplayName()).append(" (bot) zagrywa: ").append(type.label).append(". ");
+        switch (type) {
+            case SKIP_RENT -> me.setSkipNextRent(true);
+            case EXTRA_ROLL -> session.setPendingExtraRollPlayerId(me.getId());
+            case ADD_CASH -> {
+                me.setCash(me.getCash() + GameEconomy.GO_BONUS);
+                msg.append("+").append(GameEconomy.GO_BONUS).append(" PLN. ");
+            }
+            case SHIELD -> me.setShieldActive(true);
+            case JAIL_PASS -> {
+                if (me.getPosition() == POS_JAIL) {
+                    me.setPosition(POS_JAIL + 1);
+                } else {
+                    me.setJailPassActive(true);
+                }
+            }
+            case DOUBLE_RENT_NEXT -> me.setDoubleRentNext(true);
+            case SCHOLARSHIP_ALL -> {
+                int earned = 0;
+                for (GamePlayer other : session.getPlayers()) {
+                    if (other.getId().equals(me.getId()) || other.isBankrupt()) continue;
+                    int pay = Math.min(other.getCash(), 100_000);
+                    other.setCash(other.getCash() - pay);
+                    earned += pay;
+                }
+                me.setCash(me.getCash() + earned);
+                msg.append("Inkasuje ").append(earned).append(" PLN. ");
+            }
+            default -> {}
+        }
+        sessionRepository.save(session);
+        publishPublic(session.getId(), null, null, msg.toString(), null, null, null, null);
+        scheduleBotUpdate(session.getId());
+        return buildPublicState(session.getId(), null, null, msg.toString(), null, null, null, null);
+    }
+
+    /**
      * Gracz zagrywa karte z reki.
      * @param targetPos pozycja pola (wymagana dla DESTROY_PROPERTY, ignorowana dla reszty)
      */
@@ -2136,6 +2207,63 @@ public class GameService {
                         .append(" od ").append(owner.getDisplayName()).append("! ")
                         .append(owner.getDisplayName())
                         .append(" moze odkupic za ").append(buybackPrice).append(" PLN (2x cena). ");
+            }
+            case FREE_UPGRADE -> {
+                if (targetPos == null) {
+                    throw new IllegalArgumentException("Wybierz pole do darmowego ulepszenia.");
+                }
+                if (!me.getOwnedPositions().contains(targetPos)) {
+                    throw new IllegalArgumentException("Nie posiadasz tego pola.");
+                }
+                if (TILE_PRICE[targetPos] <= 0 || RESORT_TILES[targetPos] || targetPos == POS_UTILITY) {
+                    throw new IllegalArgumentException("To pole nie podlega ulepszeniu.");
+                }
+                if (!GameEconomy.hasColorMonopoly(me, targetPos)) {
+                    throw new IllegalArgumentException("Potrzebujesz monopolu kolorystycznego (caly kolor).");
+                }
+                int currLvl = me.getPropertyLevels().getOrDefault(targetPos, 0);
+                if (currLvl >= GameEconomy.MAX_PROPERTY_LEVEL) {
+                    throw new IllegalArgumentException("Pole jest juz na maksymalnym poziomie (" + GameEconomy.MAX_PROPERTY_LEVEL + ").");
+                }
+                me.getPropertyLevels().put(targetPos, currLvl + 1);
+                String lvlLabel = upgradeBuiltLabel(currLvl + 1);
+                msg.append("Akademickie Pozwolenie Budowlane! ")
+                        .append(me.getDisplayName()).append(" buduje ").append(lvlLabel)
+                        .append(" na ").append(TILES[targetPos]).append(" za darmo! ");
+            }
+            case JAIL_PASS -> {
+                if (me.getPosition() == POS_JAIL) {
+                    me.setPosition(POS_JAIL + 1);
+                    msg.append("Przepustka z Dziekanatu! ").append(me.getDisplayName())
+                            .append(" omija oplate i wychodzi na pole ").append(TILES[POS_JAIL + 1]).append(". ");
+                } else {
+                    me.setJailPassActive(true);
+                    msg.append("Przepustka z Dziekanatu aktywna — nastepna wizyta w Dziekanacie bezplatna. ");
+                }
+            }
+            case DOUBLE_RENT_NEXT -> {
+                me.setDoubleRentNext(true);
+                msg.append("Podwojny Wymagacz aktywny — nastepny czynsz zebrany od rywala wyniesie 2x. ");
+            }
+            case TELEPORT -> {
+                if (targetPos == null || targetPos < 0 || targetPos >= 40) {
+                    throw new IllegalArgumentException("Podaj prawidlowa pozycje pola (0-39).");
+                }
+                me.setPosition(targetPos);
+                msg.append("Teleport Kampusowy! ").append(me.getDisplayName())
+                        .append(" teleportuje sie na pole ").append(TILES[targetPos]).append(". ");
+            }
+            case SCHOLARSHIP_ALL -> {
+                int totalEarned = 0;
+                for (GamePlayer other : session.getPlayers()) {
+                    if (other.getId().equals(me.getId()) || other.isBankrupt()) continue;
+                    int pay = Math.min(other.getCash(), 100_000);
+                    other.setCash(other.getCash() - pay);
+                    totalEarned += pay;
+                }
+                me.setCash(me.getCash() + totalEarned);
+                msg.append("Zbiorowe Stypendium! ").append(me.getDisplayName())
+                        .append(" inkasuje ").append(totalEarned).append(" PLN od wszystkich graczy. ");
             }
         }
 

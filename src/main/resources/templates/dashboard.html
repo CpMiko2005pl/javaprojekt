@@ -301,6 +301,7 @@
                             </div>
                             <div>
                                 <span th:if="${i.equipped}" class="badge badge-ok" style="font-size:.7rem;"><i class="fa-solid fa-check"></i> Założony</span>
+                                <span th:if="${i.category == 'Karta bonusowa' and i.equipped}" class="muted" style="font-size:.7rem;display:block;margin-top:.2rem;"><i class="fa-solid fa-clock"></i> Do reki na start gry</span>
                                 <button th:if="${i.category != 'Naklejka'}" class="btn btn-small btn-equip"
                                         th:data-id="${i.ownedId}" th:data-category="${i.category}"
                                         th:text="${i.equipped} ? 'Zdejmij' : 'Załóż'">Załóż</button>

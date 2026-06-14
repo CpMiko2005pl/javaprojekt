@@ -40,6 +40,8 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
         patch("ALTER TABLE game_players ADD COLUMN IF NOT EXISTS ready boolean NOT NULL DEFAULT false");
         patch("ALTER TABLE game_players ADD COLUMN IF NOT EXISTS doubles_count integer NOT NULL DEFAULT 0");
         patch("ALTER TABLE game_players ADD COLUMN IF NOT EXISTS rolls_this_turn integer NOT NULL DEFAULT 0");
+        patch("ALTER TABLE game_players ADD COLUMN IF NOT EXISTS double_rent_next boolean NOT NULL DEFAULT false");
+        patch("ALTER TABLE game_players ADD COLUMN IF NOT EXISTS jail_pass_active boolean NOT NULL DEFAULT false");
         patch("ALTER TABLE game_sessions ADD COLUMN IF NOT EXISTS leader_id bigint");
         patch("""
                 CREATE TABLE IF NOT EXISTS game_invites (
@@ -172,6 +174,16 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
                 SET search_path TO monopoly, public;
                 ALTER TABLE game_players
                     ADD COLUMN IF NOT EXISTS rolls_this_turn integer NOT NULL DEFAULT 0
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE game_players
+                    ADD COLUMN IF NOT EXISTS double_rent_next boolean NOT NULL DEFAULT false
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE game_players
+                    ADD COLUMN IF NOT EXISTS jail_pass_active boolean NOT NULL DEFAULT false
                 """);
         patch("""
                 SET search_path TO monopoly, public;

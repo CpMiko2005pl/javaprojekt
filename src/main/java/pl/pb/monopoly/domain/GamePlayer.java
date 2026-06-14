@@ -104,6 +104,14 @@ public class GamePlayer {
     @Column(name = "shield_active", nullable = false)
     private boolean shieldActive = false;
 
+    /** Karta "Podwojny Wymagacz" — nastepny zebrany czynsz jest x2. */
+    @Column(name = "double_rent_next", nullable = false, columnDefinition = "boolean default false")
+    private boolean doubleRentNext = false;
+
+    /** Karta "Przepustka z Dziekanatu" — nastepna wizyta w Dziekanacie bezplatna. */
+    @Column(name = "jail_pass_active", nullable = false, columnDefinition = "boolean default false")
+    private boolean jailPassActive = false;
+
     public GamePlayer() {
     }
 
@@ -165,4 +173,10 @@ public class GamePlayer {
 
     public boolean isShieldActive() { return shieldActive; }
     public void setShieldActive(boolean shieldActive) { this.shieldActive = shieldActive; }
+
+    public boolean isDoubleRentNext() { return doubleRentNext; }
+    public void setDoubleRentNext(boolean doubleRentNext) { this.doubleRentNext = doubleRentNext; }
+
+    public boolean isJailPassActive() { return jailPassActive; }
+    public void setJailPassActive(boolean jailPassActive) { this.jailPassActive = jailPassActive; }
 }

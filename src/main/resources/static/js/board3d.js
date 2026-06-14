@@ -578,17 +578,34 @@
     }
 
     function normalizePawnScene(model) {
+        // Wymus aktualizacje macierzy swiatowej przed policzeniem bounding box
+        model.updateMatrixWorld(true);
         var box = new THREE.Box3().setFromObject(model);
         var size = new THREE.Vector3();
         box.getSize(size);
-        model.scale.setScalar(PAWN_HEIGHT / Math.max(size.y, 0.0001));
+        var maxDim = Math.max(size.x, size.y, size.z, 0.0001);
+        // Normalizuj wzgledem najwyzszego wymiaru zeby model nie byl splacony
+        model.scale.setScalar(PAWN_HEIGHT / Math.max(size.y > 0.01 ? size.y : maxDim, 0.0001));
+        model.updateMatrixWorld(true);
         box.setFromObject(model);
         var center = new THREE.Vector3();
         box.getCenter(center);
         model.position.x -= center.x;
         model.position.z -= center.z;
         model.position.y -= box.min.y;
-        model.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+        model.traverse(function (o) {
+            if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = false;
+                // Upewnij sie ze material jest widoczny z obu stron (glTF czasem: single-sided)
+                if (o.material) {
+                    var mats = Array.isArray(o.material) ? o.material : [o.material];
+                    mats.forEach(function (m) {
+                        if (m.side === THREE.BackSide) m.side = THREE.DoubleSide;
+                    });
+                }
+            }
+        });
         var grp = new THREE.Group();
         grp.add(model);
         return grp;
@@ -655,12 +672,16 @@
         var modelUrl = pawnModelUrl || null;
 
         function buildVisual(template) {
-            for (var i = group.children.length - 1; i >= 1; i--) group.remove(group.children[i]);
+            // Usun stare wizualizacje (zachowaj cien na indeksie 0)
+            for (var i = group.children.length - 1; i >= 1; i--) {
+                group.remove(group.children[i]);
+            }
             var visual = new THREE.Group();
             if (template) {
                 var clone = template.clone(true);
                 tintPawnClone(clone, colorHex);
                 visual.add(clone);
+                // Mala podstawa walcowa pod modelem
                 var base = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.19, 0.21, 0.05, 20),
                     new THREE.MeshLambertMaterial({ color: col })
@@ -669,6 +690,7 @@
                 base.castShadow = true;
                 visual.add(base);
             } else {
+                // Fallback walec + kula (klasyczny pionek)
                 var body = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.13, 0.17, 0.42, 16),
                     new THREE.MeshLambertMaterial({ color: col })
@@ -689,15 +711,23 @@
             group.userData.pawnModel = modelUrl;
         }
 
-        if (modelUrl && !pawnTemplates[modelUrl]) {
-            ensurePawnTemplate(modelUrl, function (template) {
-                if (group.userData.pawnModel === modelUrl) buildVisual(template);
-            });
-            if (group.userData.pawnModel !== modelUrl) buildVisual(null);
-            group.userData.pawnModel = modelUrl;
+        if (modelUrl) {
+            if (!pawnTemplates[modelUrl]) {
+                // Model jeszcze sie laduje — zbuduj fallback natychmiast, potem zaaktualizuj
+                buildVisual(null);
+                ensurePawnTemplate(modelUrl, function (template) {
+                    // Odbuduj z prawdziwym modelem gdy zaladowany
+                    if (group.userData.pawnModel === modelUrl) {
+                        buildVisual(template);
+                    }
+                });
+                group.userData.pawnModel = modelUrl;
+                return;
+            }
+            buildVisual(pawnTemplates[modelUrl]);
             return;
         }
-        buildVisual(modelUrl ? pawnTemplates[modelUrl] : null);
+        buildVisual(null);
     }
 
     function upsertPlayerMesh(p, index, pos) {
@@ -2130,6 +2160,10 @@
                 var cardType = btn.getAttribute("data-type");
                 if (cardType === "DESTROY_PROPERTY") {
                     showDestroyTargetPanel(state, cardType);
+                } else if (cardType === "TELEPORT") {
+                    showTeleportPanel(state);
+                } else if (cardType === "FREE_UPGRADE") {
+                    showFreeUpgradePanel(state);
                 } else {
                     playCard(cardType, null);
                 }
@@ -2172,6 +2206,84 @@
                 var targetPos = parseInt(sel.value, 10);
                 panel.style.display = "none";
                 playCard("DESTROY_PROPERTY", targetPos);
+            };
+        }
+        if (cancelBtn) {
+            cancelBtn.onclick = function() { panel.style.display = "none"; };
+        }
+    }
+
+    function showTeleportPanel(state) {
+        var panel = document.getElementById("destroyTargetPanel");
+        var sel   = document.getElementById("destroyTargetSelect");
+        var title = document.getElementById("destroyTargetTitle");
+        if (!panel || !sel) return;
+
+        if (title) title.textContent = "Teleport — wybierz pole docelowe";
+        sel.innerHTML = "";
+        var names = (state && state.tileNames) || [];
+        for (var i = 0; i < 40; i++) {
+            var opt = document.createElement("option");
+            opt.value = i;
+            opt.textContent = i + ": " + (names[i] || "Pole " + i);
+            sel.appendChild(opt);
+        }
+
+        panel.style.display = "block";
+
+        var confirmBtn = document.getElementById("destroyConfirmBtn");
+        var cancelBtn  = document.getElementById("destroyCancelBtn");
+        if (confirmBtn) {
+            confirmBtn.onclick = function() {
+                var targetPos = parseInt(sel.value, 10);
+                panel.style.display = "none";
+                playCard("TELEPORT", targetPos);
+            };
+        }
+        if (cancelBtn) {
+            cancelBtn.onclick = function() { panel.style.display = "none"; };
+        }
+    }
+
+    function showFreeUpgradePanel(state) {
+        var panel = document.getElementById("destroyTargetPanel");
+        var sel   = document.getElementById("destroyTargetSelect");
+        var title = document.getElementById("destroyTargetTitle");
+        if (!panel || !sel) return;
+
+        if (title) title.textContent = "Darmowe ulepszenie — wybierz pole z monopolem";
+        sel.innerHTML = "";
+
+        if (!state || !state.players) { pushToast("Brak danych stanu gry.", "rent", "fa-circle-xmark"); return; }
+        var me = state.players.find(function(p) { return p.isMe; });
+        if (!me || !me.ownedPositions) { pushToast("Nie posiadasz zadnych pol.", "info", "fa-circle-info"); return; }
+
+        var names = state.tileNames || [];
+        var added = 0;
+        me.ownedPositions.forEach(function(pos) {
+            if (!state.ownership) return;
+            var opt = document.createElement("option");
+            opt.value = pos;
+            var lvl = (me.propertyLevels && me.propertyLevels[pos]) || 0;
+            opt.textContent = pos + ": " + (names[pos] || "Pole " + pos) + " [Lvl " + lvl + "]";
+            sel.appendChild(opt);
+            added++;
+        });
+
+        if (added === 0) {
+            pushToast("Nie posiadasz pol mozliwych do ulepszenia.", "info", "fa-circle-info");
+            return;
+        }
+
+        panel.style.display = "block";
+
+        var confirmBtn = document.getElementById("destroyConfirmBtn");
+        var cancelBtn  = document.getElementById("destroyCancelBtn");
+        if (confirmBtn) {
+            confirmBtn.onclick = function() {
+                var targetPos = parseInt(sel.value, 10);
+                panel.style.display = "none";
+                playCard("FREE_UPGRADE", targetPos);
             };
         }
         if (cancelBtn) {
@@ -2372,11 +2484,18 @@
                 root = o;
             }
         });
+        // Fallback: jezeli nie znaleziono po nazwie, sprobuj pierwszy Mesh
+        if (!root) {
+            scene.traverse(function (o) {
+                if (!root && o.isMesh) root = o;
+            });
+        }
         if (!root) {
             console.warn("[board3d] Brak wezla budynku:", namePart);
             return null;
         }
         var clone = root.clone(true);
+        clone.updateMatrixWorld(true);
         clone.traverse(function (o) {
             if (o.isMesh) {
                 o.castShadow = true;
@@ -2385,7 +2504,7 @@
                     var mats = Array.isArray(o.material) ? o.material : [o.material];
                     o.material = mats.map(function (m) {
                         var mat = m.clone();
-                        if (mat.side !== undefined) mat.side = THREE.FrontSide;
+                        if (mat.side !== undefined) mat.side = THREE.DoubleSide;
                         return mat;
                     });
                     if (!Array.isArray(o.material) && o.material.length === 1) o.material = o.material[0];
@@ -2395,8 +2514,14 @@
         var box = new THREE.Box3().setFromObject(clone);
         var size = new THREE.Vector3();
         box.getSize(size);
-        if (size.y < 0.001) return null;
-        clone.scale.setScalar(targetHeight / size.y);
+        var maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim < 0.001) {
+            console.warn("[board3d] Budynek zerowego rozmiaru:", namePart);
+            return null;
+        }
+        var scaleAxis = size.y > 0.01 ? size.y : maxDim;
+        clone.scale.setScalar(targetHeight / scaleAxis);
+        clone.updateMatrixWorld(true);
         box.setFromObject(clone);
         var center = new THREE.Vector3();
         box.getCenter(center);

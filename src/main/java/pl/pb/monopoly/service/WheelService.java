@@ -31,6 +31,11 @@ public class WheelService {
             new WheelSlot(HandCardType.DESTROY_PROPERTY.label, WheelRewardType.CARD),
             new WheelSlot(HandCardType.ADD_CASH.label, WheelRewardType.CARD),
             new WheelSlot(HandCardType.SHIELD.label, WheelRewardType.CARD),
+            new WheelSlot(HandCardType.FREE_UPGRADE.label, WheelRewardType.CARD),
+            new WheelSlot(HandCardType.JAIL_PASS.label, WheelRewardType.CARD),
+            new WheelSlot(HandCardType.DOUBLE_RENT_NEXT.label, WheelRewardType.CARD),
+            new WheelSlot(HandCardType.TELEPORT.label, WheelRewardType.CARD),
+            new WheelSlot(HandCardType.SCHOLARSHIP_ALL.label, WheelRewardType.CARD),
             new WheelSlot("+1 Skrzynka", WheelRewardType.LOOTBOX),
             new WheelSlot("+200 000 PLN na start gry", WheelRewardType.START_CASH),
             new WheelSlot("+1 Skrzynka (bonus)", WheelRewardType.LOOTBOX)
