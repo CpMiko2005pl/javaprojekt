@@ -22,10 +22,13 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * Silnik rozgrywki Kampus PB: ruch po planszy, Dziekanat (wiezienie),
@@ -270,7 +273,7 @@ public class GameService {
         session.setStatus(GameStatus.WAITING);
 
         session.setLeaderId(creator.getId());
-        GamePlayer me = new GamePlayer(creator.getUsername(), equippedColor(creator, COLORS[0]));
+        GamePlayer me = new GamePlayer(creator.getUsername(), uniqueColor(creator, session));
         me.setUser(creator);
         session.addPlayer(me);
 
@@ -288,9 +291,7 @@ public class GameService {
                     }
                     if (session.getPlayers().stream().noneMatch(p ->
                             p.getUser() != null && p.getUser().getId().equals(friend.getId()))) {
-                        String color = equippedColor(friend,
-                                COLORS[session.getPlayers().size() % COLORS.length]);
-                        GamePlayer gp = new GamePlayer(friend.getUsername(), color);
+                        GamePlayer gp = new GamePlayer(friend.getUsername(), uniqueColor(friend, session));
                         gp.setUser(friend);
                         session.addPlayer(gp);
                     }
@@ -373,8 +374,7 @@ public class GameService {
             if (session.getPlayers().size() >= MAX_PLAYERS) {
                 throw new IllegalArgumentException("Pokoj jest pelny (max " + MAX_PLAYERS + " graczy).");
             }
-            String color = equippedColor(u, COLORS[session.getPlayers().size() % COLORS.length]);
-            GamePlayer gp = new GamePlayer(u.getUsername(), color);
+            GamePlayer gp = new GamePlayer(u.getUsername(), uniqueColor(u, session));
             gp.setUser(u);
             dealHandCards(gp);
             session.addPlayer(gp);
@@ -1624,6 +1624,19 @@ public class GameService {
         return defaultColor;
     }
 
+    /** Zwraca unikalny kolor dla gracza — jeśli kolor jest zajęty, dobiera pierwszy wolny z COLORS. */
+    private String uniqueColor(User user, GameSession session) {
+        Set<String> taken = session.getPlayers().stream()
+                .map(GamePlayer::getColor)
+                .collect(Collectors.toSet());
+        String preferred = equippedColor(user, null);
+        if (preferred != null && !taken.contains(preferred)) return preferred;
+        for (String c : COLORS) {
+            if (!taken.contains(c)) return c;
+        }
+        return COLORS[session.getPlayers().size() % COLORS.length];
+    }
+
     /** Sciezka GLB zalozonego pionka 3D ze skrzynki lub null. */
     private String equippedPawnModel(User user) {
         if (user == null || user.getId() == null) return null;
@@ -1907,7 +1920,7 @@ public class GameService {
 
     private List<PropertyCardDto> buildMyPropertyCards(GameSession session, String username) {
         if (username == null) {
-            return List.of();
+            return null; // null w WS broadcast — klient zachowuje ostatni cache
         }
         GamePlayer me = session.getPlayers().stream()
                 .filter(p -> p.getUser() != null && p.getUser().getUsername().equals(username))

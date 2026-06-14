@@ -123,6 +123,32 @@ public class LootboxController {
         ));
     }
 
+
+    @PostMapping("/inventory/{id}/delete")
+    @Transactional
+    public ResponseEntity<?> delete(@PathVariable Long id, Authentication auth) {
+        User user = userRepository.findByUsername(auth.getName()).orElseThrow();
+        OwnedItem item = ownedItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Brak przedmiotu"));
+        if (!item.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "To nie Twoj przedmiot."));
+        }
+
+        if (item.isEquipped()) {
+            LootboxItem catalog = LootboxService.findBySlug(item.getItemSlug());
+            String category = catalog != null ? catalog.category() : "";
+            if ("Karta bonusowa".equals(category)) {
+                HandCardType cardType = LootboxService.BONUS_CARD_MAP.get(item.getItemSlug());
+                PlayerStatistics stats = user.getStatistics();
+                if (cardType != null && stats != null && cardType.name().equals(stats.getPendingWheelCard())) {
+                    stats.setPendingWheelCard(null);
+                }
+            }
+        }
+
+        ownedItemRepository.delete(item);
+        return ResponseEntity.ok(Map.of("success", true, "message", "Przedmiot usuniety z ekwipunku."));
+    }
     private Map<String, Object> toMap(LootboxItem i) {
         Map<String, Object> m = new HashMap<>();
         m.put("slug", i.slug());

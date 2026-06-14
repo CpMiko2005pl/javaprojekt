@@ -95,39 +95,8 @@
         <!-- ===== BOTTOM HUD ===== -->
         <div class="bt-bottom-hud">
 
-            <!-- LEWA: Posesje + karty -->
-            <div class="bt-hud-left">
-                <button id="propertiesToggle" class="bt-float-icon-btn" title="Moje posesje">
-                    <i class="fa-solid fa-building"></i>
-                    <span id="propertiesCount" class="bt-float-badge">0</span>
-                </button>
-                <div id="propertiesPanel" class="bt-properties-popup" style="display:none;">
-                    <div class="bt-hand-popup-header">
-                        <strong><i class="fa-solid fa-building"></i> Moje posesje</strong>
-                        <button id="propertiesClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div id="propertiesList" class="bt-properties-list"></div>
-                </div>
-                <button id="handCardsToggle" class="bt-float-icon-btn" title="Twoje karty">
-                    <i class="fa-solid fa-rectangle-list"></i>
-                    <span id="handCardCount" class="bt-float-badge">0</span>
-                </button>
-                <div id="handCardsPanel" class="bt-hand-popup" style="display:none;">
-                    <div class="bt-hand-popup-header">
-                        <strong><i class="fa-solid fa-rectangle-list"></i> Twoje karty</strong>
-                        <button id="handCardsClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                    <div id="handCardsList"></div>
-                    <div id="destroyTargetPanel" style="display:none;border-top:1px solid var(--border);padding:.5rem;margin-top:.4rem;">
-                        <p class="muted" id="destroyTargetTitle" style="font-size:.8rem;margin:.2rem 0;">Wybierz pole rywala do przejecia:</p>
-                        <select id="destroyTargetSelect" style="width:100%;margin-bottom:.4rem;"></select>
-                        <div style="display:flex;gap:.4rem;">
-                            <button id="destroyConfirmBtn" class="btn btn-danger btn-small">Zatwierdz</button>
-                            <button id="destroyCancelBtn" class="btn btn-ghost btn-small">Anuluj</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- LEWA: (pusta - symetria siatki) -->
+            <div class="bt-hud-left"></div>
 
             <!-- SRODEK: Roll + tura -->
             <div class="bt-hud-center" id="rollPanel">
@@ -140,14 +109,54 @@
                 </button>
             </div>
 
-            <!-- PRAWA: Transfer siana -->
+            <!-- PRAWA: Posesje + karty + przelew -->
             <div class="bt-hud-right">
-                <button id="transferToggle" class="bt-float-icon-btn" title="Transfer siana">
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-                </button>
+                <!-- Panel posesji — domyslnie otwarty, toggle go chowa/pokazuje -->
+                <div id="propertiesPanel" class="bt-properties-popup">
+                    <div class="bt-hand-popup-header">
+                        <strong>
+                            <i class="fa-solid fa-city"></i> Moje posesje
+                            <span id="propertiesCount" class="bt-float-badge" style="position:static;margin-left:.3rem;vertical-align:middle;"></span>
+                        </strong>
+                    </div>
+                    <div id="propertiesList" class="bt-properties-list"></div>
+                </div>
+
+                <!-- Rzad przyciskow -->
+                <div class="bt-hud-btn-row">
+                    <button id="propertiesToggle" class="bt-float-icon-btn" title="Moje posesje">
+                        <i class="fa-solid fa-city"></i>
+                    </button>
+                    <button id="handCardsToggle" class="bt-float-icon-btn" title="Twoje karty">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span id="handCardCount" class="bt-float-badge">0</span>
+                    </button>
+                    <button id="transferToggle" class="bt-float-icon-btn" title="Przelewanie">
+                        <i class="fa-solid fa-money-bill-transfer"></i>
+                    </button>
+                </div>
+
+                <!-- Panel kart w rece -->
+                <div id="handCardsPanel" class="bt-hand-popup" style="display:none;">
+                    <div class="bt-hand-popup-header">
+                        <strong><i class="fa-solid fa-layer-group"></i> Twoje karty</strong>
+                        <button id="handCardsClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="handCardsList"></div>
+                    <div id="destroyTargetPanel" style="display:none;border-top:1px solid var(--border);padding:.5rem;margin-top:.4rem;">
+                        <p class="muted" id="destroyTargetTitle" style="font-size:.8rem;margin:.2rem 0;">Wybierz pole rywala do przejecia:</p>
+                        <select id="destroyTargetSelect" style="width:100%;margin-bottom:.4rem;"></select>
+                        <div style="display:flex;gap:.4rem;">
+                            <button id="destroyConfirmBtn" class="btn btn-danger btn-small">Zatwierdz</button>
+                            <button id="destroyCancelBtn" class="btn btn-ghost btn-small">Anuluj</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel przelewania -->
                 <div id="transferPanel" class="bt-transfer-popup" style="display:none;">
                     <div class="bt-hand-popup-header">
-                        <strong><i class="fa-solid fa-money-bill-transfer"></i> Transfer siana</strong>
+                        <strong><i class="fa-solid fa-money-bill-transfer"></i> Przelewanie</strong>
                         <button id="transferClose" class="bt-popup-close"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div class="field" style="margin:.4rem 0;">
@@ -159,7 +168,7 @@
                         <input type="number" id="amount" min="1" value="100" style="width:100%;">
                     </div>
                     <button id="transferBtn" class="btn btn-bt btn-small" type="button" style="width:100%;">
-                        Przelej siano
+                        Przelej
                     </button>
                     <p class="error" id="transferErr" style="display:none;font-size:.78rem;margin-top:.3rem;"></p>
                 </div>
@@ -175,7 +184,7 @@
 <script th:src="@{/js/GLTFLoader.js}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script th:src="@{/js/board3d.js(v='20260614-v2')}"></script>
+<script th:src="@{/js/board3d.js(v='20260614-v7')}"></script>
 <script th:src="@{/js/app.js}"></script>
 <div id="gameInviteToastHost"></div>
 <script th:inline="javascript">window.__CURRENT_USER__ = /*[[${#authentication.name}]]*/ '';</script>

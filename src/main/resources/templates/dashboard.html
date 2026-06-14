@@ -305,6 +305,11 @@
                                 <button th:if="${i.category != 'Naklejka'}" class="btn btn-small btn-equip"
                                         th:data-id="${i.ownedId}" th:data-category="${i.category}"
                                         th:text="${i.equipped} ? 'Zdejmij' : 'Załóż'">Załóż</button>
+                                  <button class="btn btn-small btn-danger btn-delete-item"
+                                          th:data-id="${i.ownedId}" title="Usun przedmiot"
+                                          style="padding:6px 9px;margin-left:4px;background:rgba(239,68,68,.1);color:#EF4444;border-color:rgba(239,68,68,.2);">
+                                      <i class="fa-solid fa-trash-can"></i>
+                                  </button>
                             </div>
                         </div>
                         <p th:if="${inventory.isEmpty()}" class="muted inventory-empty" style="grid-column:1/-1;">
@@ -533,6 +538,25 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
             }).catch(function(){ showInventoryToast("Błąd połączenia.",true); });
         });
     });
+
+      document.querySelectorAll('.btn-delete-item').forEach(function(btn){
+          btn.addEventListener('click', function(e){
+              e.stopPropagation();
+              if(!confirm("Czy na pewno chcesz bezpowrotnie usunac ten przedmiot?")) return;
+              var id=btn.getAttribute('data-id');
+              fetch('/inventory/'+id+'/delete',{method:'POST',headers:csrfHeaders()})
+              .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});})
+              .then(function(res){
+                  if(!res.ok){ showInventoryToast(res.data.error||"Nie udalo sie usunac.", true); return; }
+                  var item=btn.closest('.inventory-item');
+                  if(item){
+                      item.remove();
+                      if(window.refreshInventoryPanel) window.refreshInventoryPanel();
+                  }
+                  showInventoryToast(res.data.message||"Usunieto.",false);
+              }).catch(function(){ showInventoryToast("Blad polaczenia.",true); });
+          });
+      });
 })();
 
 /* ===== AJAX: zaproszenia znajomych bez przeladowania strony ===== */

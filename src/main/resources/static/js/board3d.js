@@ -416,7 +416,7 @@
         for (var p = 0; p < 40; p++) {
             var w = posToWorld(p);
             var isCorner = CORNERS[p];
-            var sz = isCorner ? 1.2 : 1.02;
+            var sz = isCorner ? 1.12 : 1.02;
             var name = tileNames[p] || ("Pole " + p);
             var effect = tileEffects[p] || "";
             var stripe = STRIPE[p];
@@ -428,11 +428,19 @@
             var faceMat = buildTileMaterial(p, title, price, stripeColor, variant);
             var sideMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
+            /* Przesun rogle pola na zewnatrz o polowe nadmiaru, by nie nachodziły na sąsiednie */
+            var tx = w.x, tz = w.z;
+            if (isCorner) {
+                var shift = (sz - 1.02) / 2;
+                tx += (w.col >= 5 ? shift : -shift);
+                tz += (w.row >= 5 ? shift : -shift);
+            }
+
             var tileBlock = new THREE.Mesh(
                 new THREE.BoxGeometry(sz * 0.99, 0.18, sz * 0.99),
                 sideMat
             );
-            tileBlock.position.set(w.x, 0.09, w.z);
+            tileBlock.position.set(tx, 0.09, tz);
             tileBlock.castShadow = true;
             tileBlock.receiveShadow = true;
             boardPivot.add(tileBlock);
@@ -444,7 +452,7 @@
             );
             face.rotation.x = -Math.PI / 2;
             face.rotation.z = tileTextureRotation(p);
-            face.position.set(w.x, 0.19, w.z);
+            face.position.set(tx, 0.19, tz);
             boardPivot.add(face);
             tileFaces[p] = face;
         }
@@ -1937,9 +1945,10 @@
                         fromPosition: state.fromPosition != null ? state.fromPosition : lastState.fromPosition,
                         toPosition: state.toPosition != null ? state.toPosition : lastState.toPosition,
                         message: lastState.message || state.message,
-                        /* Pola prywatne (tylko dla zalogowanego gracza) — zawsze z nowego state */
-                        myPropertyCards: state.myPropertyCards || lastState.myPropertyCards,
-                        myHandCards: state.myHandCards || lastState.myHandCards,
+                        /* Pola prywatne — WS broadcast nie zawiera tych pol (null).
+                           Priorytet: animacja > lastState > trwaly cache. */
+                        myPropertyCards: state.myPropertyCards || lastState.myPropertyCards || propertyCardsData,
+                        myHandCards: state.myHandCards || lastState.myHandCards || handCardsData,
                         myTurn: state.myTurn,
                         canRollAgain: state.canRollAgain
                     });
@@ -2137,7 +2146,8 @@
     // ============================================================
     var pendingDestroyCard = false;
 
-    var handCardsData = []; /* BUG FIX: cache kart — nie czyscimy przy WS broadcast (null) */
+    var handCardsData = [];    /* BUG FIX: cache kart — nie czyscimy przy WS broadcast (null) */
+    var propertyCardsData = []; /* BUG FIX: cache posesji — tak samo jak handCardsData */
 
     function renderHandCards(state) {
         var list  = document.getElementById("handCardsList");
@@ -2472,40 +2482,77 @@
         return "Sam grunt";
     }
 
+    function levelDots(level) {
+        var MAX = 4;
+        var icons = [
+            '<i class="fa-solid fa-house" style="font-size:.55rem;"></i>',
+            '<i class="fa-solid fa-house" style="font-size:.55rem;"></i>',
+            '<i class="fa-solid fa-house-chimney" style="font-size:.6rem;"></i>',
+            '<i class="fa-solid fa-building" style="font-size:.62rem;"></i>'
+        ];
+        var html = '<span style="display:inline-flex;gap:2px;align-items:center;">';
+        for (var i = 1; i <= MAX; i++) {
+            var filled = i <= level;
+            html += '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:4px;' +
+                (filled
+                    ? 'background:rgba(245,158,11,.2);color:var(--brand-gold);border:1px solid rgba(245,158,11,.4);'
+                    : 'background:rgba(255,255,255,.04);color:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.08);') +
+                '">' + icons[i-1] + '</span>';
+        }
+        html += '</span>';
+        return html;
+    }
+
     function renderMyProperties(state) {
         var list = document.getElementById("propertiesList");
         var badge = document.getElementById("propertiesCount");
-        var cards = state.myPropertyCards || [];
+        /* BUG FIX: WS broadcast nie zawiera myPropertyCards (null) — uzywamy cache.
+           Aktualizujemy cache TYLKO gdy serwer jawnie wyslal dane (REST response). */
+        if (state.myPropertyCards !== null && state.myPropertyCards !== undefined) {
+            propertyCardsData = state.myPropertyCards;
+        }
+        var cards = propertyCardsData;
         if (!list) return;
-        if (badge) badge.textContent = String(cards.length);
+        if (badge) badge.textContent = cards.length > 0 ? String(cards.length) : "";
         if (cards.length === 0) {
-            list.innerHTML = '<p class="muted small" style="padding:.4rem;">Nie masz jeszcze nieruchomosci.</p>';
+            list.innerHTML = '<p style="padding:.5rem .4rem;color:var(--slate-500);font-size:.75rem;">' +
+                '<i class="fa-solid fa-city" style="margin-right:.3rem;opacity:.35;"></i>Brak nieruchomosci.</p>';
             return;
         }
         var debtPhase = state.pendingPayment && state.players.some(function(p) {
             return p.isMe && p.id === state.pendingPayment.debtorId;
         });
-        var html = '<p class="muted small bt-prop-hint">Kliknij posesje, aby zobaczyc czynsz i sprzedaz do banku (70%).</p>';
+        var html = '';
         cards.forEach(function(card) {
             var isUpgradeTarget = state.pendingUpgrade && state.pendingUpgrade.position === card.position;
+            var lvl = card.level || 1;
+            var dots = levelDots(lvl);
+            var levelLbl = escapeHtml(card.levelLabel || propertyLevelLabel(lvl));
             html += '<details class="bt-property-item' + (isUpgradeTarget ? ' bt-property-item--active' : '') + '"' +
-                (debtPhase ? ' open' : '') + '>' +
-                '<summary><span class="bt-prop-name">' + escapeHtml(card.tileName) + '</span>' +
-                '<span class="bt-property-meta">' + escapeHtml(card.levelLabel || propertyLevelLabel(card.level)) + '</span></summary>' +
+                (debtPhase || isUpgradeTarget ? ' open' : '') + '>' +
+                '<summary>' +
+                '<span class="bt-prop-name">' + escapeHtml(card.tileName) + '</span>' +
+                '<span class="bt-property-meta">' + levelLbl + '</span>' +
+                '</summary>' +
                 '<div class="bt-property-body">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem;">' +
+                dots +
+                '<span style="font-size:.72rem;color:var(--slate-400);">Poziom ' + lvl + '/4</span>' +
+                '</div>' +
                 '<div class="bt-property-stats">' +
                 '<div class="bt-prop-stat"><span class="lbl">Czynsz</span><strong class="rent-highlight">' + formatCash(card.currentRent) + ' PLN</strong></div>' +
-                '<div class="bt-prop-stat"><span class="lbl">Cena gruntu</span><span>' + formatCash(card.buyPrice) + ' PLN</span></div>' +
-                '<div class="bt-prop-stat"><span class="lbl">Sprzedaz do banku</span><span>' + formatCash(card.bankSellPrice) + ' PLN <em>(70%)</em></span></div>';
+                '<div class="bt-prop-stat"><span class="lbl">Sprzedaz (70%)</span><span>' + formatCash(card.bankSellPrice) + ' PLN</span></div>';
             if (card.canUpgradeFurther && card.upgradeCost > 0) {
-                html += '<div class="bt-prop-stat"><span class="lbl">Kolejne ulepszenie</span><span>' + formatCash(card.upgradeCost) + ' PLN → czynsz ' + formatCash(card.nextRent) + ' PLN</span></div>';
+                html += '<div class="bt-prop-stat" style="grid-column:1/-1;"><span class="lbl">Nastepny poziom</span>' +
+                    '<span>' + formatCash(card.upgradeCost) + ' PLN <span style="color:var(--brand-emerald);">→ ' + formatCash(card.nextRent) + ' PLN czynszu</span></span></div>';
             }
+            html += '</div>';
             if (isUpgradeTarget) {
-                html += '<p class="bt-prop-alert"><i class="fa-solid fa-hammer"></i> Stoisz na tym polu — mozesz ulepszyc w panelu akcji.</p>';
+                html += '<p class="bt-prop-alert"><i class="fa-solid fa-hammer"></i> Stoisz tutaj — mozesz ulepszyc w panelu akcji.</p>';
             }
-            html += '</div>' +
-                '<button type="button" class="btn btn-secondary btn-small btn-sell-prop" data-pos="' + card.position + '">' +
-                '<i class="fa-solid fa-landmark"></i> Sprzedaj do banku (' + formatCash(card.bankSellPrice) + ' PLN)</button>' +
+            html += '<button type="button" class="btn btn-secondary btn-small btn-sell-prop" style="width:100%;margin-top:.25rem;" data-pos="' + card.position + '">' +
+                '<i class="fa-solid fa-landmark"></i> Sprzedaj do banku — ' + formatCash(card.bankSellPrice) + ' PLN' +
+                '</button>' +
                 '</div></details>';
         });
         list.innerHTML = html;
@@ -2638,11 +2685,12 @@
         });
     }
 
-    function placeBuildingMarker(key, template, x, y, z, colorHex, scaleMul) {
+    function placeBuildingMarker(key, template, x, y, z, colorHex, scaleMul, rotY) {
         var marker = template.clone(true);
         tintBuildingClone(marker, colorHex);
         if (scaleMul && scaleMul !== 1) marker.scale.multiplyScalar(scaleMul);
         marker.position.set(x, y, z);
+        if (rotY) marker.rotation.y = rotY;
         boardPivot.add(marker);
         upgradeMarkers[key] = marker;
     }
@@ -2716,12 +2764,17 @@
                 var bx = w.x + dx * 0.55;
                 var bz = w.z + dz * 0.55;
 
+                /* Rotacja: gorne i dolne pola biegna poziomo (os X) — obróc model o 90° */
+                var rotY = 0;
+                if (pos > 0 && pos < 10) rotY = Math.PI / 2;
+                else if (pos > 20 && pos < 30) rotY = Math.PI / 2;
+
                 /* 1 unikalny model per poziom upgradu (nie wielokrotnosci tego samego) */
                 var clampedLevel = Math.min(level, 4);
                 var tmpl = levelTemplates[clampedLevel] || levelTemplates[3] || levelTemplates[2] || levelTemplates[1];
 
                 if (tmpl) {
-                    placeBuildingMarker(posStr + "_bld", tmpl, bx, BUILDING_BASE_Y, bz, col, 1.0);
+                    placeBuildingMarker(posStr + "_bld", tmpl, bx, BUILDING_BASE_Y, bz, col, 1.0, rotY);
                 } else {
                     /* Fallback box jezeli GLB jeszcze sie laduje */
                     if (level >= 3) {
@@ -2738,16 +2791,10 @@
     (function () {
         var toggle = document.getElementById("propertiesToggle");
         var panel  = document.getElementById("propertiesPanel");
-        var close  = document.getElementById("propertiesClose");
         if (toggle && panel) {
             toggle.addEventListener("click", function () {
                 panel.style.display = panel.style.display === "none" ? "block" : "none";
-                var handPanel = document.getElementById("handCardsPanel");
-                if (handPanel) handPanel.style.display = "none";
             });
-        }
-        if (close && panel) {
-            close.addEventListener("click", function () { panel.style.display = "none"; });
         }
     })();
 
@@ -2759,8 +2806,6 @@
         if (toggle && panel) {
             toggle.addEventListener("click", function () {
                 if (toggle.disabled) return;
-                var propPanel = document.getElementById("propertiesPanel");
-                if (propPanel) propPanel.style.display = "none";
                 var transferPanel = document.getElementById("transferPanel");
                 if (transferPanel) transferPanel.style.display = "none";
                 panel.style.display = panel.style.display === "none" ? "block" : "none";
@@ -2771,7 +2816,7 @@
         }
     })();
 
-    /* ===== TOGGLE: Transfer siana ===== */
+    /* ===== TOGGLE: Przelewanie ===== */
     (function () {
         var toggle = document.getElementById("transferToggle");
         var panel  = document.getElementById("transferPanel");
