@@ -573,6 +573,10 @@
     ];
     var PAWN_HEIGHT = 0.62;
 
+    function threeParent(obj) {
+        return obj && (obj.parent || obj.parentNode);
+    }
+
     function normalizePawnScene(model) {
         var box = new THREE.Box3().setFromObject(model);
         var size = new THREE.Vector3();
@@ -614,14 +618,34 @@
             delete pawnLoadsPending[url];
             cbs.forEach(function (cb) { cb(pawnTemplates[url]); });
             refreshAllPawnVisuals();
-        }, undefined, function () {
+        }, undefined, function (err) {
+            console.warn("[board3d] Nie udalo sie zaladowac pionka:", url, err);
             delete pawnLoadsPending[url];
         });
     }
 
     function loadPawnModels() {
+        if (typeof THREE.GLTFLoader === "undefined") {
+            console.warn("[board3d] GLTFLoader niedostepny — pionki 3D wylaczone");
+            return;
+        }
         PAWN_PRELOAD_PATHS.forEach(function (url) {
             ensurePawnTemplate(url, function () { /* preload */ });
+        });
+    }
+
+    function tintPawnClone(group, colorHex) {
+        var col = new THREE.Color(colorHex || "#e91e63");
+        group.traverse(function (o) {
+            if (!o.isMesh || !o.material) return;
+            var mats = Array.isArray(o.material) ? o.material : [o.material];
+            var cloned = mats.map(function (m) {
+                var mat = m.clone();
+                if (mat.emissive) mat.emissive.copy(col).multiplyScalar(0.22);
+                else if (mat.color) mat.color.lerp(col, 0.12);
+                return mat;
+            });
+            o.material = cloned.length === 1 ? cloned[0] : cloned;
         });
     }
 
@@ -635,12 +659,7 @@
             var visual = new THREE.Group();
             if (template) {
                 var clone = template.clone(true);
-                clone.traverse(function (o) {
-                    if (o.isMesh && o.material) {
-                        o.material = o.material.clone();
-                        if (o.material.emissive) o.material.emissive.copy(col).multiplyScalar(0.22);
-                    }
-                });
+                tintPawnClone(clone, colorHex);
                 visual.add(clone);
                 var base = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.19, 0.21, 0.05, 20),
@@ -1194,10 +1213,8 @@
             }
         }
         updateTileInfo(state);
-        if (!animating && animationQueue.length === 0) {
-            updateOwnerMarkers(state);
-            updateUpgradeMarkers(state);
-        }
+        updateOwnerMarkers(state);
+        updateUpgradeMarkers(state);
         updateActiveTileHighlight(state);
         renderActionPanel(state);
         renderHandCards(state);
@@ -2343,40 +2360,74 @@
     var upgradeMarkers = {};
     var houseTemplate = null;
     var hotelTemplate = null;
-    var HOUSE_HEIGHT = 0.28;
-    var HOTEL_HEIGHT = 0.44;
+    var buildingsLoadFailed = false;
+    var HOUSE_HEIGHT = 0.36;
+    var HOTEL_HEIGHT = 0.52;
+    var BUILDING_BASE_Y = 0.2;
 
-    function extractBuildingTemplate(scene, nodeName, targetHeight) {
-        var node = null;
+    function extractBuildingTemplate(scene, namePart, targetHeight) {
+        var root = null;
         scene.traverse(function (o) {
-            if (!node && o.name === nodeName) node = o;
+            if (!root && o.name && o.name.indexOf(namePart) >= 0 && (o.isMesh || o.children.length)) {
+                root = o;
+            }
         });
-        if (!node) return null;
-        var clone = node.clone(true);
+        if (!root) {
+            console.warn("[board3d] Brak wezla budynku:", namePart);
+            return null;
+        }
+        var clone = root.clone(true);
+        clone.traverse(function (o) {
+            if (o.isMesh) {
+                o.castShadow = true;
+                o.receiveShadow = true;
+                if (o.material) {
+                    var mats = Array.isArray(o.material) ? o.material : [o.material];
+                    o.material = mats.map(function (m) {
+                        var mat = m.clone();
+                        if (mat.side !== undefined) mat.side = THREE.FrontSide;
+                        return mat;
+                    });
+                    if (!Array.isArray(o.material) && o.material.length === 1) o.material = o.material[0];
+                }
+            }
+        });
         var box = new THREE.Box3().setFromObject(clone);
         var size = new THREE.Vector3();
         box.getSize(size);
-        clone.scale.setScalar(targetHeight / Math.max(size.y, 0.0001));
+        if (size.y < 0.001) return null;
+        clone.scale.setScalar(targetHeight / size.y);
         box.setFromObject(clone);
         var center = new THREE.Vector3();
         box.getCenter(center);
         clone.position.x -= center.x;
         clone.position.z -= center.z;
         clone.position.y -= box.min.y;
-        clone.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
         var grp = new THREE.Group();
         grp.add(clone);
         return grp;
     }
 
     function loadBuildingModels() {
-        if (typeof THREE.GLTFLoader === "undefined") return;
+        if (typeof THREE.GLTFLoader === "undefined") {
+            console.warn("[board3d] GLTFLoader niedostepny — uzywam fallback boxow");
+            buildingsLoadFailed = true;
+            if (lastState) updateUpgradeMarkers(lastState);
+            return;
+        }
         var loader = new THREE.GLTFLoader();
         loader.load("/models/Buildings.glb", function (gltf) {
             houseTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_3", HOUSE_HEIGHT);
             hotelTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_1", HOTEL_HEIGHT);
+            if (!houseTemplate || !hotelTemplate) {
+                console.warn("[board3d] Buildings.glb zaladowany, ale brak szablonow domku/hotelu");
+            }
             if (lastState) updateUpgradeMarkers(lastState);
-        }, undefined, function () { /* fallback: proste boxy */ });
+        }, undefined, function (err) {
+            console.warn("[board3d] Blad ladowania Buildings.glb:", err);
+            buildingsLoadFailed = true;
+            if (lastState) updateUpgradeMarkers(lastState);
+        });
     }
 
     function tintBuildingClone(group, colorHex) {
@@ -2404,13 +2455,13 @@
             new THREE.BoxGeometry(hw, hh, hw),
             new THREE.MeshLambertMaterial({ color: 0x4caf50 })
         );
-        house.position.set(wx + offX, (hh / 2) + 0.22, wz + offZ);
+        house.position.set(wx + offX, (hh / 2) + BUILDING_BASE_Y, wz + offZ);
         house.castShadow = true;
         var hRoof = new THREE.Mesh(
             new THREE.ConeGeometry(hw * 0.75, 0.12, 4),
             new THREE.MeshLambertMaterial({ color: col })
         );
-        hRoof.position.set(wx + offX, hh + 0.22 + 0.06, wz + offZ);
+        hRoof.position.set(wx + offX, hh + BUILDING_BASE_Y + 0.06, wz + offZ);
         hRoof.rotation.y = Math.PI / 4;
         boardPivot.add(house);
         boardPivot.add(hRoof);
@@ -2424,14 +2475,14 @@
             new THREE.BoxGeometry(w2, h, w2),
             new THREE.MeshLambertMaterial({ color: 0xe53935 })
         );
-        marker.position.set(wx, (h / 2) + 0.22, wz);
+        marker.position.set(wx, (h / 2) + BUILDING_BASE_Y, wz);
         marker.castShadow = true;
         var roofH = 0.16;
         var roof = new THREE.Mesh(
             new THREE.ConeGeometry(w2 * 0.75, roofH, 4),
             new THREE.MeshLambertMaterial({ color: col })
         );
-        roof.position.set(wx, h + 0.22 + roofH / 2, wz);
+        roof.position.set(wx, h + BUILDING_BASE_Y + roofH / 2, wz);
         roof.rotation.y = Math.PI / 4;
         boardPivot.add(marker);
         boardPivot.add(roof);
@@ -2441,18 +2492,17 @@
 
     function updateUpgradeMarkers(state) {
         Object.keys(upgradeMarkers).forEach(function (k) {
-            if (upgradeMarkers[k] && upgradeMarkers[k].parentNode) {
-                boardPivot.remove(upgradeMarkers[k]);
-            }
+            var m = upgradeMarkers[k];
+            if (m && threeParent(m)) boardPivot.remove(m);
         });
         upgradeMarkers = {};
 
-        if (!boardPivot) return;
+        if (!boardPivot || !state || !state.players) return;
         state.players.forEach(function (p) {
             if (!p.propertyLevels) return;
             Object.keys(p.propertyLevels).forEach(function (posStr) {
-                var level = p.propertyLevels[posStr];
-                if (level <= 0) return;
+                var level = Number(p.propertyLevels[posStr]);
+                if (!level || level <= 0) return;
                 var pos = parseInt(posStr, 10);
                 var w = posToWorld(pos);
                 var col = new THREE.Color(p.color || "#ffd700");
@@ -2469,7 +2519,7 @@
                         placeBuildingMarker(
                             posStr + "_hotel",
                             hotelTemplate,
-                            bx, 0.22, bz,
+                            bx, BUILDING_BASE_Y, bz,
                             p.color,
                             level >= 4 ? 1.12 : 1
                         );
@@ -2485,7 +2535,7 @@
                             placeBuildingMarker(
                                 posStr + "_h" + hi,
                                 houseTemplate,
-                                bx + offX, 0.22, bz + offZ,
+                                bx + offX, BUILDING_BASE_Y, bz + offZ,
                                 p.color,
                                 1
                             );

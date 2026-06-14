@@ -206,7 +206,21 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
         patch("""
                 SET search_path TO monopoly, public;
                 ALTER TABLE users
-                    ADD COLUMN IF NOT EXISTS suspended boolean NOT NULL DEFAULT false
+                    ADD COLUMN IF NOT EXISTS suspended boolean DEFAULT false
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                UPDATE users SET suspended = false WHERE suspended IS NULL
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE users
+                    ALTER COLUMN suspended SET DEFAULT false
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE users
+                    ALTER COLUMN suspended SET NOT NULL
                 """);
         patch("""
                 SET search_path TO monopoly, public;

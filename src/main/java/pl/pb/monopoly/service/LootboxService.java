@@ -187,8 +187,24 @@ public class LootboxService {
             return new OpenResult(rolled, false,
                     "Masz juz ten przedmiot — nie dodano duplikatu do ekwipunku.");
         }
-        ownedItemRepository.save(new OwnedItem(user, rolled.slug()));
+        OwnedItem owned = ownedItemRepository.save(new OwnedItem(user, rolled.slug()));
+        if (PawnModelCatalog.isPawn3dItem(rolled)) {
+            equipPawn3d(user, owned);
+        }
         return new OpenResult(rolled, true, null);
+    }
+
+    /** Auto-zalozenie pionka 3D po wylosowaniu ze skrzynki. */
+    private void equipPawn3d(User user, OwnedItem item) {
+        ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
+                .filter(o -> !o.getId().equals(item.getId()))
+                .filter(o -> PawnModelCatalog.isPawn3dItem(findBySlug(o.getItemSlug())))
+                .forEach(o -> {
+                    o.setEquipped(false);
+                    ownedItemRepository.save(o);
+                });
+        item.setEquipped(true);
+        ownedItemRepository.save(item);
     }
 
     @Transactional(readOnly = true)
