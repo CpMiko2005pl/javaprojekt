@@ -249,7 +249,15 @@ public class GameRestController {
         }
     }
 
-    @PostMapping("/{id}/leave")
+    
+    @PostMapping("/{id}/react")
+    public ResponseEntity<?> react(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
+        String code = body.get("code");
+        if (code == null) return ResponseEntity.badRequest().build();
+        gameService.broadcastReaction(id, auth.getName(), code);
+        return ResponseEntity.ok().build();
+    }
+@PostMapping("/{id}/leave")
     public ResponseEntity<?> leave(@PathVariable Long id, Authentication auth) {
         try {
             gameService.leaveGame(id, auth.getName());

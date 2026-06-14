@@ -38,91 +38,91 @@ import java.util.stream.Collectors;
 @Service
 public class GameService {
 
-    /** 40 pol — Politechnika Bialostocka + Bialystok (nazwy). */
+    /** 40 pol — Kampus Politechniki Bialostockiej. */
     public static final String[] TILES = {
-            "START — Inauguracja semestru",
-            "Akademik Bratniak",
-            "Kasa Miejska — Stypendium",
-            "Akademik Sloneczny",
-            "Oplata za warunki",
-            "Dworzec PKP Bialystok",
-            "Wydzial Elektryczny",
-            "Karta Szansy — USOS",
-            "Wydzial Mechaniczny",
-            "Wydzial Budownictwa",
-            "DZIEKANAT (Wiezienie)",
-            "Klub Studencki Gwint",
-            "Wydzial Chemiczny",
-            "Stolowka Studencka",
-            "Biblioteka Politechniki",
-            "Dworzec PKS",
-            "Wydzial Informatyki W-8",
-            "Kasa Miejska — Stypendium",
-            "Wydzial Zarzadzania",
-            "Wydzial Architektury",
-            "Parking Studencki",
-            "Rynek Kosciuszki",
-            "Karta Szansy — Sesja",
-            "Galeria Alfa",
-            "Spodek — Rektorat PB",
-            "Dworzec Fabryczny",
-            "Palac Branickich",
-            "Opera Podlaska",
-            "Wodociagi PB",
-            "Hala Sportowa",
-            "Idz do Dziekanatu",
-            "Las Zwierzyniecki",
-            "Galeria Biala",
-            "Kasa Miejska — Stypendium",
-            "Gmach Glowny Politechniki",
-            "Lotnisko Krywlany",
-            "Karta Szansy — Kolokwium",
-            "Aula Magna",
-            "Oplata luksusowa",
-            "Meta — Kampus PB"
+            "START — Inauguracja semestru",  // 0
+            "Akademik Alfa",                 // 1  brazowe
+            "Stypendium — Kasa Studencka",   // 2  community
+            "Akademik Beta",                 // 3  brazowe
+            "Nieoddany projekt — Podatek",   // 4  tax
+            "Dwor Mejera — Kurort",          // 5  kurort
+            "Akademik Gamma",                // 6  jasnoniebieskie
+            "USOS — Karta Szansy",           // 7  chance
+            "Akademik Delta",                // 8  jasnoniebieskie
+            "Akademik Epsilon",              // 9  jasnoniebieskie
+            "WARUNEK (Dziekanat)",           // 10 jail
+            "Klub GWINT",                    // 11 fioletowe
+            "Max Bistro",                    // 12 gastro
+            "Gammajka",                      // 13 fioletowe
+            "Klub Relax",                    // 14 fioletowe
+            "Erasmus PB — Kurort",           // 15 kurort
+            "ACS",                           // 16 pomaranczowe
+            "Grant PB — Kasa Studencka",     // 17 community
+            "Korty Tenisowe PB",             // 18 pomaranczowe
+            "Boisko PB",                     // 19 pomaranczowe
+            "Sesja poprawkowa",              // 20 free parking
+            "Wydzial Informatyki",           // 21 czerwone
+            "Kolokwium — Karta Szansy",      // 22 chance
+            "Wydzial Mechaniczny",           // 23 czerwone
+            "Wydzial Elektryczny",           // 24 czerwone
+            "Inno-Eko-Tech — Kurort",        // 25 kurort
+            "CNK",                           // 26 zolte
+            "Biblioteka PB",                 // 27 zolte
+            "Bistro PB",                     // 28 gastro
+            "Radio Akadera",                 // 29 zolte
+            "Idz na Warunek",                // 30 go to jail
+            "Centrum Sigma",                 // 31 zielone
+            "Inkubator Przedsiebiorczosci",  // 32 zielone
+            "Stypendium Rektora — Kasa Studencka", // 33 community
+            "PolitechNET",                   // 34 zielone
+            "Aula Duga — Kurort",            // 35 kurort
+            "Kolokwium 2 — Karta Szansy",    // 36 chance
+            "Wydzial Architektury",          // 37 granatowe
+            "Oplata za laby — Podatek",      // 38 tax
+            "Rektorat"                       // 39 granatowe
     };
 
     public static final String[] TILE_EFFECTS = {
             "Stan na START: bonus okrazenia +300 000 PLN",
             "Nieruchomosc — 60 000 PLN / czynsz od 6 000",
-            "Stypendium +150 000 PLN",
+            "Kasa Studencka — stypendium +150 000 PLN",
             "Nieruchomosc — 60 000 PLN / czynsz od 6 000",
             "Podatek 10% od wartosci majatku",
-            "Resort — czynsz 50/100/200/400 tys.",
+            "Kurort — czynsz 50/100/200/400 tys. PLN",
             "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
-            "Losuj karte zdarzenia",
+            "Losuj karte zdarzenia USOS",
             "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
             "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
-            "WIEZIENIE: lapowka 200 000 PLN",
+            "WARUNEK: lapowka 200 000 PLN",
             "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
-            "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Gastro — czynsz = suma oczek x 15 000 PLN",
             "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
             "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
-            "Resort — czynsz 50/100/200/400 tys.",
+            "Kurort — czynsz 50/100/200/400 tys. PLN",
             "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
-            "Stypendium +150 000 PLN",
+            "Kasa Studencka — grant +150 000 PLN",
             "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Sesja poprawkowa — postoj bez oplaty",
             "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
-            "Postoj — bez oplaty",
+            "Losuj karte zdarzenia — kolokwium",
             "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
-            "Losuj karte zdarzenia",
             "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
+            "Kurort — czynsz 50/100/200/400 tys. PLN",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
+            "Gastro — czynsz = suma oczek x 15 000 PLN",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
+            "Idz do Dziekanatu (WARUNEK, poz. 10)",
+            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
+            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
+            "Kasa Studencka — stypendium rektora +150 000 PLN",
+            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
+            "Kurort — czynsz 50/100/200/400 tys. PLN",
+            "Losuj karte zdarzenia — kolokwium 2",
             "Nieruchomosc — 350 000 PLN / czynsz do 1 600 000",
-            "Resort — czynsz 50/100/200/400 tys.",
-            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
-            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
-            "Urzadzenia — czynsz x15 000 oczek",
-            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
-            "Idz na Dziekanat (poz. 10)",
-            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
-            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
-            "Stypendium +150 000 PLN",
-            "Nieruchomosc — 300 000 PLN / czynsz do 1 200 000",
-            "Resort — czynsz 50/100/200/400 tys.",
-            "Losuj karte zdarzenia",
-            "Nieruchomosc — 400 000 PLN / czynsz do 2 000 000",
             "Podatek 10% od wartosci majatku",
-            "Meta — Bonus okrazenia +300 000 PLN"
+            "Nieruchomosc — 400 000 PLN / czynsz do 2 000 000"
     };
 
     /** Ceny zakupu pol — delegacja do {@link GameEconomy}. */
@@ -143,8 +143,8 @@ public class GameService {
     /** Pola resortow (lotniska / dworce). */
     private static final boolean[] RESORT_TILES = GameEconomy.RESORT_TILES;
 
-    /** Pole "Wodociagi PB". */
-    private static final int POS_UTILITY = GameEconomy.POS_UTILITY;
+    /** Pola gastronomiczne (Max Bistro, Bistro PB). */
+    private static final boolean[] UTILITY_TILES = GameEconomy.UTILITY_TILES;
 
     /** Karty Szansy — skala Business Tour (tysiace PLN). */
     public static final List<ChanceCard> CHANCE_CARDS = List.of(
@@ -376,7 +376,6 @@ public class GameService {
             }
             GamePlayer gp = new GamePlayer(u.getUsername(), uniqueColor(u, session));
             gp.setUser(u);
-            dealHandCards(gp);
             session.addPlayer(gp);
             sessionRepository.save(session);
             publishPublic(session.getId(), null, null, u.getUsername() + " dolaczyl do gry!", null, null, null, null);
@@ -826,6 +825,9 @@ public class GameService {
                         current.setSkipNextRent(false);
                         msg.append("Karta Ochrony! ").append(current.getDisplayName())
                                 .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
+                        if (ownerOfTile.isDoubleRentNext()) {
+                            ownerOfTile.setDoubleRentNext(false); // Karta zuzyta na probe pobrania czynszu
+                        }
                     } else {
                         int rent = computeRent(session, ownerOfTile, newPos, steps);
                         // Karta DOUBLE_RENT_NEXT — wlasciciel zbiera 2x czynsz
@@ -845,7 +847,7 @@ public class GameService {
                 } else if (ownerOfTile.getId().equals(current.getId())) {
                     msg.append("To Twoje pole - bez czynszu. ");
                     // Sledzenie ladowan wlasciciela na WLASNYM polu (dla ulepszenia)
-                    if (!RESORT_TILES[newPos] && newPos != POS_UTILITY && !CHANCE_TILES[newPos]) {
+                    if (!RESORT_TILES[newPos] && !UTILITY_TILES[newPos] && !CHANCE_TILES[newPos]) {
                         int level = current.getPropertyLevels().getOrDefault(newPos, 0);
                         int upgradeCost = GameEconomy.upgradeCost(newPos);
                         if (level < GameEconomy.MAX_PROPERTY_LEVEL
@@ -941,13 +943,23 @@ public class GameService {
         }
         session.clearPendingPurchase();
         endTurnOrExtraRoll(session, me);
+
+        StringBuilder msg = new StringBuilder();
+        msg.append(me.getDisplayName()).append(" kupuje ").append(TILES[pos])
+                .append(" za ").append(price).append(" PLN (z 1 domem). ");
+
+        // Powiadom o zdobytym monopolu
+        if (GameEconomy.hasColorMonopoly(me, pos)) {
+            msg.append("[MONOPOL] ").append(me.getDisplayName()).append(" zdobywa monopol na grupie! ");
+        }
+        appendWinAlerts(session.getPlayers(), msg);
+        checkGameEnd(session, msg);
         sessionRepository.save(session);
 
-        String msg = me.getDisplayName() + " kupuje " + TILES[pos] + " za " + price + " PLN (z 1 domem).";
         Long sessionId = session.getId();
-        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
         scheduleBotUpdate(sessionId);
-        return toState(session, username, null, null, msg, null, null, null, null);
+        return toState(session, username, null, null, msg.toString(), null, null, null, null);
     }
 
     /** Aktywny gracz pomija kupno - inni mogli wczesniej zalicytowac, ale w tej wersji pole zostaje wolne. */
@@ -1282,13 +1294,9 @@ public class GameService {
                             .append(" PLN — brak siana! ");
                 }
             }
-            case 39 -> {
-                player.setCash(player.getCash() + GameEconomy.GO_BONUS);
-                msg.append("Meta — Bonus okrazenia (+").append(GameEconomy.GO_BONUS).append(" PLN). ");
-            }
             case 2, 17, 33 -> {
                 player.setCash(player.getCash() + GameEconomy.SCHOLARSHIP_BONUS);
-                msg.append("Kasa Miejska - stypendium (+").append(GameEconomy.SCHOLARSHIP_BONUS).append(" PLN). ");
+                msg.append("Kasa Studencka — stypendium (+").append(GameEconomy.SCHOLARSHIP_BONUS).append(" PLN). ");
             }
             default -> { /* posiadlosci - obsluga w roll() */ }
         }
@@ -1322,7 +1330,7 @@ public class GameService {
             }
             return GameEconomy.RESORT_RENT[Math.min(resorts, GameEconomy.RESORT_RENT.length - 1)];
         }
-        if (pos == POS_UTILITY) {
+        if (UTILITY_TILES[pos]) {
             return diceSum * GameEconomy.UTILITY_RENT_MULTIPLIER;
         }
         int level = owner.getPropertyLevels().getOrDefault(pos, 0);
@@ -1523,6 +1531,26 @@ public class GameService {
         List<GamePlayer> active = session.getPlayers().stream()
                 .filter(p -> !p.isBankrupt())
                 .toList();
+
+        // Wygrana przez 3 kompletne grupy kolorow
+        for (GamePlayer p : active) {
+            if (countColorMonopolies(p) >= 3) {
+                session.setStatus(GameStatus.FINISHED);
+                msg.append(p.getDisplayName()).append(" WYGRYWA przez MONOPOLE! (3 kompletne grupy) ");
+                persistGameResults(session, p);
+                return;
+            }
+        }
+        // Wygrana przez wszystkie 4 kurorty
+        for (GamePlayer p : active) {
+            if (countKurortyOwned(p) >= 4) {
+                session.setStatus(GameStatus.FINISHED);
+                msg.append(p.getDisplayName()).append(" WYGRYWA przez KURORTY! (wszystkie 4) ");
+                persistGameResults(session, p);
+                return;
+            }
+        }
+
         if (active.size() == 1) {
             session.setStatus(GameStatus.FINISHED);
             GamePlayer winner = active.get(0);
@@ -1543,6 +1571,40 @@ public class GameService {
                 msg.append("Wszyscy ludzie opuscili gre — ").append(richest.getDisplayName())
                         .append(" (bot) wygrywa! Gra zakonczona automatycznie.");
                 persistGameResults(session, richest);
+            }
+        }
+    }
+
+    private int countColorMonopolies(GamePlayer p) {
+        int count = 0;
+        for (int[] group : GameEconomy.COLOR_GROUPS) {
+            boolean hasAll = true;
+            for (int pos : group) {
+                if (!p.getOwnedPositions().contains(pos)) { hasAll = false; break; }
+            }
+            if (hasAll) count++;
+        }
+        return count;
+    }
+
+    private int countKurortyOwned(GamePlayer p) {
+        int count = 0;
+        for (int i = 0; i < 40; i++) {
+            if (GameEconomy.RESORT_TILES[i] && p.getOwnedPositions().contains(i)) count++;
+        }
+        return count;
+    }
+
+    private void appendWinAlerts(List<GamePlayer> players, StringBuilder msg) {
+        for (GamePlayer p : players) {
+            if (p.isBankrupt()) continue;
+            int monopoles = countColorMonopolies(p);
+            if (monopoles == 2) {
+                msg.append("UWAGA! ").append(p.getDisplayName()).append(" jest blisko wygranej przez monopole! ");
+            }
+            int kurorty = countKurortyOwned(p);
+            if (kurorty == 3) {
+                msg.append("UWAGA! ").append(p.getDisplayName()).append(" jest blisko wygranej przez kurorty! ");
             }
         }
     }
@@ -1677,6 +1739,24 @@ public class GameService {
         }
     }
 
+
+    public void broadcastReaction(Long sessionId, String username, String reactionCode) {
+        GameSession session = getSession(sessionId);
+        GamePlayer player = findPlayerByUsername(session, username);
+        
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("type", "REACTION");
+        payload.put("playerId", player.getId());
+        payload.put("code", reactionCode);
+        
+        // reactionCode moze byc emoji (np. "😂") lub slugiem naklejki (np. "emoji-pizza")
+        if (reactionCode.startsWith("emoji-")) {
+            LootboxService.LootboxItem item = LootboxService.findBySlug(reactionCode);
+            if (item != null) payload.put("icon", item.iconClass());
+        }
+
+        gameSyncService.broadcastReaction(sessionId, payload);
+    }
     private void advanceTurn(GameSession session) {
         List<GamePlayer> players = session.getPlayers();
         int n = players.size();
@@ -1844,6 +1924,23 @@ public class GameService {
             if (active.size() == 1) {
                 winnerId = active.get(0).getId();
                 winnerName = active.get(0).getDisplayName();
+            } else if (!active.isEmpty()) {
+                // Wygrana przez monopole lub kurorty — znajdz gracza spelniajacego warunek
+                GamePlayer monopoleWinner = active.stream()
+                        .filter(p -> countColorMonopolies(p) >= 3)
+                        .findFirst().orElse(null);
+                if (monopoleWinner != null) {
+                    winnerId = monopoleWinner.getId();
+                    winnerName = monopoleWinner.getDisplayName();
+                } else {
+                    GamePlayer kurortWinner = active.stream()
+                            .filter(p -> countKurortyOwned(p) >= 4)
+                            .findFirst().orElse(null);
+                    if (kurortWinner != null) {
+                        winnerId = kurortWinner.getId();
+                        winnerName = kurortWinner.getDisplayName();
+                    }
+                }
             }
         }
 
@@ -2201,7 +2298,7 @@ public class GameService {
                 if (targetPos == null) {
                     throw new IllegalArgumentException("Podaj pozycje pola do przejecia.");
                 }
-                if (RESORT_TILES[targetPos] || targetPos == POS_UTILITY || CHANCE_TILES[targetPos]) {
+                if (RESORT_TILES[targetPos] || UTILITY_TILES[targetPos] || CHANCE_TILES[targetPos]) {
                     throw new IllegalArgumentException("Te pole nie podlega przejeciu.");
                 }
                 GamePlayer owner = findOwner(session, targetPos);
@@ -2234,7 +2331,7 @@ public class GameService {
                 if (!me.getOwnedPositions().contains(targetPos)) {
                     throw new IllegalArgumentException("Nie posiadasz tego pola.");
                 }
-                if (TILE_PRICE[targetPos] <= 0 || RESORT_TILES[targetPos] || targetPos == POS_UTILITY) {
+                if (TILE_PRICE[targetPos] <= 0 || RESORT_TILES[targetPos] || UTILITY_TILES[targetPos]) {
                     throw new IllegalArgumentException("To pole nie podlega ulepszeniu.");
                 }
                 if (!GameEconomy.hasColorMonopoly(me, targetPos)) {

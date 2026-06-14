@@ -226,6 +226,16 @@ public class LootboxService {
         if (cardType == null) return;
         PlayerStatistics stats = user.getStatistics();
         if (stats == null) return;
+        
+        // Zdejmij inne karty bonusowe przed zalozeniem nowej
+        ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
+                .filter(o -> !o.getId().equals(item.getId()))
+                .filter(o -> "Karta bonusowa".equals(findBySlug(o.getItemSlug()).category()))
+                .forEach(o -> {
+                    o.setEquipped(false);
+                    ownedItemRepository.save(o);
+                });
+
         if (stats.getPendingWheelCard() == null) {
             stats.setPendingWheelCard(cardType.name());
             item.setEquipped(true);

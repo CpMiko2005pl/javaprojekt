@@ -1717,6 +1717,10 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     from { transform: translateX(-50%) translateY(14px); opacity: 0; }
     to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
 }
+@keyframes btMonopolIn {
+    from { transform: translate(-50%,-50%) scale(.7); opacity: 0; }
+    to   { transform: translate(-50%,-50%) scale(1);  opacity: 1; }
+}
 .bt-hand-popup .hand-card { min-width: 0; align-items: flex-start; }
 /* pelny opis karty — bez obcinania tekstu */
 .bt-hand-popup .hand-card-body span {
@@ -2072,3 +2076,23 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     padding: .15rem .1rem .35rem;
     margin: 0;
 }
+
+  /* Reakcje i emotki */
+  .bt-reaction-toolbar {
+      display: flex; gap: .4rem; justify-content: center; margin-bottom: .6rem;
+      pointer-events: auto;
+  }
+  .btn-react {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      display: grid; place-items: center; cursor: pointer; font-size: 1.2rem;
+      transition: all .2s; color: #fff;
+  }
+  .btn-react:hover {
+      background: rgba(56,189,248,.15); border-color: rgba(56,189,248,.4);
+      transform: scale(1.15) translateY(-2px);
+  }
+  .btn-react.sticker-btn {
+      background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3);
+      color: var(--brand-gold);
+  }

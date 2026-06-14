@@ -10,8 +10,10 @@ import pl.pb.monopoly.domain.GameSession;
 import pl.pb.monopoly.domain.GameStatus;
 import pl.pb.monopoly.domain.User;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
+import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.FriendService;
+import pl.pb.monopoly.service.LootboxService;
 import pl.pb.monopoly.service.GameService;
 import pl.pb.monopoly.util.PublicUrlHelper;
 
@@ -29,14 +31,17 @@ public class GameController {
     private final FriendService friendService;
     private final MatchHistoryRepository matchHistoryRepository;
     private final UserRepository userRepository;
+    private final OwnedItemRepository ownedItemRepository;
 
     public GameController(GameService gameService, FriendService friendService,
                           MatchHistoryRepository matchHistoryRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          OwnedItemRepository ownedItemRepository) {
         this.gameService = gameService;
         this.friendService = friendService;
         this.matchHistoryRepository = matchHistoryRepository;
         this.userRepository = userRepository;
+        this.ownedItemRepository = ownedItemRepository;
     }
 
     /** Hub matchmakingu lub aktywne lobby — zawsze pod /game. */
@@ -121,6 +126,17 @@ public class GameController {
         model.addAttribute("sessionName", session.getName());
         model.addAttribute("sessionCode", session.getCode());
         model.addAttribute("myPlayerId", me.get().getId());
+        // Reakcje (emotki/naklejki)
+        var equippedStickers = ownedItemRepository.findByUserIdAndEquipped(me.get().getUser().getId(), true);
+        var activeSticker = equippedStickers.stream()
+                .filter(o -> o.getItemSlug().startsWith("emoji-"))
+                .findFirst().orElse(null);
+        if (activeSticker != null) {
+            model.addAttribute("equippedSticker", activeSticker);
+            var catalog = LootboxService.findBySlug(activeSticker.getItemSlug());
+            model.addAttribute("equippedStickerIcon", catalog != null ? catalog.iconClass() : "fa-solid fa-face-smile");
+        }
+
         return "game/board";
     }
 

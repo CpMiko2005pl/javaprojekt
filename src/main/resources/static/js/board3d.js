@@ -2,7 +2,7 @@
    spojne ciemne sukno + drewniana rama, czytelne pola z opcja PNG, paski wlasciciela. */
 (function () {
     "use strict";
-    console.info("[board3d] build 20250613-pipeline");
+    console.info("[board3d] build 20260614-pb-redesign");
 
     var main = document.getElementById("main");
     if (!main) return;
@@ -30,58 +30,58 @@
 
     /* Slugi - mapowanie indeksu pola na nazwe pliku PNG w /img/tiles/<slug>.png */
     var TILE_IMAGE_KEYS = {
-        0: "start",
-        1: "akademik-bratniak",
-        2: "stypendium",
-        3: "akademik-sloneczny",
-        4: "warunki",
-        5: "pkp",
-        6: "wydzial-elektryczny",
-        7: "szansa-usos",
-        8: "wydzial-mechaniczny",
-        9: "wydzial-budownictwa",
+        0:  "start",
+        1:  "akademik-alfa",
+        2:  "stypendium",
+        3:  "akademik-beta",
+        4:  "podatek",
+        5:  "dwor-mejera",
+        6:  "akademik-gamma",
+        7:  "szansa-usos",
+        8:  "akademik-delta",
+        9:  "akademik-epsilon",
         10: "dziekanat",
         11: "klub-gwint",
-        12: "wydzial-chemiczny",
-        13: "stolowka",
-        14: "biblioteka",
-        15: "pks",
-        16: "wydzial-informatyki",
+        12: "max-bistro",
+        13: "gammajka",
+        14: "klub-relax",
+        15: "erasmus-pb",
+        16: "acs",
         17: "stypendium",
-        18: "wydzial-zarzadzania",
-        19: "wydzial-architektury",
-        20: "parking",
-        21: "rynek-kosciuszki",
-        22: "szansa-sesja",
-        23: "galeria-alfa",
-        24: "rektorat",
-        25: "dworzec-fabryczny",
-        26: "palac-branickich",
-        27: "opera-podlaska",
-        28: "wodociagi",
-        29: "hala-sportowa",
-        30: "idz-do-dziekanatu",
-        31: "las-zwierzyniecki",
-        32: "galeria-biala",
+        18: "korty-pb",
+        19: "boisko-pb",
+        20: "sesja",
+        21: "wydzial-informatyki",
+        22: "szansa-kolokwium",
+        23: "wydzial-mechaniczny",
+        24: "wydzial-elektryczny",
+        25: "inno-eko-tech",
+        26: "cnk",
+        27: "biblioteka-pb",
+        28: "bistro-pb",
+        29: "radio-akadera",
+        30: "idz-na-warunek",
+        31: "centrum-sigma",
+        32: "inkubator",
         33: "stypendium",
-        34: "gmach-glowny",
-        35: "lotnisko-krywlany",
-        36: "szansa-kolokwium",
-        37: "aula-magna",
-        38: "luksus",
-        39: "meta"
+        34: "politechnet",
+        35: "aula-duga",
+        36: "szansa-kolokwium2",
+        37: "wydzial-architektury",
+        38: "podatek",
+        39: "rektorat"
     };
 
-    /* Kolor paska pola (kategoria) - jak w klasycznym Monopoly. */
+    /* Kolor paska pola (kategoria) — zgodny z COLOR_GROUPS w GameEconomy. */
     var STRIPE = {
-        1: "#795548", 3: "#795548",
-        6: "#2196F3", 8: "#2196F3", 9: "#2196F3",
-        11: "#E91E63", 13: "#E91E63", 14: "#E91E63",
-        16: "#FF9800", 18: "#FF9800", 19: "#FF9800",
-        21: "#F44336", 23: "#F44336", 24: "#F44336",
-        26: "#FFC107", 27: "#FFC107", 29: "#FFC107",
-        31: "#4CAF50", 32: "#4CAF50", 34: "#4CAF50",
-        37: "#3F51B5", 39: "#3F51B5"
+        1:  "#795548", 3:  "#795548",                    // brazowe
+        6:  "#29B6F6", 8:  "#29B6F6", 9:  "#29B6F6",    // jasnoniebieskie
+        11: "#9C27B0", 13: "#9C27B0", 14: "#9C27B0",    // fioletowe
+        16: "#FF9800", 18: "#FF9800", 19: "#FF9800",    // pomaranczowe
+        21: "#F44336", 23: "#F44336", 24: "#F44336",    // czerwone
+        26: "#FFC107", 27: "#FFC107", 29: "#FFC107",    // zolte
+        31: "#4CAF50", 32: "#4CAF50", 34: "#4CAF50",    // zielone
+        37: "#1565C0", 39: "#1565C0"                     // granatowe
     };
     var CORNERS = { 0: true, 10: true, 20: true, 30: true };
 
@@ -1330,6 +1330,25 @@
         }, 4500);
     }
 
+    /* Duzy banner "MONOPOL ZDOBYTY!" wyswietlany przez 4s w centrum ekranu. */
+    function showMonopolBanner(text) {
+        var b = document.createElement("div");
+        b.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);" +
+            "background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;" +
+            "padding:1.2rem 2.5rem;border-radius:14px;font-size:1.6rem;font-weight:700;" +
+            "z-index:9990;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);" +
+            "animation:btMonopolIn .35s ease;pointer-events:none;";
+        b.innerHTML = '<i class="fa-solid fa-crown" style="margin-right:.5rem;color:#FFD700;"></i>' +
+            'MONOPOL ZDOBYTY!<br><span style="font-size:1rem;font-weight:400;opacity:.85;">' +
+            escapeHtml(text) + '</span>';
+        document.body.appendChild(b);
+        setTimeout(function () {
+            b.style.opacity = "0";
+            b.style.transition = "opacity .4s";
+            setTimeout(function () { if (b.parentNode) b.parentNode.removeChild(b); }, 450);
+        }, 3600);
+    }
+
     /* Generuje krotki komunikat z dlugiej wiadomosci serwera. */
     function pushToastFromMessage(message, state) {
         if (!message) return;
@@ -1366,8 +1385,8 @@
             var mc = message.match(/Karta Szansy: "([^"]+)"/);
             if (mc) return pushToast(actor + "ciagnie kartę: " + escapeHtml(mc[1]), "chance", "fa-bolt");
         }
-        if (/laduje w WIEZIENIU|trafia do (Dziekanatu|wiezienia)/i.test(message)) {
-            return pushToast(actor + "laduje w Dziekanacie!", "jail", "fa-lock");
+        if (/laduje w WIEZIENIU|trafia do (Dziekanatu|wiezienia)|WIEZIENIE|Dziekanat.*idziesz|prosto do Dziekanatu/i.test(message)) {
+            return pushToast(actor + "laduje w Dziekanacie (Warunek)!", "jail", "fa-lock");
         }
         if (/BANKRUCTWO/.test(message)) {
             /* Pokaz overlay jezeli to moj gracz */
@@ -1377,9 +1396,18 @@
             }
             return pushToast(actor + "bankrutuje!", "rent", "fa-skull");
         }
-        if (/WYGRYWA GRE/.test(message)) {
-            var mw = message.match(/([^.]+?) WYGRYWA GRE/);
+        if (/WYGRYWA GRE|WYGRYWA przez/.test(message)) {
+            var mw = message.match(/([^ ]+(?:\s[^ ]+)*?) WYGRYWA/);
             return pushToast((mw ? escapeHtml(mw[1]) : "Gracz") + " wygrywa gre!", "buy", "fa-trophy");
+        }
+        if (/\[MONOPOL\]/.test(message)) {
+            var mm2 = message.match(/\[MONOPOL\] ([^!]+)/);
+            showMonopolBanner(mm2 ? mm2[1].trim() : "Monopol zdobyty!");
+            return pushToast(mm2 ? escapeHtml(mm2[1].trim()) : "Monopol zdobyty!", "buy", "fa-crown");
+        }
+        if (/UWAGA!/.test(message)) {
+            var mua = message.match(/UWAGA! ([^!]+!)/);
+            return pushToast(mua ? escapeHtml(mua[1]) : "Gracz jest blisko wygranej!", "rent", "fa-triangle-exclamation");
         }
         if (/Brakuje siana/.test(message)) {
             return pushToast(actor + "nie stac na oplate — sprzedaj lub popros o pozyczke", "rent", "fa-coins");
@@ -1971,6 +1999,108 @@
     }
 
     var wsWasConnected = false;
+    
+    
+    /* === SYSTEM EMOTEK I NAKLEJEK === */
+    var reactionMeshes = {}; // playerId -> Group
+
+    function showReaction(playerId, code, iconCls) {
+        try {
+            var pawn = playerMeshes[String(playerId)];
+            if (!pawn) return;
+            
+            if (reactionMeshes[playerId]) {
+                boardPivot.remove(reactionMeshes[playerId]);
+                delete reactionMeshes[playerId];
+            }
+
+            var group = new THREE.Group();
+            var sprite;
+
+            if (iconCls) {
+                sprite = makeIconSprite(iconCls);
+            } else {
+                sprite = makeTextSprite(code);
+            }
+
+            if (!sprite) return;
+
+            group.add(sprite);
+            group.position.copy(pawn.position);
+            group.position.y += 0.85; 
+            boardPivot.add(group);
+            reactionMeshes[playerId] = group;
+
+            var startTime = Date.now();
+            var duration = 3000;
+            function animateReaction() {
+                var elapsed = Date.now() - startTime;
+                var t = elapsed / duration;
+                if (t >= 1) {
+                    if (reactionMeshes[playerId] === group) {
+                        boardPivot.remove(group);
+                        delete reactionMeshes[playerId];
+                    }
+                    return;
+                }
+                group.position.y += 0.002;
+                if (sprite.material) sprite.material.opacity = 1 - Math.pow(t, 2);
+                requestAnimationFrame(animateReaction);
+            }
+            animateReaction();
+        } catch (e) { console.error("Reaction error:", e); }
+    }
+
+    function makeTextSprite(text) {
+        try {
+            var canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            var ctx = canvas.getContext('2d');
+            ctx.font = '70px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text || "", 64, 64);
+            var tex = new THREE.CanvasTexture(canvas);
+            var mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            var s = new THREE.Sprite(mat);
+            s.scale.set(0.6, 0.6, 1);
+            return s;
+        } catch (e) { return null; }
+    }
+
+    function makeIconSprite(iconCls) {
+        try {
+            var canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 10;
+            ctx.font = '900 70px "Font Awesome 6 Free"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            var char = "\uf118"; 
+            if (iconCls.includes("mug-hot")) char = "\uf7b6";
+            if (iconCls.includes("pizza-slice")) char = "\uf818";
+            if (iconCls.includes("trophy")) char = "\uf091";
+            ctx.fillText(char, 64, 64);
+            var tex = new THREE.CanvasTexture(canvas);
+            var mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+            var s = new THREE.Sprite(mat);
+            s.scale.set(0.6, 0.6, 1);
+            return s;
+        } catch (e) { return null; }
+    }
+
+    window.sendReaction = function(code) {
+        if (!sessionId) return;
+        fetch("/api/game/" + sessionId + "/react", {
+            method: "POST",
+            headers: authHeaders(true),
+            body: JSON.stringify({ code: code })
+        }).catch(function(e){ console.error("Send reaction error:", e); });
+    };
+
     function connectWebSocket() {
         if (typeof SockJS === "undefined" || typeof Stomp === "undefined") return;
         var socket = new SockJS("/ws/game");
@@ -1978,7 +2108,20 @@
         stompClient.debug = null;
         stompClient.connect({}, function () {
             if (liveBadge) { liveBadge.textContent = "Online"; liveBadge.style.color = "#2e7d32"; }
-            stompClient.subscribe("/topic/game/" + sessionId, function (msg) {
+            
+              
+
+              
+                stompClient.subscribe("/topic/game/" + sessionId + "/reactions", function (msg) {
+                    try {
+                        var data = JSON.parse(msg.body);
+                        if (data.type === "REACTION") {
+                            showReaction(data.playerId, data.code, data.icon);
+                        }
+                    } catch(e) { console.error("WS reaction error:", e); }
+                });
+
+                stompClient.subscribe("/topic/game/" + sessionId, function (msg) {
                 applyStateWithAnimation(JSON.parse(msg.body));
             });
             /* Po reconnect synchronizuj stan: bot mogl rzucic offline, REST da nam najnowsza wersje. */

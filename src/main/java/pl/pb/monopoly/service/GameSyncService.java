@@ -14,6 +14,10 @@ public class GameSyncService {
         this.messagingTemplate = messagingTemplate;
     }
 
+
+    public void broadcastReaction(Long sessionId, Object payload) {
+        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/reactions", payload);
+    }
     public void broadcast(Long sessionId, GameStateDto state) {
         messagingTemplate.convertAndSend("/topic/game/" + sessionId, state);
     }
