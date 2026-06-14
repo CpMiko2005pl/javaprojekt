@@ -19,9 +19,12 @@ import java.util.List;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final ModerationService moderationService;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(UserRepository userRepository,
+                                    ModerationService moderationService) {
         this.userRepository = userRepository;
+        this.moderationService = moderationService;
     }
 
     @Override
@@ -33,6 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return User.withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(List.of(new SimpleGrantedAuthority(user.getRole().authority())))
+                .accountLocked(moderationService.isUserSuspended(user))
                 .build();
     }
 }

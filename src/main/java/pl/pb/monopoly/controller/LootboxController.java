@@ -38,7 +38,8 @@ public class LootboxController {
     @PostMapping("/lootbox/open")
     public ResponseEntity<?> open(Authentication auth) {
         try {
-            LootboxItem winner = lootboxService.open(auth.getName());
+            LootboxService.OpenResult result = lootboxService.open(auth.getName());
+            LootboxItem winner = result.item();
             User user = userRepository.findByUsername(auth.getName()).orElseThrow();
 
             List<LootboxItem> strip = lootboxService.rollVisualStrip(winner);
@@ -46,6 +47,10 @@ public class LootboxController {
             Map<String, Object> response = new HashMap<>();
             response.put("winner", toMap(winner));
             response.put("strip", strip.stream().map(this::toMap).toList());
+            response.put("addedToInventory", result.addedToInventory());
+            if (result.inventoryNote() != null) {
+                response.put("inventoryNote", result.inventoryNote());
+            }
             response.put("availableBoxes", user.getStatistics() != null
                     ? user.getStatistics().getAvailableLootboxes() : 0);
             return ResponseEntity.ok(response);
@@ -86,6 +91,7 @@ public class LootboxController {
         String message = willEquip
                 ? switch (category) {
                     case "Kolor pionka" -> "Kolor pionka zalozony — widoczny w nastepnej/rozpoczetej grze.";
+                    case "Pionek 3D" -> "Pionek 3D zalozony — widoczny na planszy w aktywnych grach.";
                     case "Awatar" -> "Awatar zalozony — odswiez profil, by zobaczyc zmiane.";
                     case "Ramka" -> "Ramka profilu zalozona.";
                     case "Tytul" -> "Tytul zalozony — wyswietli sie na profilu.";

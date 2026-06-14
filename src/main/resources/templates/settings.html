@@ -8,8 +8,8 @@
 
 <div class="lp-faceit" id="main" style="max-width:760px;">
 
-    <div class="alert alert-success" th:if="${message}" th:text="${message}" style="margin-bottom:16px;"></div>
-    <div class="alert alert-error"   th:if="${error}"   th:text="${error}"   style="margin-bottom:16px;"></div>
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}" style="margin-bottom:16px;"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}" style="margin-bottom:16px;"></div>
 
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
         <a th:href="@{/dashboard}" class="lp-btn-outline" style="font-size:13px;padding:8px 14px;">
@@ -23,42 +23,69 @@
         <div class="lp-sc-head">
             <h3><i class="fa-solid fa-user-pen" style="color:#00A651;margin-right:.4rem;"></i> Dane profilu</h3>
         </div>
-        <form th:action="@{/settings/profile}" method="post">
+        <form th:action="@{/settings/profile}" method="post" enctype="multipart/form-data">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
             <!-- Awatar -->
             <div class="field">
-                <label for="avatarUrl">URL awatara <span style="color:#94a3b8;font-size:.78rem;">(opcjonalne — link do zdjęcia profilowego)</span></label>
-                <div style="display:flex;align-items:center;gap:14px;margin-bottom:.5rem;">
-                    <div id="avatarPreviewWrap" style="width:72px;height:72px;border-radius:16px;overflow:hidden;border:3px solid rgba(0,166,81,.3);flex-shrink:0;background:var(--lp-gr);display:grid;place-items:center;">
+                <label>Zdjęcie profilowe (awatar)</label>
+                <div class="lp-media-upload">
+                    <div class="lp-media-preview lp-media-preview-avatar" id="avatarPreviewWrap">
                         <img th:if="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
                              th:src="${user.avatarUrl}" id="avatarPreviewImg"
-                             alt="Podgląd awatara" style="width:100%;height:100%;object-fit:cover;"
-                             onerror="this.style.display='none'">
+                             alt="Podgląd awatara"
+                             th:attr="data-default=@{/api/avatar/{u}(u=${user.username})}"
+                             onerror="this.onerror=null;this.src=this.dataset.default;">
                         <img th:unless="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
                              th:src="@{/api/avatar/{u}(u=${user.username})}" id="avatarPreviewImg"
-                             alt="Aktualny awatar" style="width:100%;height:100%;object-fit:cover;">
+                             alt="Aktualny awatar"
+                             th:attr="data-default=@{/api/avatar/{u}(u=${user.username})}">
                     </div>
-                    <input type="url" id="avatarUrl" name="avatarUrl"
-                           th:value="${user.avatarUrl}"
-                           placeholder="https://example.com/avatar.jpg"
-                           style="flex:1;">
+                    <div class="lp-media-actions">
+                        <label class="lp-file-btn" for="avatarFile">
+                            <i class="fa-solid fa-image"></i> Wybierz plik
+                        </label>
+                        <input type="file" id="avatarFile" name="avatarFile"
+                               accept="image/jpeg,image/png,image/webp,image/gif" class="lp-file-input">
+                        <span class="lp-file-name" id="avatarFileName">Nie wybrano pliku</span>
+                        <input type="url" id="avatarUrl" name="avatarUrl"
+                               th:value="${user.avatarUrl}"
+                               th:attr="placeholder=${(mediaPublicBaseUrl != null and !#strings.isEmpty(mediaPublicBaseUrl))} ? ${mediaPublicBaseUrl + '/avatars/' + user.username + '.jpg'} : 'https://example.com/avatar.jpg'"
+                               class="lp-media-url-input"
+                               aria-label="URL awatara">
+                    </div>
                 </div>
-                <small style="color:#94a3b8;font-size:.75rem;">Zostaw puste aby użyć automatycznie generowanego awatara z ekwipunku.</small>
             </div>
 
             <!-- Baner -->
             <div class="field">
-                <label for="bannerUrl">URL banera profilu <span style="color:#94a3b8;font-size:.78rem;">(proporcja ok. 5.7:1, np. 1920×336 px)</span></label>
-                <input type="url" id="bannerUrl" name="bannerUrl"
-                       th:value="${user.bannerUrl}"
-                       placeholder="https://example.com/banner.jpg">
-            </div>
-            <div th:if="${user.bannerUrl != null and !#strings.isEmpty(user.bannerUrl)}"
-                 style="margin-bottom:1rem;border-radius:12px;overflow:hidden;aspect-ratio:1920/336;">
-                <img th:src="${user.bannerUrl}" alt="Podgląd banera"
-                     style="width:100%;height:100%;object-fit:cover;"
-                     onerror="this.parentElement.style.display='none'">
+                <label>Baner profilu <span style="color:#94a3b8;font-size:.78rem;">(zalecane 1920×336 px)</span></label>
+                <div class="lp-media-upload lp-media-upload-banner">
+                    <div class="lp-media-preview lp-media-preview-banner" id="bannerPreviewWrap"
+                         th:classappend="${user.bannerUrl == null or #strings.isEmpty(user.bannerUrl)} ? ' lp-media-preview-empty' : ''">
+                        <img th:if="${user.bannerUrl != null and !#strings.isEmpty(user.bannerUrl)}"
+                             th:src="${user.bannerUrl}" id="bannerPreviewImg"
+                             alt="Podgląd banera"
+                             onerror="this.parentElement.classList.add('lp-media-preview-empty');this.style.display='none';">
+                        <span class="lp-media-placeholder" id="bannerPlaceholder"
+                              th:if="${user.bannerUrl == null or #strings.isEmpty(user.bannerUrl)}">
+                            <i class="fa-solid fa-panorama"></i> Brak banera
+                        </span>
+                    </div>
+                    <div class="lp-media-actions">
+                        <label class="lp-file-btn" for="bannerFile">
+                            <i class="fa-solid fa-image"></i> Wybierz plik
+                        </label>
+                        <input type="file" id="bannerFile" name="bannerFile"
+                               accept="image/jpeg,image/png,image/webp,image/gif" class="lp-file-input">
+                        <span class="lp-file-name" id="bannerFileName">Nie wybrano pliku</span>
+                        <input type="url" id="bannerUrl" name="bannerUrl"
+                               th:value="${user.bannerUrl}"
+                               th:attr="placeholder=${(mediaPublicBaseUrl != null and !#strings.isEmpty(mediaPublicBaseUrl))} ? ${mediaPublicBaseUrl + '/banners/' + user.username + '.jpg'} : 'https://example.com/banner.jpg'"
+                               class="lp-media-url-input"
+                               aria-label="URL banera">
+                    </div>
+                </div>
             </div>
 
             <div class="field">
@@ -74,8 +101,9 @@
                           th:text="${user.bio}"></textarea>
             </div>
 
-            <button type="submit" class="lp-btn-play" style="animation:none;font-size:14px;padding:10px 24px;">
-                <i class="fa-solid fa-floppy-disk"></i> Zapisz zmiany
+            <button type="submit" id="profileSaveBtn" class="lp-btn-play lp-btn-save" style="animation:none;font-size:14px;padding:10px 24px;">
+                <i class="fa-solid fa-floppy-disk" id="profileSaveIcon"></i>
+                <span id="profileSaveLabel">Zapisz zmiany</span>
             </button>
         </form>
     </div>
@@ -112,22 +140,6 @@
 
 <footer th:replace="~{fragments/layout :: lp-footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
-<script>
-(function(){
-    var inp = document.getElementById('avatarUrl');
-    var img = document.getElementById('avatarPreviewImg');
-    if (!inp || !img) return;
-    inp.addEventListener('input', function(){
-        var val = inp.value.trim();
-        if (val) {
-            img.src = val;
-            img.style.display = '';
-            img.onerror = function(){ img.style.display='none'; };
-        } else {
-            img.src = img.getAttribute('data-default') || img.src;
-        }
-    });
-})();
-</script>
+<script th:src="@{/js/settings-media.js}"></script>
 </body>
 </html>

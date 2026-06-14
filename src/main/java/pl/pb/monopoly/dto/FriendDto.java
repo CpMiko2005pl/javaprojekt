@@ -6,6 +6,7 @@ public record FriendDto(
         Long userId,
         String username,
         int level,
-        int eloPoints
+        int eloPoints,
+        boolean online
 ) {
 }

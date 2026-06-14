@@ -12,6 +12,7 @@ import pl.pb.monopoly.dto.*;
 
 import java.util.Arrays;
 import java.util.Collections;
+import pl.pb.monopoly.repository.GameInviteRepository;
 import pl.pb.monopoly.repository.GameSessionRepository;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.OwnedItemRepository;
@@ -79,67 +80,54 @@ public class GameService {
     };
 
     public static final String[] TILE_EFFECTS = {
-            "Stan na START: +500 PLN! Przejscie: +300 PLN",
-            "Nieruchomosc — 140 PLN / czynsz 21",
-            "Stypendium +200 PLN",
-            "Nieruchomosc — 140 PLN / czynsz 21",
-            "Oplata — 200 PLN",
-            "Dworzec — czynsz 50/100/200/400",
-            "Wydzial — 280 PLN / czynsz 36",
+            "Stan na START: bonus okrazenia +300 000 PLN",
+            "Nieruchomosc — 60 000 PLN / czynsz od 6 000",
+            "Stypendium +150 000 PLN",
+            "Nieruchomosc — 60 000 PLN / czynsz od 6 000",
+            "Podatek 10% od wartosci majatku",
+            "Resort — czynsz 50/100/200/400 tys.",
+            "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
             "Losuj karte zdarzenia",
-            "Wydzial — 260 PLN / czynsz 33",
-            "Wydzial — 260 PLN / czynsz 33",
-            "WIEZIENIE: lapowka 100 PLN",
-            "Nieruchomosc — 180 PLN / czynsz 27",
-            "Wydzial — 240 PLN / czynsz 30",
-            "Nieruchomosc — 160 PLN / czynsz 24",
-            "Biblioteka — 220 PLN / czynsz 33",
-            "Dworzec — czynsz 50/100/200/400",
-            "W-8 Informatyki — 320 PLN / czynsz 48",
-            "Stypendium +200 PLN",
-            "Wydzial — 240 PLN / czynsz 36",
-            "Wydzial — 220 PLN / czynsz 33",
+            "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
+            "Nieruchomosc — 80 000 PLN / czynsz od 8 000",
+            "WIEZIENIE: lapowka 200 000 PLN",
+            "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
+            "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
+            "Nieruchomosc — 100 000 PLN / czynsz od 10 000",
+            "Resort — czynsz 50/100/200/400 tys.",
+            "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Stypendium +150 000 PLN",
+            "Nieruchomosc — 120 000 PLN / czynsz od 12 000",
+            "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
             "Postoj — bez oplaty",
-            "Nieruchomosc — 300 PLN / czynsz 45",
+            "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
             "Losuj karte zdarzenia",
-            "Nieruchomosc — 260 PLN / czynsz 39",
-            "Rektorat — 350 PLN / czynsz 53",
-            "Dworzec — czynsz 50/100/200/400",
-            "Nieruchomosc — 280 PLN / czynsz 42",
-            "Nieruchomosc — 260 PLN / czynsz 39",
-            "Urzadzenia — czynsz x6 oczek",
-            "Nieruchomosc — 240 PLN / czynsz 36",
+            "Nieruchomosc — 160 000 PLN / czynsz od 16 000",
+            "Nieruchomosc — 350 000 PLN / czynsz do 1 600 000",
+            "Resort — czynsz 50/100/200/400 tys.",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
+            "Urzadzenia — czynsz x15 000 oczek",
+            "Nieruchomosc — 220 000 PLN / czynsz od 22 000",
             "Idz na Dziekanat (poz. 10)",
-            "Nieruchomosc — 200 PLN / czynsz 30",
-            "Nieruchomosc — 180 PLN / czynsz 27",
-            "Stypendium +200 PLN",
-            "Gmach Glowny — 400 PLN / czynsz 60",
-            "Dworzec — czynsz 50/100/200/400",
+            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
+            "Nieruchomosc — 300 000 PLN / czynsz od 30 000",
+            "Stypendium +150 000 PLN",
+            "Nieruchomosc — 300 000 PLN / czynsz do 1 200 000",
+            "Resort — czynsz 50/100/200/400 tys.",
             "Losuj karte zdarzenia",
-            "Aula — 380 PLN / czynsz 57",
-            "Oplata — 100 PLN",
-            "Meta — Bonus okrazenia +200 PLN"
+            "Nieruchomosc — 400 000 PLN / czynsz do 2 000 000",
+            "Podatek 10% od wartosci majatku",
+            "Meta — Bonus okrazenia +300 000 PLN"
     };
 
-    /** Ceny zakupu pol. -1 = nie do kupienia. */
-    public static final int[] TILE_PRICE = {
-            -1, 140, -1, 140, -1, 200, 280, -1, 260, 260,
-            -1, 180, 240, 160, 220, 200, 320, -1, 240, 220,
-            -1, 300, -1, 260, 350, 200, 280, 260, 150, 240,
-            -1, 200, 180, -1, 400, 200, -1, 380, -1, -1
-    };
+    /** Ceny zakupu pol — delegacja do {@link GameEconomy}. */
+    public static final int[] TILE_PRICE = GameEconomy.TILE_PRICE;
 
-    /** Bazowy czynsz (gdy gracz posiada pojedyncze pole). 0 = nie do kupienia. */
-    public static final int[] TILE_RENT = {
-            0, 21, 0, 21, 0, 38, 36, 0, 33, 33,
-            0, 27, 30, 24, 33, 38, 48, 0, 36, 33,
-            0, 45, 0, 39, 53, 38, 42, 39, 23, 36,
-            0, 30, 27, 0, 60, 38, 0, 57, 0, 0
-    };
-
-    public static final int POS_START = 0;
-    public static final int POS_JAIL = 10;
-    public static final int POS_GO_TO_JAIL = 30;
+    public static final int POS_START = GameEconomy.POS_START;
+    public static final int POS_JAIL = GameEconomy.POS_JAIL;
+    public static final int POS_GO_TO_JAIL = GameEconomy.POS_GO_TO_JAIL;
 
     /** Pola losowania kart. */
     private static final boolean[] CHANCE_TILES = new boolean[40];
@@ -149,40 +137,34 @@ public class GameService {
         CHANCE_TILES[36] = true;
     }
 
-    /** Pola dworcow (czynsz mnozony razy liczbe posiadanych dworcow). */
-    private static final boolean[] STATION_TILES = new boolean[40];
-    static {
-        STATION_TILES[5] = true;
-        STATION_TILES[15] = true;
-        STATION_TILES[25] = true;
-        STATION_TILES[35] = true;
-    }
+    /** Pola resortow (lotniska / dworce). */
+    private static final boolean[] RESORT_TILES = GameEconomy.RESORT_TILES;
 
-    /** Pole "Wodociagi PB" — czynsz x4 razy suma oczek. */
-    private static final int POS_UTILITY = 28;
+    /** Pole "Wodociagi PB". */
+    private static final int POS_UTILITY = GameEconomy.POS_UTILITY;
 
-    /** Karty Szansy — humorystyczne, studenckie z PB i Bialegostoku. */
+    /** Karty Szansy — skala Business Tour (tysiace PLN). */
     public static final List<ChanceCard> CHANCE_CARDS = List.of(
-            new ChanceCard("Stypendium rektora", "Otrzymujesz stypendium naukowe.", 150),
-            new ChanceCard("Stypendium socjalne", "Komisja stypendialna sie zlitowala.", 100),
-            new ChanceCard("Wpis warunkowy", "Wykladowca daje warunek za 50 PLN.", -50),
-            new ChanceCard("Mandat za rower na deptaku", "Straz miejska nie spi.", -75),
-            new ChanceCard("Wygrana w Klubie Gwint", "Wieczor pokerowy w Gwincie konczy sie w bloku.", 200),
-            new ChanceCard("Awaria kuchenki w akademiku", "Skladasz sie z Kolegami na nowa.", -80),
-            new ChanceCard("Wsparcie z parafii", "Babcia przyslala 60 zl w kopercie.", 60),
+            new ChanceCard("Stypendium rektora", "Otrzymujesz stypendium naukowe.", 150_000),
+            new ChanceCard("Stypendium socjalne", "Komisja stypendialna sie zlitowala.", 100_000),
+            new ChanceCard("Wpis warunkowy", "Wykladowca daje warunek za 50 000 PLN.", -50_000),
+            new ChanceCard("Mandat za rower na deptaku", "Straz miejska nie spi.", -75_000),
+            new ChanceCard("Wygrana w Klubie Gwint", "Wieczor pokerowy w Gwincie konczy sie w bloku.", 200_000),
+            new ChanceCard("Awaria kuchenki w akademiku", "Skladasz sie z Kolegami na nowa.", -80_000),
+            new ChanceCard("Wsparcie z parafii", "Babcia przyslala wsparcie w kopercie.", 60_000),
             new ChanceCard("Zaliczenie z marszu", "Wykladowca dostal kawe — daje plusa.", 0),
-            new ChanceCard("Zwrot z USOSweb", "Pomylka w czesnym, dziekanat zwraca.", 120),
-            new ChanceCard("Awaria laptopa przed sesja", "Naprawa kosztuje krocie.", -200),
-            new ChanceCard("Spalony kolokwiom", "Korepetycje przed poprawka.", -120),
-            new ChanceCard("Wygrana w Konkursie Naukowym", "Twoja praca zwyciezyla na konferencji PB.", 300),
-            new ChanceCard("Bilet ulgowy z PKP", "Oszczednosc na wyjezdzie do domu.", 30),
-            new ChanceCard("Zwiedzanie Palacu Branickich", "Bilet studencki gratis, ale zalezles z Patelnia.", -25),
-            new ChanceCard("Zlapal Cie strażnik biblioteczny", "Zwrot ksiazek po terminie.", -40),
-            new ChanceCard("Praca dorywcza w stolowce", "Tydzien zmywania naczyn.", 100),
-            new ChanceCard("Zgubiona legitymacja", "Wyrobienie nowej kosztuje.", -45),
-            new ChanceCard("Voucher na obiad w stolowce", "Stolowka studencka funduje obiad.", 25),
-            new ChanceCard("Babcia odwiedzila", "Zostawila siano i sloiki z ogorkami.", 80),
-            new ChanceCard("Korki ze studentem 5. roku", "Tlumacza Ci algorytmy.", -55)
+            new ChanceCard("Zwrot z USOSweb", "Pomylka w czesnym, dziekanat zwraca.", 120_000),
+            new ChanceCard("Awaria laptopa przed sesja", "Naprawa kosztuje krocie.", -200_000),
+            new ChanceCard("Spalony kolokwiom", "Korepetycje przed poprawka.", -120_000),
+            new ChanceCard("Wygrana w Konkursie Naukowym", "Twoja praca zwyciezyla na konferencji PB.", 300_000),
+            new ChanceCard("Bilet ulgowy z PKP", "Oszczednosc na wyjezdzie do domu.", 30_000),
+            new ChanceCard("Zwiedzanie Palacu Branickich", "Bilet studencki gratis, ale zalezles z Patelnia.", -25_000),
+            new ChanceCard("Zlapal Cie strażnik biblioteczny", "Zwrot ksiazek po terminie.", -40_000),
+            new ChanceCard("Praca dorywcza w stolowce", "Tydzien zmywania naczyn.", 100_000),
+            new ChanceCard("Zgubiona legitymacja", "Wyrobienie nowej kosztuje.", -45_000),
+            new ChanceCard("Voucher na obiad w stolowce", "Stolowka studencka funduje obiad.", 25_000),
+            new ChanceCard("Babcia odwiedzila", "Zostawila siano i sloiki z ogorkami.", 80_000),
+            new ChanceCard("Korki ze studentem 5. roku", "Tlumacza Ci algorytmy.", -55_000)
     );
 
     private static final String[] COLORS = {
@@ -194,18 +176,30 @@ public class GameService {
     private final GameSyncService gameSyncService;
     private final MatchHistoryRepository matchHistoryRepository;
     private final OwnedItemRepository ownedItemRepository;
+    private final GameInviteRepository gameInviteRepository;
+    private final UserNotificationService userNotificationService;
+    private final FriendService friendService;
     private BotAutoplayService botAutoplayService;
+    private final ModerationService moderationService;
 
     public GameService(GameSessionRepository sessionRepository,
                        UserRepository userRepository,
                        @Lazy GameSyncService gameSyncService,
                        MatchHistoryRepository matchHistoryRepository,
-                       OwnedItemRepository ownedItemRepository) {
+                       OwnedItemRepository ownedItemRepository,
+                       GameInviteRepository gameInviteRepository,
+                       UserNotificationService userNotificationService,
+                       FriendService friendService,
+                       ModerationService moderationService) {
         this.sessionRepository = sessionRepository;
         this.userRepository = userRepository;
         this.gameSyncService = gameSyncService;
         this.matchHistoryRepository = matchHistoryRepository;
         this.ownedItemRepository = ownedItemRepository;
+        this.gameInviteRepository = gameInviteRepository;
+        this.userNotificationService = userNotificationService;
+        this.friendService = friendService;
+        this.moderationService = moderationService;
     }
 
     /** Setter dla autoplay - lazy by uniknac cyklicznej zaleznosci konstruktorow. */
@@ -248,25 +242,50 @@ public class GameService {
 
     @Transactional(readOnly = true)
     public List<GameSession> myActiveSessions(String username) {
-        return sessionRepository.findActiveByUser(username);
+        return sessionRepository.findOpenByUser(username);
     }
 
     @Transactional
     public GameSession createGame(String creatorUsername, String roomName,
-                                  List<Long> friendIds, int bots) {
+                                  List<Long> friendIds) {
+        List<GameSession> mine = myActiveSessions(creatorUsername);
+        if (mine.stream().anyMatch(s -> s.getStatus() == GameStatus.ACTIVE)) {
+            throw new IllegalArgumentException(
+                    "Jestes w trakcie rozgrywki. Wroc do gry lub opusc ja, zanim utworzysz nowy pokoj.");
+        }
+        User creator = user(creatorUsername);
+        moderationService.ensureCanPlay(creator);
+        for (GameSession other : mine.stream().filter(s -> s.getStatus() == GameStatus.WAITING).toList()) {
+            GamePlayer oldMe = other.getPlayers().stream()
+                    .filter(p -> p.getUser() != null && p.getUser().getId().equals(creator.getId()))
+                    .findFirst().orElse(null);
+            if (oldMe != null) {
+                leaveWaitingLobby(other, oldMe);
+            }
+        }
+
         GameSession session = new GameSession();
         session.setName(roomName == null || roomName.isBlank() ? "Pokoj " + creatorUsername : roomName.trim());
         session.setCode(generateCode());
-        session.setStatus(GameStatus.ACTIVE);
+        session.setStatus(GameStatus.WAITING);
 
-        User creator = user(creatorUsername);
+        session.setLeaderId(creator.getId());
         GamePlayer me = new GamePlayer(creator.getUsername(), equippedColor(creator, COLORS[0]));
         me.setUser(creator);
         session.addPlayer(me);
 
         if (friendIds != null) {
             for (Long fid : friendIds) {
+                if (session.getPlayers().size() >= MAX_PLAYERS) {
+                    break;
+                }
                 userRepository.findById(fid).ifPresent(friend -> {
+                    if (session.getPlayers().size() >= MAX_PLAYERS) {
+                        return;
+                    }
+                    if (moderationService.isUserSuspended(friend)) {
+                        return;
+                    }
                     if (session.getPlayers().stream().noneMatch(p ->
                             p.getUser() != null && p.getUser().getId().equals(friend.getId()))) {
                         String color = equippedColor(friend,
@@ -279,12 +298,6 @@ public class GameService {
             }
         }
 
-        int botsToAdd = Math.max(bots, session.getPlayers().size() < 2 ? 1 : 0);
-        for (int i = 0; i < botsToAdd; i++) {
-            session.addPlayer(new GamePlayer("Bot " + (i + 1),
-                    COLORS[session.getPlayers().size() % COLORS.length]));
-        }
-
         // Rozdanie kart ręki każdemu ludzkiemu graczowi (nie botom)
         for (GamePlayer gp : session.getPlayers()) {
             if (gp.getUser() != null) {
@@ -294,11 +307,10 @@ public class GameService {
 
         GameSession saved = sessionRepository.save(session);
         publishPublic(saved.getId(), null, null, null, null, null, null, null);
-        scheduleBotUpdate(saved.getId());
         return saved;
     }
 
-    /** Losuje 3 unikalne karty z puli i przydziela je graczowi. */
+    /** Losuje 3 unikalne karty z puli + bonus z Kola Fortuny. */
     private void dealHandCards(GamePlayer player) {
         List<HandCardType> pool = new ArrayList<>(Arrays.asList(HandCardType.values()));
         Collections.shuffle(pool);
@@ -306,17 +318,63 @@ public class GameService {
         for (int i = 0; i < Math.min(3, pool.size()); i++) {
             cards.add(pool.get(i).name());
         }
+        User user = player.getUser();
+        if (user != null && user.getStatistics() != null) {
+            PlayerStatistics stats = user.getStatistics();
+            String wheelCard = stats.getPendingWheelCard();
+            if (wheelCard != null) {
+                try {
+                    HandCardType.valueOf(wheelCard);
+                    if (!cards.contains(wheelCard)) {
+                        cards.add(wheelCard);
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // nieznany typ — pomijamy
+                }
+                stats.setPendingWheelCard(null);
+            }
+            int cashBonus = stats.getPendingStartCashBonus();
+            if (cashBonus > 0) {
+                player.setCash(player.getCash() + cashBonus);
+                stats.setPendingStartCashBonus(0);
+            }
+        }
         player.setHandCards(cards);
+        player.setRollsThisTurn(0);
     }
 
     @Transactional
     public GameSession joinByCode(String code, String username) {
         GameSession session = sessionRepository.findByCode(code.trim().toUpperCase())
                 .orElseThrow(() -> new IllegalArgumentException("Nie ma pokoju o kodzie " + code));
+        if (session.getStatus() == GameStatus.FINISHED) {
+            throw new IllegalArgumentException("Ta gra zostala juz zakonczona.");
+        }
+        if (session.getStatus() == GameStatus.ACTIVE) {
+            throw new IllegalArgumentException("Gra juz trwa — dolacz przed startem (lobby).");
+        }
         User u = user(username);
+        moderationService.ensureCanPlay(u);
+        if (myActiveSessions(username).stream().anyMatch(s -> s.getStatus() == GameStatus.ACTIVE)) {
+            throw new IllegalArgumentException(
+                    "Jestes w trakcie rozgrywki. Wroc do gry lub opusc ja, zanim dolaczysz do innego pokoju.");
+        }
+        for (GameSession other : myActiveSessions(username)) {
+            if (other.getStatus() == GameStatus.WAITING && !other.getId().equals(session.getId())) {
+                GamePlayer me = other.getPlayers().stream()
+                        .filter(p -> p.getUser() != null && p.getUser().getUsername().equals(username))
+                        .findFirst().orElse(null);
+                if (me != null) {
+                    leaveWaitingLobby(other, me);
+                }
+            }
+        }
         boolean already = session.getPlayers().stream()
                 .anyMatch(p -> p.getUser() != null && p.getUser().getId().equals(u.getId()));
         if (!already) {
+            if (session.getPlayers().size() >= MAX_PLAYERS) {
+                throw new IllegalArgumentException("Pokoj jest pelny (max " + MAX_PLAYERS + " graczy).");
+            }
             String color = equippedColor(u, COLORS[session.getPlayers().size() % COLORS.length]);
             GamePlayer gp = new GamePlayer(u.getUsername(), color);
             gp.setUser(u);
@@ -328,6 +386,166 @@ public class GameService {
         return session;
     }
 
+    public static final int MAX_PLAYERS = 4;
+
+    /** Lider dodaje bota w lobby (wybor nazwy i koloru). */
+    @Transactional
+    public GameStateDto addBot(Long sessionId, String username, String botName, String botColor) {
+        GameSession session = getSession(sessionId);
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Boty mozna dodawac tylko w lobby.");
+        }
+        User u = user(username);
+        if (!u.getId().equals(session.getLeaderId())) {
+            throw new IllegalArgumentException("Tylko lider moze dodawac boty.");
+        }
+        if (session.getPlayers().size() >= MAX_PLAYERS) {
+            throw new IllegalArgumentException("Pokoj jest pelny (max " + MAX_PLAYERS + " graczy).");
+        }
+        String name = (botName == null || botName.isBlank()) ? nextBotName(session) : botName.trim();
+        String color = (botColor == null || botColor.isBlank())
+                ? COLORS[session.getPlayers().size() % COLORS.length]
+                : botColor.trim();
+        session.addPlayer(new GamePlayer(name, color));
+        sessionRepository.save(session);
+        String msg = name + " dolaczyl do pokoju (bot).";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Lider usuwa bota z lobby. */
+    @Transactional
+    public GameStateDto removeBot(Long sessionId, String username, Long botPlayerId) {
+        GameSession session = getSession(sessionId);
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Boty mozna usuwac tylko w lobby.");
+        }
+        User u = user(username);
+        if (!u.getId().equals(session.getLeaderId())) {
+            throw new IllegalArgumentException("Tylko lider moze usuwac boty.");
+        }
+        GamePlayer bot = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(botPlayerId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Nie ma takiego gracza w pokoju."));
+        if (bot.getUser() != null) {
+            throw new IllegalArgumentException("Mozna usunac tylko bota.");
+        }
+        String name = bot.getDisplayName();
+        session.removePlayer(bot);
+        sessionRepository.save(session);
+        String msg = name + " zostal usuniety z pokoju.";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    private String nextBotName(GameSession session) {
+        long bots = session.getPlayers().stream().filter(p -> p.getUser() == null).count();
+        return "Bot " + (bots + 1);
+    }
+
+    /** Lider wysyla zaproszenie do znajomego — gracz dostaje powiadomienie WebSocket. */
+    @Transactional
+    public GameInviteDto inviteFriend(Long sessionId, String username, Long friendUserId) {
+        GameSession session = getSession(sessionId);
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Zaproszenia dzialaja tylko w lobby.");
+        }
+        User inviter = user(username);
+        if (!inviter.getId().equals(session.getLeaderId())) {
+            throw new IllegalArgumentException("Tylko lider moze zapraszac graczy.");
+        }
+        if (session.getPlayers().size() >= MAX_PLAYERS) {
+            throw new IllegalArgumentException("Pokoj jest pelny.");
+        }
+        User invitee = userRepository.findById(friendUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Nie ma takiego gracza."));
+        if (inviter.getId().equals(invitee.getId())) {
+            throw new IllegalArgumentException("Nie mozesz zaprosic samego siebie.");
+        }
+        if (!friendService.isFriend(username, invitee.getId())) {
+            throw new IllegalArgumentException("Mozesz zapraszac tylko znajomych.");
+        }
+        boolean alreadyIn = session.getPlayers().stream()
+                .anyMatch(p -> p.getUser() != null && p.getUser().getId().equals(invitee.getId()));
+        if (alreadyIn) {
+            throw new IllegalArgumentException("Ten gracz jest juz w pokoju.");
+        }
+        if (gameInviteRepository.existsBySessionIdAndInviteeIdAndStatus(
+                sessionId, invitee.getId(), GameInviteStatus.PENDING)) {
+            throw new IllegalArgumentException("Zaproszenie juz wyslane.");
+        }
+        GameInvite invite = gameInviteRepository.save(new GameInvite(session, inviter, invitee));
+        GameInviteDto dto = toInviteDto(invite);
+        userNotificationService.sendGameInvite(invitee.getUsername(), GameInviteNotificationDto.of(dto));
+        publishPublic(sessionId, null, null,
+                inviter.getUsername() + " zaprosil " + invitee.getUsername() + " do pokoju.",
+                null, null, null, null);
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public List<GameInviteDto> pendingInvitesFor(String username) {
+        User me = user(username);
+        return gameInviteRepository.findByInviteeIdAndStatusOrderByCreatedAtDesc(me.getId(), GameInviteStatus.PENDING)
+                .stream()
+                .filter(inv -> inv.getSession().getStatus() == GameStatus.WAITING)
+                .map(this::toInviteDto)
+                .toList();
+    }
+
+    @Transactional
+    public GameSession acceptInvite(Long inviteId, String username) {
+        GameInvite invite = gameInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new IllegalArgumentException("Brak zaproszenia."));
+        if (!invite.getInvitee().getUsername().equals(username)) {
+            throw new IllegalArgumentException("To nie Twoje zaproszenie.");
+        }
+        if (invite.getStatus() != GameInviteStatus.PENDING) {
+            throw new IllegalArgumentException("Zaproszenie juz wykorzystane.");
+        }
+        GameSession session = invite.getSession();
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Gra juz wystartowala.");
+        }
+        if (session.getPlayers().size() >= MAX_PLAYERS) {
+            throw new IllegalArgumentException("Pokoj jest juz pelny.");
+        }
+        for (GameSession other : myActiveSessions(username)) {
+            if (other.getStatus() == GameStatus.WAITING && !other.getId().equals(session.getId())) {
+                GamePlayer me = other.getPlayers().stream()
+                        .filter(p -> p.getUser() != null && p.getUser().getUsername().equals(username))
+                        .findFirst().orElse(null);
+                if (me != null) leaveWaitingLobby(other, me);
+            }
+        }
+        invite.setStatus(GameInviteStatus.ACCEPTED);
+        gameInviteRepository.save(invite);
+        return joinByCode(session.getCode(), username);
+    }
+
+    @Transactional
+    public void declineInvite(Long inviteId, String username) {
+        GameInvite invite = gameInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new IllegalArgumentException("Brak zaproszenia."));
+        if (!invite.getInvitee().getUsername().equals(username)) {
+            throw new IllegalArgumentException("To nie Twoje zaproszenie.");
+        }
+        invite.setStatus(GameInviteStatus.DECLINED);
+        gameInviteRepository.save(invite);
+    }
+
+    private GameInviteDto toInviteDto(GameInvite invite) {
+        return new GameInviteDto(
+                invite.getId(),
+                invite.getSession().getId(),
+                invite.getSession().getName(),
+                invite.getSession().getCode(),
+                invite.getInviter().getUsername(),
+                invite.getInviter().getId()
+        );
+    }
+
     @Transactional(readOnly = true)
     public GameSession getSession(Long id) {
         return sessionRepository.findById(id)
@@ -337,6 +555,103 @@ public class GameService {
     @Transactional(readOnly = true)
     public GameStateDto getState(Long sessionId, String username) {
         return toState(getSession(sessionId), username, null, null, null, null, null, null, null);
+    }
+
+    /** Gracz zglosza gotowosc (lub cofa) w fazie lobby (WAITING). */
+    @Transactional
+    public GameStateDto readyUp(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Gra juz trwa lub zostala zakonczona.");
+        }
+        ensureLeader(session);
+        requireParticipant(session, username);
+        GamePlayer me = findPlayerByUsername(session, username);
+        me.setReady(!me.isReady());
+        sessionRepository.save(session);
+        String msg = me.getDisplayName() + (me.isReady() ? " jest gotowy!" : " cofnal gotowosc.");
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Lider startuje gre (tylko gdy wszyscy ludzie sa gotowi). */
+    @Transactional
+    public GameStateDto startGame(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        if (session.getStatus() != GameStatus.WAITING) {
+            throw new IllegalArgumentException("Gra juz trwa lub zostala zakonczona.");
+        }
+        ensureLeader(session);
+        User u = user(username);
+        if (!u.getId().equals(session.getLeaderId())) {
+            throw new IllegalArgumentException("Tylko lider moze rozpoczac gre.");
+        }
+        boolean allReady = session.getPlayers().stream()
+                .filter(p -> p.getUser() != null)
+                .allMatch(GamePlayer::isReady);
+        if (!allReady) {
+            throw new IllegalArgumentException("Nie wszyscy gracze sa gotowi.");
+        }
+        if (session.getPlayers().size() < 2) {
+            throw new IllegalArgumentException("Dodaj co najmniej jednego bota lub poczekaj na gracza.");
+        }
+        session.setStatus(GameStatus.ACTIVE);
+        beginActivePlay(session);
+        sessionRepository.save(session);
+        String msg = "Gra rozpoczeta! Niech zaczyna sie rozgrywka.";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    /** Gracz opuszcza gre — w lobby usuwa go z pokoju, w trwajacej grze bankrutuje. */
+    @Transactional
+    public void leaveGame(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        GamePlayer me = findPlayerByUsername(session, username);
+
+        if (session.getStatus() == GameStatus.WAITING) {
+            leaveWaitingLobby(session, me);
+            return;
+        }
+
+        releaseProperties(me);
+        me.setBankrupt(true);
+        if (session.getLeaderId() != null && me.getUser() != null
+                && session.getLeaderId().equals(me.getUser().getId())) {
+            session.getPlayers().stream()
+                    .filter(p -> p.getUser() != null && !p.getUser().getId().equals(me.getUser().getId()))
+                    .filter(p -> !p.isBankrupt())
+                    .findFirst()
+                    .ifPresent(next -> session.setLeaderId(next.getUser().getId()));
+        }
+        StringBuilder msg = new StringBuilder(me.getDisplayName() + " opuszcza gre.");
+        checkGameEnd(session, msg);
+        sessionRepository.save(session);
+        Long sid = session.getId();
+        publishPublic(sid, null, null, msg.toString(), null, null, null, null);
+        if (session.getStatus() != GameStatus.FINISHED) scheduleBotUpdate(sid);
+    }
+
+    private void leaveWaitingLobby(GameSession session, GamePlayer me) {
+        if (session.getLeaderId() != null && me.getUser() != null
+                && session.getLeaderId().equals(me.getUser().getId())) {
+            session.getPlayers().stream()
+                    .filter(p -> p.getUser() != null && !p.getUser().getId().equals(me.getUser().getId()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            next -> session.setLeaderId(next.getUser().getId()),
+                            () -> session.setLeaderId(null)
+                    );
+        }
+        session.removePlayer(me);
+        long humansLeft = session.getPlayers().stream().filter(p -> p.getUser() != null).count();
+        if (humansLeft == 0) {
+            session.setStatus(GameStatus.FINISHED);
+        }
+        sessionRepository.save(session);
+        String msg = me.getDisplayName() + " opuscil lobby.";
+        publishPublic(session.getId(), null, null, msg, null, null, null, null);
     }
 
     /** Rzut kostka — tylko gracz z aktualna tura, bez aktywnej decyzji o kupnie. */
@@ -351,11 +666,15 @@ public class GameService {
         if (session.getPendingPaymentDebtorId() != null) {
             throw new IllegalArgumentException("Trwa uregulowanie zaleglosci — najpierw oplac lub zbankrutuj.");
         }
+        if (session.getPendingUpgradePos() != null) {
+            throw new IllegalArgumentException("Najpierw zdecyduj o ulepszeniu pola.");
+        }
         List<GamePlayer> players = session.getPlayers();
         if (players.isEmpty()) {
             return toState(session, username, null, null, "Brak graczy.", null, null, null, null);
         }
 
+        normalizeCurrentTurn(session);
         GamePlayer current = players.get(session.getCurrentTurn() % players.size());
         if (current.getUser() == null || !current.getUser().getUsername().equals(username)) {
             throw new IllegalArgumentException("To nie Twoja tura! Czekaj na ruch innego gracza.");
@@ -366,6 +685,11 @@ public class GameService {
         if (current.getCash() < 0) {
             throw new IllegalArgumentException("Masz ujemne saldo — ureguluj zaleglosci.");
         }
+        Long extraRoll = session.getPendingExtraRollPlayerId();
+        if (current.getRollsThisTurn() >= 1
+                && (extraRoll == null || !extraRoll.equals(current.getId()))) {
+            throw new IllegalArgumentException("Juz rzuciles w tej turze. Zakoncz decyzje na planszy.");
+        }
 
         return doRoll(session, current, username);
     }
@@ -375,123 +699,181 @@ public class GameService {
     public GameStateDto rollAsBot(Long sessionId, Long botPlayerId) {
         GameSession session = getSession(sessionId);
         if (session.getStatus() == GameStatus.FINISHED) return null;
-        if (session.getPendingPurchasePos() != null) return null;
-        if (session.getPendingPaymentDebtorId() != null) return null;
+        if (session.getPendingPurchasePos() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingPaymentDebtorId() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingUpgradePos() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         List<GamePlayer> players = session.getPlayers();
         if (players.isEmpty()) return null;
+        normalizeCurrentTurn(session);
         GamePlayer current = players.get(session.getCurrentTurn() % players.size());
-        if (!current.getId().equals(botPlayerId)) return null;
+        if (!current.getId().equals(botPlayerId)) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         if (current.getUser() != null) return null;
-        if (current.isBankrupt()) return null;
-        if (current.getCash() < 0) return null;
+        if (current.isBankrupt()) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (current.getCash() < 0) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        Long extraRoll = session.getPendingExtraRollPlayerId();
+        if (current.getRollsThisTurn() >= 1
+                && (extraRoll == null || !extraRoll.equals(current.getId()))) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         return doRoll(session, current, null);
     }
 
     /** Rdzen logiki rzutu - wspoldzielony przez {@link #roll} i {@link #rollAsBot}. */
     private GameStateDto doRoll(GameSession session, GamePlayer current, String username) {
+        if (session.getPendingExtraRollPlayerId() != null
+                && session.getPendingExtraRollPlayerId().equals(current.getId())
+                && current.getRollsThisTurn() >= 1) {
+            session.setPendingExtraRollPlayerId(null);
+        }
+
         int d1 = ThreadLocalRandom.current().nextInt(1, 7);
         int d2 = ThreadLocalRandom.current().nextInt(1, 7);
         int steps = d1 + d2;
+        boolean isDoubles = (d1 == d2);
 
         int oldPos = current.getPosition();
-        int newPos = (oldPos + steps) % 40;
         StringBuilder msg = new StringBuilder();
         msg.append(current.getDisplayName()).append(" rzuca ")
-                .append(d1).append("+").append(d2).append("=").append(steps).append(". ");
+                .append(d1).append("+").append(d2).append("=").append(steps)
+                .append(isDoubles ? " (DUBLET!). " : ". ");
 
-        if (oldPos + steps >= 40) {
-            current.setCash(current.getCash() + 300);
-            msg.append("Przejscie przez START (+300 PLN). ");
-        }
-
-        if (newPos == POS_GO_TO_JAIL) {
-            newPos = POS_JAIL;
-            msg.append("Trafia na pole \"Idz do Dziekanatu\" - laduje w WIEZIENIU! ");
-        }
-
-        current.setPosition(newPos);
-        msg.append("Staje na: ").append(TILES[newPos]).append(". ");
-
-        ChanceCard drawnCard = null;
-        if (CHANCE_TILES[newPos]) {
-            drawnCard = drawCard();
-            msg.append("Karta Szansy: \"").append(drawnCard.title())
-                    .append("\" - ").append(drawnCard.description()).append(" ");
-            int effect = drawnCard.moneyEffect();
-            if (effect > 0) {
-                current.setCash(current.getCash() + effect);
-                msg.append("(+").append(effect).append(" PLN). ");
-            } else if (effect < 0) {
-                chargePlayer(session, current, -effect, null, "Karta Szansy: " + drawnCard.title(), msg);
-                msg.append("(-").append(-effect).append(" PLN). ");
+        // Licznik dubletow: 3 dublety z rzedu = prosto do wiezienia (klasyczne Monopoly)
+        boolean jailedByDoubles = false;
+        if (isDoubles) {
+            current.setDoublesCount(current.getDoublesCount() + 1);
+            if (current.getDoublesCount() >= 3) {
+                jailedByDoubles = true;
             }
         } else {
-            applyTileEffect(current, newPos, steps, session, msg);
+            current.setDoublesCount(0);
         }
 
-        if (drawnCard == null && TILE_PRICE[newPos] > 0) {
-            GamePlayer ownerOfTile = findOwner(session, newPos);
-            if (ownerOfTile == null) {
-                if (current.getCash() >= TILE_PRICE[newPos]) {
-                    session.setPendingPurchasePos(newPos);
-                    session.setPendingPurchasePrice(TILE_PRICE[newPos]);
-                    session.setPendingDeciderId(current.getId());
-                    msg.append("Mozesz kupic to pole za ").append(TILE_PRICE[newPos])
-                            .append(" PLN, lub pominac (licytacja). ");
-                } else {
-                    msg.append("Za malo siana, by kupic - pole zostaje wolne. ");
+        int newPos;
+        ChanceCard drawnCard = null;
+
+        if (jailedByDoubles) {
+            // Idziesz prosto do Dziekanatu — bez przejscia przez START, bez efektu pola
+            newPos = POS_JAIL;
+            current.setDoublesCount(0);
+            current.setPosition(newPos);
+            msg.append("Trzeci DUBLET z rzedu — idziesz prosto do Dziekanatu (WIEZIENIE)! ");
+        } else {
+            newPos = (oldPos + steps) % 40;
+
+            if (oldPos + steps >= 40) {
+                current.setCash(current.getCash() + GameEconomy.GO_BONUS);
+                msg.append("Przejscie przez START (+").append(GameEconomy.GO_BONUS).append(" PLN). ");
+            }
+
+            if (newPos == POS_GO_TO_JAIL) {
+                newPos = POS_JAIL;
+                current.setDoublesCount(0);
+                msg.append("Trafia na pole \"Idz do Dziekanatu\" - laduje w WIEZIENIU! ");
+            }
+
+            current.setPosition(newPos);
+            msg.append("Staje na: ").append(TILES[newPos]).append(". ");
+
+            // Rozliczenie pola: Karta Szansy / efekt pola / kupno / czynsz / ulepszenie
+            if (CHANCE_TILES[newPos]) {
+                drawnCard = drawCard();
+                msg.append("Karta Szansy: \"").append(drawnCard.title())
+                        .append("\" - ").append(drawnCard.description()).append(" ");
+                int effect = drawnCard.moneyEffect();
+                if (effect > 0) {
+                    current.setCash(current.getCash() + effect);
+                    msg.append("(+").append(effect).append(" PLN). ");
+                } else if (effect < 0) {
+                    chargePlayer(session, current, -effect, null, "Karta Szansy: " + drawnCard.title(), msg);
+                    msg.append("(-").append(-effect).append(" PLN). ");
                 }
-            } else if (!ownerOfTile.getId().equals(current.getId()) && !ownerOfTile.isBankrupt()) {
-                // Karta SKIP_RENT blokuje oplaty
-                if (current.isSkipNextRent()) {
-                    current.setSkipNextRent(false);
-                    msg.append("Karta Ochrony! ").append(current.getDisplayName())
-                            .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
-                } else {
-                    int rent = computeRent(session, ownerOfTile, newPos, steps);
-                    if (chargePlayer(session, current, rent, ownerOfTile,
-                            "Czynsz: " + TILES[newPos], msg)) {
-                        msg.append(current.getDisplayName()).append(" placi czynsz ")
-                                .append(rent).append(" PLN dla ")
-                                .append(ownerOfTile.getDisplayName()).append(". ");
+            } else {
+                applyTileEffect(current, newPos, steps, session, msg);
+            }
+
+            if (drawnCard == null && TILE_PRICE[newPos] > 0) {
+                GamePlayer ownerOfTile = findOwner(session, newPos);
+                if (ownerOfTile == null) {
+                    if (current.getCash() >= TILE_PRICE[newPos]) {
+                        session.setPendingPurchasePos(newPos);
+                        session.setPendingPurchasePrice(TILE_PRICE[newPos]);
+                        session.setPendingDeciderId(current.getId());
+                        msg.append("Mozesz kupic to pole za ").append(TILE_PRICE[newPos])
+                                .append(" PLN, lub pominac. ");
+                    } else {
+                        msg.append("Za malo siana, by kupic - pole zostaje wolne. ");
                     }
-                }
-            } else if (ownerOfTile.getId().equals(current.getId())) {
-                msg.append("To Twoje pole - bez czynszu. ");
-                // Sledzenie ladowan wlasciciela na WLASNYM polu (dla ulepszenia)
-                if (!STATION_TILES[newPos] && newPos != POS_UTILITY && !CHANCE_TILES[newPos]) {
-                    int count = current.getLandingCounts().getOrDefault(newPos, 0);
-                    current.getLandingCounts().put(newPos, count + 1);
-                    int level = current.getPropertyLevels().getOrDefault(newPos, 0);
-                    int upgradeCost = TILE_PRICE[newPos] / 2;
-                    if (count >= 1 && level < 2 && current.getCash() >= upgradeCost
-                            && session.getPendingUpgradePos() == null) {
-                        session.setPendingUpgradePos(newPos);
-                        session.setPendingUpgradePlayerId(current.getId());
-                        session.setPendingUpgradeCost(upgradeCost);
-                        int newRent = computeRentForLevel(newPos, level + 1);
-                        msg.append("Odwiedzasz swoje pole ponownie! Mozesz ulepszyc do ")
-                                .append(level == 0 ? "Domku (czynsz x3)" : "Hotelu (czynsz x6)")
-                                .append(" za ").append(upgradeCost)
-                                .append(" PLN (nowy czynsz: ").append(newRent).append(" PLN). ");
+                } else if (!ownerOfTile.getId().equals(current.getId()) && !ownerOfTile.isBankrupt()) {
+                    // Karta SKIP_RENT blokuje oplaty
+                    if (current.isSkipNextRent()) {
+                        current.setSkipNextRent(false);
+                        msg.append("Karta Ochrony! ").append(current.getDisplayName())
+                                .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
+                    } else {
+                        int rent = computeRent(session, ownerOfTile, newPos, steps);
+                        if (chargePlayer(session, current, rent, ownerOfTile,
+                                "Czynsz: " + TILES[newPos], msg)) {
+                            msg.append(current.getDisplayName()).append(" placi czynsz ")
+                                    .append(rent).append(" PLN dla ")
+                                    .append(ownerOfTile.getDisplayName()).append(". ");
+                        }
+                    }
+                } else if (ownerOfTile.getId().equals(current.getId())) {
+                    msg.append("To Twoje pole - bez czynszu. ");
+                    // Sledzenie ladowan wlasciciela na WLASNYM polu (dla ulepszenia)
+                    if (!RESORT_TILES[newPos] && newPos != POS_UTILITY && !CHANCE_TILES[newPos]) {
+                        int level = current.getPropertyLevels().getOrDefault(newPos, 0);
+                        int upgradeCost = GameEconomy.upgradeCost(newPos);
+                        if (level < GameEconomy.MAX_PROPERTY_LEVEL
+                                && upgradeCost > 0
+                                && session.getPendingUpgradePos() == null) {
+                            session.setPendingUpgradePos(newPos);
+                            session.setPendingUpgradePlayerId(current.getId());
+                            session.setPendingUpgradeCost(upgradeCost);
+                            int newRent = computeRentForLevel(newPos, level + 1, current);
+                            String nextLabel = upgradeOfferLabel(level);
+                            msg.append("Mozesz ulepszyc swoje pole! Zbuduj ")
+                                    .append(nextLabel)
+                                    .append(" za ").append(upgradeCost)
+                                    .append(" PLN (nowy czynsz: ").append(newRent).append(" PLN). ");
+                        }
                     }
                 }
             }
         }
 
+        // Dublet (ale nie trzeci) = dodatkowy rzut dla tego samego gracza po rozliczeniu pola
+        if (isDoubles && !jailedByDoubles && !current.isBankrupt()) {
+            session.setPendingExtraRollPlayerId(current.getId());
+        }
+
+        // Zakonczenie tury — chyba ze trwa decyzja kupna/platnosci/ulepszenia
         if (session.getPendingPurchasePos() == null
                 && session.getPendingPaymentDebtorId() == null
-                && session.getPendingUpgradePos() == null) {
-            // Extra roll: jesli gracz gral karte "Dodatkowy rzut", nie zmieniamy tury
-            if (session.getPendingExtraRollPlayerId() != null
-                    && session.getPendingExtraRollPlayerId().equals(current.getId())) {
-                session.setPendingExtraRollPlayerId(null);
-                msg.append(current.getDisplayName()).append(" gra dodatkowy rzut! ");
-                // Nie wywolujemy advanceTurn - gracz rzuca ponownie
-            } else {
-                advanceTurn(session);
-            }
+                && session.getPendingUpgradePos() == null
+                && session.getPendingBuybackVictimId() == null) {
+            endTurnOrExtraRoll(session, current);
         }
+        current.setRollsThisTurn(current.getRollsThisTurn() + 1);
         checkGameEnd(session, msg);
         sessionRepository.save(session);
 
@@ -512,6 +894,7 @@ public class GameService {
     public GameStateDto buy(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
+        requireActiveGame(session);
         if (session.getPendingPurchasePos() == null) {
             throw new IllegalArgumentException("Brak aktywnego pola do kupna.");
         }
@@ -536,15 +919,19 @@ public class GameService {
     }
 
     private GameStateDto doBuy(GameSession session, GamePlayer me, String username) {
-        int pos = session.getPendingPurchasePos();
-        int price = session.getPendingPurchasePrice();
+        Integer posObj = session.getPendingPurchasePos();
+        if (posObj == null) {
+            throw new IllegalArgumentException("Brak aktywnego pola do kupna.");
+        }
+        int pos = posObj;
+        int price = resolvePurchasePrice(session, pos);
         if (me.getCash() < price) {
             throw new IllegalArgumentException("Za malo siana na zakup.");
         }
         me.setCash(me.getCash() - price);
         me.getOwnedPositions().add(pos);
         session.clearPendingPurchase();
-        advanceTurn(session);
+        endTurnOrExtraRoll(session, me);
         sessionRepository.save(session);
 
         String msg = me.getDisplayName() + " kupuje " + TILES[pos] + " za " + price + " PLN.";
@@ -559,6 +946,7 @@ public class GameService {
     public GameStateDto skipPurchase(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
+        requireActiveGame(session);
         if (session.getPendingPurchasePos() == null) {
             throw new IllegalArgumentException("Brak aktywnego pola.");
         }
@@ -589,13 +977,25 @@ public class GameService {
     @Transactional
     public GameStateDto botDecide(Long sessionId, Long botPlayerId, int snapPos) {
         GameSession session = getSession(sessionId);
-        if (session.getPendingPurchasePos() == null) return null;
-        if (session.getPendingPurchasePos() != snapPos) return null;
-        if (!botPlayerId.equals(session.getPendingDeciderId())) return null;
+        if (session.getPendingPurchasePos() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingPurchasePos() != snapPos) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (!botPlayerId.equals(session.getPendingDeciderId())) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         GamePlayer bot = session.getPlayers().stream()
                 .filter(p -> p.getId().equals(botPlayerId))
                 .findFirst().orElse(null);
-        if (bot == null || bot.getUser() != null) return null;
+        if (bot == null || bot.getUser() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         int price = session.getPendingPurchasePrice() != null ? session.getPendingPurchasePrice() : 0;
         if (bot.getCash() >= price * 2) {
             return doBuy(session, bot, null);
@@ -603,25 +1003,67 @@ public class GameService {
         return doSkip(session, bot, null, false);
     }
 
+    /** Bot decyduje o ulepszeniu wlasnego pola (kup gdy cash >= 2x koszt, inaczej skip). */
+    @Transactional
+    public GameStateDto botUpgradeDecide(Long sessionId, Long botPlayerId, int snapPos) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingUpgradePos() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingUpgradePos() != snapPos) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (!botPlayerId.equals(session.getPendingUpgradePlayerId())) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        GamePlayer bot = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(botPlayerId))
+                .findFirst().orElse(null);
+        if (bot == null || bot.getUser() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        int cost = session.getPendingUpgradeCost() != null ? session.getPendingUpgradeCost() : 0;
+        if (bot.getCash() >= cost * 2) {
+            return doUpgrade(session, bot, null);
+        }
+        return doSkipUpgrade(session, bot, null, false);
+    }
+
     /** Auto-skip wywolany przez timeout (10s). Wymusza pominiecie dla obecnego decydera. */
     @Transactional
     public GameStateDto autoSkipTimeout(Long sessionId, int snapPosition) {
         GameSession session = getSession(sessionId);
-        if (session.getPendingPurchasePos() == null) return null;
-        if (session.getPendingPurchasePos() != snapPosition) return null;
+        if (session.getPendingPurchasePos() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingPurchasePos() != snapPosition) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         Long deciderId = session.getPendingDeciderId();
-        if (deciderId == null) return null;
+        if (deciderId == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         GamePlayer me = session.getPlayers().stream()
                 .filter(p -> p.getId().equals(deciderId))
                 .findFirst().orElse(null);
-        if (me == null) return null;
+        if (me == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         return doSkip(session, me, null, true);
     }
 
     private GameStateDto doSkip(GameSession session, GamePlayer me, String username, boolean timeout) {
         int pos = session.getPendingPurchasePos();
         session.clearPendingPurchase();
-        advanceTurn(session);
+        endTurnOrExtraRoll(session, me);
         sessionRepository.save(session);
 
         String msg = timeout
@@ -659,6 +1101,8 @@ public class GameService {
         me.setCash(me.getCash() - amount);
         me.getOwnedPositions().add(pos);
         session.clearPendingPurchase();
+        // Licytacje wygral inny gracz — decydent traci ewentualny dodatkowy rzut
+        session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
         sessionRepository.save(session);
 
@@ -705,22 +1149,20 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Sprzedaz nieruchomosci (50% ceny) w fazie uregulowania zadluzenia. */
+    /** Sprzedaz nieruchomosci do banku (70% ceny gruntu). */
     @Transactional
     public GameStateDto sellProperty(Long sessionId, String username, int position) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
-        if (session.getPendingPaymentDebtorId() == null) {
-            throw new IllegalArgumentException("Brak aktywnego zadluzenia do splaty.");
-        }
         GamePlayer me = findPlayerByUsername(session, username);
-        if (!me.getId().equals(session.getPendingPaymentDebtorId())) {
-            throw new IllegalArgumentException("Tylko zadluzony gracz moze sprzedawac nieruchomosci.");
+        if (!me.getOwnedPositions().contains(position)) {
+            throw new IllegalArgumentException("Nie posiadasz tego pola.");
         }
-        String msg = doSellProperty(me, position);
+        String msg = doSellProperty(session, me, position);
         sessionRepository.save(session);
         Long sessionIdVal = session.getId();
         publishPublic(sessionIdVal, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionIdVal);
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
@@ -758,18 +1200,30 @@ public class GameService {
     @Transactional
     public GameStateDto resolvePaymentAsBot(Long sessionId, Long debtorId, int snapAmount) {
         GameSession session = getSession(sessionId);
-        if (session.getPendingPaymentDebtorId() == null) return null;
-        if (!debtorId.equals(session.getPendingPaymentDebtorId())) return null;
-        if (session.getPendingPaymentAmount() == null || session.getPendingPaymentAmount() != snapAmount) return null;
+        if (session.getPendingPaymentDebtorId() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (!debtorId.equals(session.getPendingPaymentDebtorId())) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingPaymentAmount() == null || session.getPendingPaymentAmount() != snapAmount) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         GamePlayer debtor = session.getPlayers().stream()
                 .filter(p -> p.getId().equals(debtorId))
                 .findFirst().orElse(null);
-        if (debtor == null || debtor.isBankrupt()) return null;
+        if (debtor == null || debtor.isBankrupt()) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
 
         StringBuilder msg = new StringBuilder();
         while (debtor.getCash() < snapAmount && !debtor.getOwnedPositions().isEmpty()) {
             int cheapest = cheapestOwnedPosition(debtor);
-            msg.append(doSellProperty(debtor, cheapest)).append(" ");
+            msg.append(doSellProperty(session, debtor, cheapest)).append(" ");
         }
         if (debtor.getCash() >= snapAmount) {
             if (!msg.isEmpty()) publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
@@ -798,33 +1252,31 @@ public class GameService {
 
     private void applyTileEffect(GamePlayer player, int pos, int diceSum, GameSession session, StringBuilder msg) {
         switch (pos) {
-            case POS_START -> {
-                // Lądowanie dokładnie na START — bonus ratunkowy nieruchomości
-                player.setCash(player.getCash() + 200);
-                msg.append("STAN NA START — Bonus ratunkowy nieruchomosci (+200 PLN EXTRA, lacznie +500 PLN)! ");
-            }
-            case 4 -> {
-                chargePlayer(session, player, 200, null, "Oplata za warunki", msg);
-                msg.append("Oplata za warunki (-200 PLN). ");
-            }
-            case POS_JAIL -> {
-                if (chargePlayer(session, player, 100, null, "Lapowka w Dziekanacie", msg)) {
-                    msg.append("Dziekanat (wiezienie): lapowka 100 PLN. ");
+            case POS_START -> msg.append("STAN NA START — witaj na linii startu! ");
+            case 4, 38 -> {
+                int tax = GameEconomy.computeTax(player);
+                if (tax > 0) {
+                    chargePlayer(session, player, tax, null, "Podatek od majatku", msg);
+                    msg.append("Podatek 10% od majatku (-").append(tax).append(" PLN). ");
                 } else {
-                    msg.append("Dziekanat (wiezienie): lapowka 100 PLN — brak siana! ");
+                    msg.append("Podatek 10% od majatku — brak nieruchomosci, bez oplaty. ");
                 }
             }
-            case 38 -> {
-                chargePlayer(session, player, 100, null, "Oplata luksusowa", msg);
-                msg.append("Oplata luksusowa (-100 PLN). ");
+            case POS_JAIL -> {
+                if (chargePlayer(session, player, GameEconomy.JAIL_BAIL, null, "Lapowka w Dziekanacie", msg)) {
+                    msg.append("Dziekanat (wiezienie): lapowka ").append(GameEconomy.JAIL_BAIL).append(" PLN. ");
+                } else {
+                    msg.append("Dziekanat (wiezienie): lapowka ").append(GameEconomy.JAIL_BAIL)
+                            .append(" PLN — brak siana! ");
+                }
             }
             case 39 -> {
-                player.setCash(player.getCash() + 200);
-                msg.append("Meta — Bonus okrazenia (+200 PLN). ");
+                player.setCash(player.getCash() + GameEconomy.GO_BONUS);
+                msg.append("Meta — Bonus okrazenia (+").append(GameEconomy.GO_BONUS).append(" PLN). ");
             }
             case 2, 17, 33 -> {
-                player.setCash(player.getCash() + 200);
-                msg.append("Kasa Miejska - stypendium (+200 PLN). ");
+                player.setCash(player.getCash() + GameEconomy.SCHOLARSHIP_BONUS);
+                msg.append("Kasa Miejska - stypendium (+").append(GameEconomy.SCHOLARSHIP_BONUS).append(" PLN). ");
             }
             default -> { /* posiadlosci - obsluga w roll() */ }
         }
@@ -849,46 +1301,81 @@ public class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("Nie grasz w tej sesji"));
     }
 
-    /** Czynsz dworcow — 50 / 100 / 200 / 400 PLN za 1–4 dworce. */
-    private static final int[] STATION_RENT = {0, 50, 100, 200, 400};
-
-    /** Liczy czynsz uwzgledniajac poziom ulepszenia. */
+    /** Czynsz resortow — 50 / 100 / 200 / 400 tys. PLN za 1–4 resorty. */
     private int computeRent(GameSession session, GamePlayer owner, int pos, int diceSum) {
-        if (STATION_TILES[pos]) {
-            int stations = 0;
+        if (RESORT_TILES[pos]) {
+            int resorts = 0;
             for (int i = 0; i < 40; i++) {
-                if (STATION_TILES[i] && owner.getOwnedPositions().contains(i)) stations++;
+                if (RESORT_TILES[i] && owner.getOwnedPositions().contains(i)) resorts++;
             }
-            return STATION_RENT[Math.min(stations, STATION_RENT.length - 1)];
+            return GameEconomy.RESORT_RENT[Math.min(resorts, GameEconomy.RESORT_RENT.length - 1)];
         }
         if (pos == POS_UTILITY) {
-            return diceSum * 6;
+            return diceSum * GameEconomy.UTILITY_RENT_MULTIPLIER;
         }
         int level = owner.getPropertyLevels().getOrDefault(pos, 0);
-        return computeRentForLevel(pos, level);
+        boolean monopoly = level == 0 && GameEconomy.hasColorMonopoly(owner, pos);
+        return computeRentForLevel(pos, level, monopoly);
     }
 
-    /** Bazowy czynsz przemnozony przez mnoznik poziomu. */
-    static int computeRentForLevel(int pos, int level) {
-        int base = TILE_RENT[pos];
-        return switch (level) {
-            case 1 -> base * 3;
-            case 2 -> base * 6;
-            default -> base;
+    /** Czynsz dla poziomu budynku (0=grunt, 1-3=ulepszenia, 3=biurowiec). */
+    static int computeRentForLevel(int pos, int level, boolean monopoly) {
+        return GameEconomy.rentForLevel(pos, level, monopoly);
+    }
+
+    /** Podglad czynszu po ulepszeniu (monopol tylko gdy docelowy poziom = 0). */
+    static int computeRentForLevel(int pos, int level, GamePlayer owner) {
+        boolean monopoly = level == 0 && owner != null && GameEconomy.hasColorMonopoly(owner, pos);
+        return computeRentForLevel(pos, level, monopoly);
+    }
+
+    private static String upgradeOfferLabel(int currentLevel) {
+        return switch (currentLevel) {
+            case 0 -> "Lvl 1";
+            case 1 -> "Lvl 2";
+            case 2 -> "Lvl 3";
+            case 3 -> "Biurowiec";
+            default -> "ulepszenie";
         };
     }
 
-    /** Koszt ulepszenia pola — polowa ceny zakupu. */
-    static int upgradeCost(int pos) {
-        return Math.max(50, TILE_PRICE[pos] / 2);
+    private static String propertyLevelLabel(int level) {
+        if (level <= 0) {
+            return "Sam grunt";
+        }
+        return upgradeBuiltLabel(level);
     }
 
-    /** Po bankructwie zwalnia pola gracza. */
+    private static String upgradeBuiltLabel(int newLevel) {
+        return switch (newLevel) {
+            case 1 -> "Lvl 1";
+            case 2 -> "Lvl 2";
+            case 3 -> "Lvl 3";
+            case 4 -> "Biurowiec";
+            default -> "ulepszenie";
+        };
+    }
+
+    static int upgradeCost(int pos) {
+        return GameEconomy.upgradeCost(pos);
+    }
+
+    /** Po bankructwie zwalnia pola gracza wraz z ulepszeniami. */
     private void releaseProperties(GamePlayer player) {
         player.getOwnedPositions().clear();
+        player.getPropertyLevels().clear();
+        player.getLandingCounts().clear();
+    }
+
+    private static void clearPropertyDevelopment(GamePlayer player, int position) {
+        player.getPropertyLevels().remove(position);
+        player.getLandingCounts().remove(position);
     }
 
     private void requireActiveGame(GameSession session) {
+        if (session.getStatus() == GameStatus.WAITING) {
+            throw new IllegalArgumentException("Gra nie zostala jeszcze rozpoczeta przez lidera.");
+        }
         if (session.getStatus() == GameStatus.FINISHED) {
             throw new IllegalArgumentException("Gra zostala zakonczona.");
         }
@@ -896,12 +1383,11 @@ public class GameService {
 
     /** Cena sprzedazy nieruchomosci — polowa ceny zakupu. */
     public static int sellPrice(int position) {
-        int price = TILE_PRICE[position];
-        return price > 0 ? price / 2 : 0;
+        return GameEconomy.sellPrice(position);
     }
 
     /**
-     * Pobiera oplate od gracza. Tarcza Akademicka pokrywa do 300 PLN jednorazowo.
+     * Pobiera oplate od gracza. Tarcza Akademicka pokrywa do {@link GameEconomy#SHIELD_MAX_ABSORB} PLN jednorazowo.
      * Gdy brak siana — uruchamia faze splaty zamiast ujemnego salda.
      * @return true gdy oplacono od razu, false gdy trwa pending payment
      */
@@ -910,7 +1396,7 @@ public class GameService {
         if (amount <= 0) return true;
 
         // Karta Tarcza Akademicka
-        if (debtor.isShieldActive() && amount <= 300) {
+        if (debtor.isShieldActive() && amount <= GameEconomy.SHIELD_MAX_ABSORB) {
             debtor.setShieldActive(false);
             msg.append("Tarcza Akademicka absorbuje oplate ").append(amount).append(" PLN! ");
             if (creditor != null) creditor.setCash(creditor.getCash() + amount); // placi bank
@@ -934,7 +1420,7 @@ public class GameService {
         return false;
     }
 
-    private String doSellProperty(GamePlayer player, int position) {
+    private String doSellProperty(GameSession session, GamePlayer player, int position) {
         if (!player.getOwnedPositions().contains(position)) {
             throw new IllegalArgumentException("Nie posiadasz tego pola.");
         }
@@ -943,8 +1429,21 @@ public class GameService {
             throw new IllegalArgumentException("To pole nie jest na sprzedaz.");
         }
         player.getOwnedPositions().remove(position);
+        clearPropertyDevelopment(player, position);
         player.setCash(player.getCash() + salePrice);
-        return player.getDisplayName() + " sprzedaje " + TILES[position] + " za " + salePrice + " PLN.";
+        if (session != null) {
+            if (Integer.valueOf(position).equals(session.getPendingUpgradePos())) {
+                session.clearPendingUpgrade();
+            }
+            if (Integer.valueOf(position).equals(session.getPendingPurchasePos())) {
+                session.clearPendingPurchase();
+            }
+            if (Integer.valueOf(position).equals(session.getPendingBuybackPos())) {
+                session.clearPendingBuyback();
+            }
+        }
+        return player.getDisplayName() + " sprzedaje " + TILES[position]
+                + " do banku za " + salePrice + " PLN (70% ceny gruntu).";
     }
 
     private GameStateDto doPayDebt(GameSession session, GamePlayer debtor, String username) {
@@ -964,9 +1463,18 @@ public class GameService {
             creditor.setCash(creditor.getCash() + amount);
         }
         String reason = session.getPendingPaymentReason() != null ? session.getPendingPaymentReason() : "Oplata";
+        boolean upgradeAfterPay = session.getPendingUpgradePos() != null
+                && session.getPendingUpgradePlayerId() != null
+                && session.getPendingUpgradePlayerId().equals(debtor.getId());
         session.clearPendingPayment();
+        if (upgradeAfterPay) {
+            StringBuilder msg = new StringBuilder(debtor.getDisplayName() + " oplaca " + amount + " PLN (" + reason + "). ");
+            sessionRepository.save(session);
+            publishPublic(session.getId(), null, null, msg.toString(), null, null, null, null);
+            return doUpgrade(session, debtor, username);
+        }
         StringBuilder msg = new StringBuilder(debtor.getDisplayName() + " oplaca " + amount + " PLN (" + reason + "). ");
-        advanceTurn(session);
+        endTurnOrExtraRoll(session, debtor);
         checkGameEnd(session, msg);
         sessionRepository.save(session);
         Long sessionId = session.getId();
@@ -979,6 +1487,8 @@ public class GameService {
         StringBuilder msg = new StringBuilder();
         applyBankruptcy(debtor, msg);
         session.clearPendingPayment();
+        // Bankrut nie gra dalej — tura przechodzi dalej, dodatkowy rzut anulowany
+        session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
         checkGameEnd(session, msg);
         sessionRepository.save(session);
@@ -997,6 +1507,7 @@ public class GameService {
 
     private void checkGameEnd(GameSession session, StringBuilder msg) {
         if (session.getStatus() == GameStatus.FINISHED) return;
+        if (session.getStatus() == GameStatus.WAITING) return;
         List<GamePlayer> active = session.getPlayers().stream()
                 .filter(p -> !p.isBankrupt())
                 .toList();
@@ -1009,6 +1520,18 @@ public class GameService {
             session.setStatus(GameStatus.FINISHED);
             msg.append("Wszyscy bankruci — remis. ");
             persistGameResults(session, null);
+        } else {
+            // Auto-koniec gdy zostaly same boty
+            boolean onlyBots = active.stream().allMatch(p -> p.getUser() == null);
+            if (onlyBots) {
+                session.setStatus(GameStatus.FINISHED);
+                GamePlayer richest = active.stream()
+                        .max(java.util.Comparator.comparingInt(GamePlayer::getCash))
+                        .orElse(active.get(0));
+                msg.append("Wszyscy ludzie opuscili gre — ").append(richest.getDisplayName())
+                        .append(" (bot) wygrywa! Gra zakonczona automatycznie.");
+                persistGameResults(session, richest);
+            }
         }
     }
 
@@ -1089,6 +1612,13 @@ public class GameService {
         return defaultColor;
     }
 
+    /** Sciezka GLB zalozonego pionka 3D ze skrzynki lub null. */
+    private String equippedPawnModel(User user) {
+        if (user == null || user.getId() == null) return null;
+        return PawnModelCatalog.equippedModelPath(
+                ownedItemRepository.findByUserIdAndEquipped(user.getId(), true));
+    }
+
     private int cheapestOwnedPosition(GamePlayer player) {
         return player.getOwnedPositions().stream()
                 .min((a, b) -> Integer.compare(sellPrice(a), sellPrice(b)))
@@ -1107,8 +1637,19 @@ public class GameService {
     private void publishPublic(Long sessionId, Integer d1, Integer d2, String message,
                                Long movedId, Integer fromPos, Integer toPos,
                                ChanceCardDto card) {
-        gameSyncService.broadcast(sessionId,
-                buildPublicState(sessionId, d1, d2, message, movedId, fromPos, toPos, card));
+        // Build state inside transaction (uses JPA 1st-level cache = current in-memory state)
+        // Broadcast is deferred to afterCommit so clients that act on WS don't race the commit
+        GameStateDto state = buildPublicState(sessionId, d1, d2, message, movedId, fromPos, toPos, card);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameSyncService.broadcast(sessionId, state);
+                }
+            });
+        } else {
+            gameSyncService.broadcast(sessionId, state);
+        }
     }
 
     private void advanceTurn(GameSession session) {
@@ -1121,6 +1662,88 @@ public class GameService {
             if (!players.get(next).isBankrupt()) break;
         }
         session.setCurrentTurn(next);
+        players.get(next).setRollsThisTurn(0);
+        players.get(next).setDoublesCount(0);
+    }
+
+    /**
+     * Konczy ture gracza. Jesli gracz ma prawo do dodatkowego rzutu (dublet lub karta
+     * "Dodatkowy rzut") i nie zbankrutowal — tura zostaje przy nim (rzuca ponownie).
+     * W przeciwnym razie tura przechodzi do nastepnego niezbankrutowanego gracza.
+     */
+    private void endTurnOrExtraRoll(GameSession session, GamePlayer player) {
+        Long extra = session.getPendingExtraRollPlayerId();
+        if (player != null && extra != null && extra.equals(player.getId()) && !player.isBankrupt()) {
+            normalizeCurrentTurn(session);
+            return;
+        }
+        session.setPendingExtraRollPlayerId(null);
+        advanceTurn(session);
+    }
+
+    private void ensureLeader(GameSession session) {
+        if (session.getLeaderId() != null) return;
+        session.getPlayers().stream()
+                .filter(p -> p.getUser() != null)
+                .findFirst()
+                .ifPresent(p -> session.setLeaderId(p.getUser().getId()));
+    }
+
+    /** Czysci oczekujace decyzje i ustawia pierwsza ture na czlowieka (jesli jest). */
+    private void beginActivePlay(GameSession session) {
+        session.clearPendingPurchase();
+        session.clearPendingPayment();
+        session.clearPendingUpgrade();
+        session.clearPendingBuyback();
+        session.setPendingExtraRollPlayerId(null);
+        List<GamePlayer> players = session.getPlayers();
+        for (int i = 0; i < players.size(); i++) {
+            GamePlayer p = players.get(i);
+            if (p.getUser() != null && !p.isBankrupt()) {
+                session.setCurrentTurn(i);
+                return;
+            }
+        }
+        normalizeCurrentTurn(session);
+    }
+
+    private void normalizeCurrentTurn(GameSession session) {
+        List<GamePlayer> players = session.getPlayers();
+        int n = players.size();
+        if (n == 0) return;
+        int start = session.getCurrentTurn() % n;
+        for (int i = 0; i < n; i++) {
+            int idx = (start + i) % n;
+            if (!players.get(idx).isBankrupt()) {
+                session.setCurrentTurn(idx);
+                return;
+            }
+        }
+    }
+
+    private int resolvePurchasePrice(GameSession session, int pos) {
+        if (session.getPendingPurchasePrice() != null) {
+            return session.getPendingPurchasePrice();
+        }
+        if (pos >= 0 && pos < TILE_PRICE.length) {
+            return TILE_PRICE[pos];
+        }
+        return 0;
+    }
+
+    private PendingPurchaseDto buildPendingPurchase(GameSession session) {
+        Integer posObj = session.getPendingPurchasePos();
+        if (posObj == null) return null;
+        int pos = posObj;
+        if (pos < 0 || pos >= TILES.length) return null;
+        int price = resolvePurchasePrice(session, pos);
+        return new PendingPurchaseDto(
+                pos,
+                TILES[pos],
+                price,
+                session.getPendingDeciderId(),
+                Math.max(50, price / 2)
+        );
     }
 
     private void requireParticipant(GameSession session, String username) {
@@ -1141,31 +1764,37 @@ public class GameService {
             for (Integer pos : p.getOwnedPositions()) ownership.put(pos, p.getId());
         }
 
+        Long effectiveLeaderId = session.getLeaderId();
+        if (effectiveLeaderId == null && session.getStatus() == GameStatus.WAITING) {
+            effectiveLeaderId = players.stream()
+                    .filter(p -> p.getUser() != null)
+                    .map(p -> p.getUser().getId())
+                    .findFirst().orElse(null);
+        }
+
         List<GamePlayerDto> dtos = new ArrayList<>();
         for (GamePlayer p : players) {
             boolean isMe = username != null && p.getUser() != null
                     && p.getUser().getUsername().equals(username);
             boolean isBot = p.getUser() == null;
+            boolean isLeader = p.getUser() != null && effectiveLeaderId != null
+                    && effectiveLeaderId.equals(p.getUser().getId());
+            String pawnModel = equippedPawnModel(p.getUser());
             dtos.add(new GamePlayerDto(p.getId(), p.getDisplayName(), p.getCash(),
                     p.getPosition(), p.getColor(), p.isBankrupt(), isMe, isBot,
                     new ArrayList<>(p.getOwnedPositions()),
-                    new HashMap<>(p.getPropertyLevels())));
+                    new HashMap<>(p.getPropertyLevels()),
+                    p.isReady(), isLeader, pawnModel));
         }
         Long currentId = players.isEmpty() ? null
                 : players.get(session.getCurrentTurn() % players.size()).getId();
         boolean myTurn = username != null && currentId != null && dtos.stream()
                 .anyMatch(d -> d.isMe() && d.id().equals(currentId));
+        boolean canRollAgain = currentId != null
+                && session.getPendingExtraRollPlayerId() != null
+                && session.getPendingExtraRollPlayerId().equals(currentId);
 
-        PendingPurchaseDto pending = null;
-        if (session.getPendingPurchasePos() != null) {
-            pending = new PendingPurchaseDto(
-                    session.getPendingPurchasePos(),
-                    TILES[session.getPendingPurchasePos()],
-                    session.getPendingPurchasePrice(),
-                    session.getPendingDeciderId(),
-                    Math.max(50, session.getPendingPurchasePrice() / 2)
-            );
-        }
+        PendingPurchaseDto pending = buildPendingPurchase(session);
 
         PendingPaymentDto pendingPayment = null;
         if (session.getPendingPaymentDebtorId() != null && session.getPendingPaymentAmount() != null) {
@@ -1201,9 +1830,13 @@ public class GameService {
             for (GamePlayer p : players) {
                 if (p.getUser() != null && p.getUser().getUsername().equals(username)) {
                     myHandCards = p.getHandCards().stream().map(name -> {
-                        HandCardType t = HandCardType.valueOf(name);
-                        return new HandCardDto(name, t.label, t.description, t.iconClass);
-                    }).toList();
+                        try {
+                            HandCardType t = HandCardType.valueOf(name);
+                            return new HandCardDto(name, t.label, t.description, t.iconClass);
+                        } catch (IllegalArgumentException ex) {
+                            return null;
+                        }
+                    }).filter(java.util.Objects::nonNull).toList();
                     break;
                 }
             }
@@ -1214,24 +1847,220 @@ public class GameService {
         if (session.getPendingUpgradePos() != null) {
             int uPos = session.getPendingUpgradePos();
             int curLevel = 0;
+            GamePlayer upgradeOwner = null;
             if (session.getPendingUpgradePlayerId() != null) {
-                GamePlayer decider = players.stream()
+                upgradeOwner = players.stream()
                         .filter(p -> p.getId().equals(session.getPendingUpgradePlayerId()))
                         .findFirst().orElse(null);
-                if (decider != null) curLevel = decider.getPropertyLevels().getOrDefault(uPos, 0);
+                if (upgradeOwner != null) curLevel = upgradeOwner.getPropertyLevels().getOrDefault(uPos, 0);
             }
             pendingUpgrade = new PendingUpgradeDto(
                     uPos, TILES[uPos],
                     session.getPendingUpgradeCost() != null ? session.getPendingUpgradeCost() : upgradeCost(uPos),
-                    curLevel, computeRentForLevel(uPos, curLevel + 1),
+                    curLevel, computeRentForLevel(uPos, curLevel + 1, upgradeOwner),
                     session.getPendingUpgradePlayerId());
         }
+
+        PendingBuybackDto pendingBuyback = null;
+        if (session.getPendingBuybackPos() != null && session.getPendingBuybackPrice() != null) {
+            int bPos = session.getPendingBuybackPos();
+            GamePlayer victim = players.stream()
+                    .filter(p -> p.getId().equals(session.getPendingBuybackVictimId()))
+                    .findFirst().orElse(null);
+            GamePlayer holder = players.stream()
+                    .filter(p -> p.getId().equals(session.getPendingBuybackHolderId()))
+                    .findFirst().orElse(null);
+            pendingBuyback = new PendingBuybackDto(
+                    bPos,
+                    TILES[bPos],
+                    session.getPendingBuybackPrice(),
+                    session.getPendingBuybackVictimId(),
+                    session.getPendingBuybackHolderId(),
+                    holder != null ? holder.getDisplayName() : "?",
+                    victim != null ? sellPricesFor(victim) : Map.of()
+            );
+        }
+
+        List<PropertyCardDto> myPropertyCards = buildMyPropertyCards(session, username);
 
         return new GameStateDto(session.getId(), session.getCode(), session.getName(),
                 session.getStatus().name(), dtos, currentId, d1, d2, message,
                 movedId, fromPos, toPos, myTurn, tileNamesList(), tileEffectsList(),
                 pending, pendingPayment, ownership, prices, card, winnerId, winnerName,
-                myHandCards, pendingUpgrade);
+                myHandCards, pendingUpgrade, pendingBuyback, effectiveLeaderId, canRollAgain,
+                myPropertyCards);
+    }
+
+    private List<PropertyCardDto> buildMyPropertyCards(GameSession session, String username) {
+        if (username == null) {
+            return List.of();
+        }
+        GamePlayer me = session.getPlayers().stream()
+                .filter(p -> p.getUser() != null && p.getUser().getUsername().equals(username))
+                .findFirst().orElse(null);
+        if (me == null || me.isBankrupt()) {
+            return List.of();
+        }
+        List<PropertyCardDto> cards = new ArrayList<>();
+        for (int pos : me.getOwnedPositions().stream().sorted().toList()) {
+            int buy = TILE_PRICE[pos];
+            if (buy <= 0) {
+                continue;
+            }
+            int level = me.getPropertyLevels().getOrDefault(pos, 0);
+            int rent = computeRentForLevel(pos, level, me);
+            int upCost = GameEconomy.upgradeCost(pos);
+            int nextRent = level < GameEconomy.MAX_PROPERTY_LEVEL
+                    ? computeRentForLevel(pos, level + 1, me) : rent;
+            cards.add(new PropertyCardDto(
+                    pos,
+                    TILES[pos],
+                    buy,
+                    rent,
+                    sellPrice(pos),
+                    upCost,
+                    nextRent,
+                    level,
+                    propertyLevelLabel(level),
+                    level < GameEconomy.MAX_PROPERTY_LEVEL && upCost > 0
+            ));
+        }
+        return cards;
+    }
+
+    // ========== ODKUP PO PRZEJECIU KARTA ==========
+
+    @Transactional
+    public GameStateDto buybackProperty(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        if (session.getPendingBuybackVictimId() == null) {
+            throw new IllegalArgumentException("Brak aktywnego odkupu.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingBuybackVictimId())) {
+            throw new IllegalArgumentException("To nie Twoje pole do odkupu.");
+        }
+        int price = session.getPendingBuybackPrice();
+        int pos = session.getPendingBuybackPos();
+        if (me.getCash() < price) {
+            throw new IllegalArgumentException("Za malo siana na odkup (potrzeba " + price
+                    + " PLN). Sprzedaj inna nieruchomosc z panelu po lewej.");
+        }
+        GamePlayer holder = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(session.getPendingBuybackHolderId()))
+                .findFirst().orElseThrow();
+        me.setCash(me.getCash() - price);
+        holder.setCash(holder.getCash() + price);
+        holder.getOwnedPositions().remove(pos);
+        clearPropertyDevelopment(holder, pos);
+        me.getOwnedPositions().add(pos);
+        clearPropertyDevelopment(me, pos);
+        session.clearPendingBuyback();
+        sessionRepository.save(session);
+
+        String msg = me.getDisplayName() + " odkupuje " + TILES[pos] + " za " + price + " PLN od "
+                + holder.getDisplayName() + "!";
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    @Transactional
+    public GameStateDto skipBuyback(Long sessionId, String username) {
+        GameSession session = getSession(sessionId);
+        requireActiveGame(session);
+        if (session.getPendingBuybackVictimId() == null) {
+            throw new IllegalArgumentException("Brak aktywnego odkupu.");
+        }
+        GamePlayer me = findPlayerByUsername(session, username);
+        if (!me.getId().equals(session.getPendingBuybackVictimId())) {
+            throw new IllegalArgumentException("To nie Twoja decyzja o odkupie.");
+        }
+        Integer posObj = session.getPendingBuybackPos();
+        GamePlayer holder = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(session.getPendingBuybackHolderId()))
+                .findFirst().orElse(null);
+        session.clearPendingBuyback();
+        sessionRepository.save(session);
+
+        String msg = me.getDisplayName() + " rezygnuje z odkupu "
+                + (posObj != null ? TILES[posObj] : "pola")
+                + (holder != null ? " — zostaje u " + holder.getDisplayName() + "." : ".");
+        publishPublic(sessionId, null, null, msg, null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg, null, null, null, null);
+    }
+
+    @Transactional
+    public GameStateDto autoBuybackTimeout(Long sessionId, int snapPos, Long snapVictimId) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingBuybackVictimId() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingBuybackPos() == null || session.getPendingBuybackPos() != snapPos) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (!snapVictimId.equals(session.getPendingBuybackVictimId())) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        GamePlayer victim = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(snapVictimId))
+                .findFirst().orElse(null);
+        if (victim == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        int price = session.getPendingBuybackPrice() != null ? session.getPendingBuybackPrice() : 0;
+        String username = victim.getUser() != null ? victim.getUser().getUsername() : null;
+        if (victim.getCash() >= price) {
+            return buybackProperty(sessionId, username);
+        }
+        return skipBuyback(sessionId, username);
+    }
+
+    @Transactional
+    public GameStateDto resolveBuybackAsBot(Long sessionId, Long victimId, int snapPos, int snapPrice) {
+        GameSession session = getSession(sessionId);
+        if (session.getPendingBuybackVictimId() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (!victimId.equals(session.getPendingBuybackVictimId())) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingBuybackPos() == null || session.getPendingBuybackPos() != snapPos) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingBuybackPrice() == null || session.getPendingBuybackPrice() != snapPrice) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        GamePlayer victim = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(victimId))
+                .findFirst().orElse(null);
+        if (victim == null || victim.getUser() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        while (victim.getCash() < snapPrice && !victim.getOwnedPositions().isEmpty()) {
+            int pos = session.getPendingBuybackPos();
+            int cheapest = victim.getOwnedPositions().stream()
+                    .filter(p -> p != pos)
+                    .min((a, b) -> Integer.compare(sellPrice(a), sellPrice(b)))
+                    .orElse(-1);
+            if (cheapest < 0) break;
+            doSellProperty(session, victim, cheapest);
+        }
+        if (victim.getCash() >= snapPrice) {
+            return buybackProperty(sessionId, null);
+        }
+        return skipBuyback(sessionId, null);
     }
 
     // ========== KARTY W RECE ==========
@@ -1251,7 +2080,12 @@ public class GameService {
             throw new IllegalArgumentException("Nie masz tej karty: " + cardType);
         }
 
-        HandCardType type = HandCardType.valueOf(cardType);
+        HandCardType type;
+        try {
+            type = HandCardType.valueOf(cardType);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Nieznany typ karty: " + cardType);
+        }
         StringBuilder msg = new StringBuilder();
         msg.append(me.getDisplayName()).append(" zagrywa kartę: ").append(type.label).append(". ");
 
@@ -1265,29 +2099,43 @@ public class GameService {
                 msg.append("Gracz dostaje dodatkowy rzut po tej turze. ");
             }
             case ADD_CASH -> {
-                me.setCash(me.getCash() + 300);
-                msg.append("+300 PLN od banku! ");
+                me.setCash(me.getCash() + GameEconomy.GO_BONUS);
+                msg.append("+").append(GameEconomy.GO_BONUS).append(" PLN od banku! ");
             }
             case SHIELD -> {
                 me.setShieldActive(true);
-                msg.append("Tarcza Akademicka aktywna — absorbuje nastepna oplate do 300 PLN. ");
+                msg.append("Tarcza Akademicka aktywna — absorbuje nastepna oplate do ")
+                        .append(GameEconomy.SHIELD_MAX_ABSORB).append(" PLN. ");
             }
             case DESTROY_PROPERTY -> {
                 if (targetPos == null) {
-                    throw new IllegalArgumentException("Podaj pozycje pola do zniszczenia.");
+                    throw new IllegalArgumentException("Podaj pozycje pola do przejecia.");
+                }
+                if (RESORT_TILES[targetPos] || targetPos == POS_UTILITY || CHANCE_TILES[targetPos]) {
+                    throw new IllegalArgumentException("Te pole nie podlega przejeciu.");
                 }
                 GamePlayer owner = findOwner(session, targetPos);
                 if (owner == null) {
                     throw new IllegalArgumentException("To pole nie ma wlasciciela.");
                 }
                 if (owner.getId().equals(me.getId())) {
-                    throw new IllegalArgumentException("Nie mozesz zniszczyc wlasnego pola.");
+                    throw new IllegalArgumentException("Nie mozesz przejac wlasnego pola.");
                 }
                 owner.getOwnedPositions().remove(targetPos);
-                owner.getPropertyLevels().remove(targetPos);
-                owner.getLandingCounts().remove(targetPos);
-                msg.append("Pole ").append(TILES[targetPos])
-                        .append(" wrocilo do banku! ");
+                clearPropertyDevelopment(owner, targetPos);
+                me.getOwnedPositions().add(targetPos);
+                clearPropertyDevelopment(me, targetPos);
+
+                int buybackPrice = TILE_PRICE[targetPos] * 2;
+                session.setPendingBuybackPos(targetPos);
+                session.setPendingBuybackVictimId(owner.getId());
+                session.setPendingBuybackHolderId(me.getId());
+                session.setPendingBuybackPrice(buybackPrice);
+
+                msg.append("Przejmuje pole ").append(TILES[targetPos])
+                        .append(" od ").append(owner.getDisplayName()).append("! ")
+                        .append(owner.getDisplayName())
+                        .append(" moze odkupic za ").append(buybackPrice).append(" PLN (2x cena). ");
             }
         }
 
@@ -1316,24 +2164,38 @@ public class GameService {
             throw new IllegalArgumentException("To nie Twoje pole do ulepszenia.");
         }
 
-        int pos = session.getPendingUpgradePos();
         int cost = session.getPendingUpgradeCost();
         if (me.getCash() < cost) {
-            throw new IllegalArgumentException("Za malo siana na ulepszenie (" + cost + " PLN).");
+            session.setPendingPaymentDebtorId(me.getId());
+            session.setPendingPaymentAmount(cost);
+            session.setPendingPaymentCreditorId(null);
+            session.setPendingPaymentReason("Ulepszenie: " + TILES[session.getPendingUpgradePos()]);
+            sessionRepository.save(session);
+            String msg = me.getDisplayName() + " — za malo siana na ulepszenie (" + cost
+                    + " PLN). Sprzedaj nieruchomosc z panelu po lewej.";
+            publishPublic(sessionId, null, null, msg, null, null, null, null);
+            scheduleBotUpdate(sessionId);
+            return toState(session, username, null, null, msg, null, null, null, null);
         }
+        return doUpgrade(session, me, username);
+    }
 
+    private GameStateDto doUpgrade(GameSession session, GamePlayer me, String username) {
+        int pos = session.getPendingUpgradePos();
+        int cost = session.getPendingUpgradeCost();
         int currentLevel = me.getPropertyLevels().getOrDefault(pos, 0);
         int newLevel = currentLevel + 1;
         me.setCash(me.getCash() - cost);
         me.getPropertyLevels().put(pos, newLevel);
         session.clearPendingUpgrade();
-        advanceTurn(session);
+        endTurnOrExtraRoll(session, me);
         sessionRepository.save(session);
 
-        String levelName = newLevel == 1 ? "Domek" : "Hotel";
-        int newRent = computeRentForLevel(pos, newLevel);
+        String levelName = upgradeBuiltLabel(newLevel);
+        int newRent = computeRentForLevel(pos, newLevel, me);
         String msg = me.getDisplayName() + " buduje " + levelName + " na " + TILES[pos]
                 + " za " + cost + " PLN! Nowy czynsz: " + newRent + " PLN.";
+        Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);
@@ -1347,23 +2209,28 @@ public class GameService {
     @Transactional
     public GameStateDto autoUpgradeTimeout(Long sessionId, int snapPos, Long snapPlayerId) {
         GameSession session = getSession(sessionId);
-        if (session.getPendingUpgradePos() == null) return null;
-        if (session.getPendingUpgradePos() != snapPos) return null;
+        if (session.getPendingUpgradePos() == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingUpgradePos() != snapPos) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         Long deciderId = session.getPendingUpgradePlayerId();
-        if (deciderId == null || !deciderId.equals(snapPlayerId)) return null;
+        if (deciderId == null || !deciderId.equals(snapPlayerId)) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         GamePlayer decider = session.getPlayers().stream()
                 .filter(p -> p.getId().equals(deciderId))
                 .findFirst().orElse(null);
-        if (decider == null) return null;
+        if (decider == null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
         String username = decider.getUser() != null ? decider.getUser().getUsername() : null;
-        session.clearPendingUpgrade();
-        advanceTurn(session);
-        checkGameEnd(session, new StringBuilder());
-        sessionRepository.save(session);
-        String msg = (username != null ? username : "Gracz") + " pomija ulepszenie (czas minal).";
-        publishPublic(sessionId, null, null, msg, null, null, null, null);
-        scheduleBotUpdate(sessionId);
-        return toState(session, username, null, null, msg, null, null, null, null);
+        return doSkipUpgrade(session, decider, username, true);
     }
 
     /** Wlasciciel pomija ulepszenie pola. */
@@ -1378,11 +2245,19 @@ public class GameService {
         if (!me.getId().equals(session.getPendingUpgradePlayerId())) {
             throw new IllegalArgumentException("To nie Twoje pole.");
         }
+        return doSkipUpgrade(session, me, username, false);
+    }
+
+    private GameStateDto doSkipUpgrade(GameSession session, GamePlayer me, String username, boolean timeout) {
         session.clearPendingUpgrade();
-        advanceTurn(session);
+        endTurnOrExtraRoll(session, me);
+        checkGameEnd(session, new StringBuilder());
         sessionRepository.save(session);
 
-        String msg = me.getDisplayName() + " pomija ulepszenie pola.";
+        String msg = timeout
+                ? me.getDisplayName() + " pomija ulepszenie (czas minal)."
+                : me.getDisplayName() + " pomija ulepszenie pola.";
+        Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);

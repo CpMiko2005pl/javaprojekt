@@ -75,9 +75,26 @@ public class GameSession {
     @Column(name = "pending_upgrade_cost")
     private Integer pendingUpgradeCost;
 
+    /** Odkup posesji przejetej karta (ofiara placi 2x cene zakupu). */
+    @Column(name = "pending_buyback_pos")
+    private Integer pendingBuybackPos;
+
+    @Column(name = "pending_buyback_victim_id")
+    private Long pendingBuybackVictimId;
+
+    @Column(name = "pending_buyback_holder_id")
+    private Long pendingBuybackHolderId;
+
+    @Column(name = "pending_buyback_price")
+    private Integer pendingBuybackPrice;
+
     /** Gracz z aktywna karta "Dodatkowy rzut" — dostaje jeszcze jedna ture. */
     @Column(name = "pending_extra_roll_player_id")
     private Long pendingExtraRollPlayerId;
+
+    /** ID uzytkownika (User), ktory jest liderem lobby i moze rozpoczac gre. */
+    @Column(name = "leader_id")
+    private Long leaderId;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("turnOrder asc")
@@ -90,6 +107,14 @@ public class GameSession {
         player.setSession(this);
         player.setTurnOrder(players.size());
         players.add(player);
+    }
+
+    public void removePlayer(GamePlayer player) {
+        if (!players.remove(player)) return;
+        player.setSession(null);
+        for (int i = 0; i < players.size(); i++) {
+            players.get(i).setTurnOrder(i);
+        }
     }
 
     public Long getId() {
@@ -232,6 +257,28 @@ public class GameSession {
         this.pendingUpgradeCost = null;
     }
 
+    public Integer getPendingBuybackPos() { return pendingBuybackPos; }
+    public void setPendingBuybackPos(Integer pendingBuybackPos) { this.pendingBuybackPos = pendingBuybackPos; }
+
+    public Long getPendingBuybackVictimId() { return pendingBuybackVictimId; }
+    public void setPendingBuybackVictimId(Long pendingBuybackVictimId) { this.pendingBuybackVictimId = pendingBuybackVictimId; }
+
+    public Long getPendingBuybackHolderId() { return pendingBuybackHolderId; }
+    public void setPendingBuybackHolderId(Long pendingBuybackHolderId) { this.pendingBuybackHolderId = pendingBuybackHolderId; }
+
+    public Integer getPendingBuybackPrice() { return pendingBuybackPrice; }
+    public void setPendingBuybackPrice(Integer pendingBuybackPrice) { this.pendingBuybackPrice = pendingBuybackPrice; }
+
+    public void clearPendingBuyback() {
+        this.pendingBuybackPos = null;
+        this.pendingBuybackVictimId = null;
+        this.pendingBuybackHolderId = null;
+        this.pendingBuybackPrice = null;
+    }
+
     public Long getPendingExtraRollPlayerId() { return pendingExtraRollPlayerId; }
     public void setPendingExtraRollPlayerId(Long pendingExtraRollPlayerId) { this.pendingExtraRollPlayerId = pendingExtraRollPlayerId; }
+
+    public Long getLeaderId() { return leaderId; }
+    public void setLeaderId(Long leaderId) { this.leaderId = leaderId; }
 }

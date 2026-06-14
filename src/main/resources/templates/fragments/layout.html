@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
-    <link rel="stylesheet" th:href="@{/css/light.css}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20250613-presence')}">
+    <link rel="stylesheet" th:href="@{/css/light.css(v='20250613-presence')}">
 </head>
 
 <!-- Wariant dla strony startowej: dodatkowo home-page.css (styl commit8) -->
@@ -27,8 +27,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css}">
-    <link rel="stylesheet" th:href="@{/css/light.css}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20250613-presence')}">
+    <link rel="stylesheet" th:href="@{/css/light.css(v='20250613-presence')}">
     <link rel="stylesheet" th:href="@{/css/home-page.css}">
 </head>
 
@@ -45,9 +45,10 @@
         </a>
 
         <ul class="nav-links">
-            <li><a th:href="@{/}">Start</a></li>
-            <li sec:authorize="isAuthenticated()"><a th:href="@{/dashboard}">Profil</a></li>
             <li sec:authorize="isAuthenticated()"><a th:href="@{/game}">Graj</a></li>
+            <li sec:authorize="isAuthenticated()">
+                <a th:href="@{/friends}"><i class="fa-solid fa-magnifying-glass"></i> Gracze</a>
+            </li>
         </ul>
 
         <div class="nav-auth">
@@ -55,8 +56,13 @@
                 <span class="online-dot" aria-hidden="true"></span>
                 <strong sec:authentication="name">login</strong>
             </span>
+            <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-secondary btn-small">
+                <i class="fa-solid fa-user"></i> Profil
+            </a>
             <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline-form">
-                <button type="submit" class="btn btn-secondary btn-small">Wyloguj</button>
+                <button type="submit" class="btn btn-secondary btn-small">
+                    <i class="fa-solid fa-right-from-bracket"></i> Wyloguj
+                </button>
             </form>
             <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-secondary btn-small">Zaloguj</a>
             <a sec:authorize="!isAuthenticated()" th:href="@{/register}" class="btn btn-small">Zapisz sie</a>
@@ -67,9 +73,19 @@
         </button>
 
         <div class="mobile-menu" id="mobile-menu">
-            <a th:href="@{/}">Start</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}">Profil</a>
             <a sec:authorize="isAuthenticated()" th:href="@{/game}">Graj</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/friends}">
+                <i class="fa-solid fa-magnifying-glass"></i> Gracze
+            </a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}">
+                <i class="fa-solid fa-user"></i> Profil
+            </a>
+            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post"
+                  style="display:block;margin:0;padding:0;">
+                <button type="submit" class="mobile-menu-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i> Wyloguj
+                </button>
+            </form>
             <a sec:authorize="!isAuthenticated()" th:href="@{/login}">Zaloguj</a>
             <a sec:authorize="!isAuthenticated()" th:href="@{/register}">Zarejestruj sie</a>
         </div>
@@ -80,6 +96,19 @@
     <p>Politechnika Monopoly &middot; Projekt studencki PB &middot;
         <span th:text="${#dates.year(#dates.createNow())}">2026</span></p>
 </footer>
+
+<!-- Zielona / czerwona kropka statusu obok nicku -->
+<span th:fragment="presenceDot(online)"
+      class="presence-dot-inline"
+      th:classappend="${online} ? ' presence-dot-inline--online' : ' presence-dot-inline--offline'"
+      th:title="${online} ? 'Online' : 'Offline'"
+      aria-hidden="true"></span>
+
+<!-- Strzałka wstecz (href = np. /dashboard) -->
+<a th:fragment="backLink(href, label)" th:href="${href}" class="page-back-link">
+    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+    <span th:text="${label != null ? label : 'Wstecz'}">Wstecz</span>
+</a>
 
 <footer th:fragment="lp-footer" class="lp-footer">
     <div class="lp-footer-grid">

@@ -1,52 +1,121 @@
-/* Codzienne Kolo Fortuny - rysowanie na canvasie + animacja losowania. */
+/* Codzienne Kolo Fortuny — jasny motyw PB, wielolinijkowe etykiety w segmentach. */
 (function () {
     "use strict";
 
     const segments = window.WHEEL_SEGMENTS || [];
-    const n = segments.length;
+    const n = segments.length || 1;
     const canvas = document.getElementById("wheel");
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     const size = canvas.width;
-    const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 14;
     const segAngleDeg = 360 / n;
     const segAngle = (2 * Math.PI) / n;
+    const labelRadius = r - 36;
 
-    const COLORS = ["#38bdf8", "#a855f7", "#10b981", "#f59e0b", "#f43f5e", "#6366f1", "#14b8a6", "#ec4899"];
+    /* Pastele zgodne z light.css / PB Design System */
+    const COLORS = [
+        "#C8EDD8", "#DDD0F5", "#C8DCFF", "#FFE8C2",
+        "#FFD4DE", "#C4EDF5", "#D0F5E0", "#E8DDFA"
+    ];
+
+    function splitLabel(text, maxLen) {
+        const words = String(text || "").split(/\s+/).filter(Boolean);
+        const lines = [];
+        let cur = "";
+        words.forEach(function (w) {
+            const next = cur ? cur + " " + w : w;
+            if (next.length <= maxLen) {
+                cur = next;
+            } else {
+                if (cur) lines.push(cur);
+                cur = w.length > maxLen ? w.slice(0, maxLen - 1) + "…" : w;
+            }
+        });
+        if (cur) lines.push(cur);
+        return lines.slice(0, 3);
+    }
+
+    function chordWidthAt(radius) {
+        return 2 * radius * Math.sin(segAngle / 2);
+    }
+
+    function fontSizeForSegment(text) {
+        const len = (text || "").length;
+        const chord = chordWidthAt(labelRadius);
+        let fs = Math.floor(chord * 0.11);
+        if (len > 28) fs -= 2;
+        if (len > 36) fs -= 2;
+        return Math.max(10, Math.min(13, fs));
+    }
 
     function drawWheel() {
         ctx.clearRect(0, 0, size, size);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 8, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,166,81,0.28)";
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        ctx.restore();
+
         for (let i = 0; i < n; i++) {
             const start = -Math.PI / 2 + i * segAngle;
             const end = start + segAngle;
-            // wycinek
+
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, r, start, end);
             ctx.closePath();
             ctx.fillStyle = COLORS[i % COLORS.length];
             ctx.fill();
-            ctx.strokeStyle = "#0d1017";
+            ctx.strokeStyle = "rgba(255,255,255,0.95)";
             ctx.lineWidth = 2;
             ctx.stroke();
-            // tekst
+
+            const raw = segments[i] || "";
+            const maxChars = Math.max(8, Math.floor(chordWidthAt(labelRadius) / 7.2));
+            const lines = splitLabel(raw, maxChars);
+            const fs = fontSizeForSegment(raw);
+            const lineHeight = fs * 1.12;
+
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(start + segAngle / 2);
             ctx.textAlign = "right";
-            ctx.fillStyle = "#11151c";
-            ctx.font = "600 13px Segoe UI, sans-serif";
-            const label = segments[i].length > 22 ? segments[i].slice(0, 21) + "…" : segments[i];
-            ctx.fillText(label, r - 14, 5);
+            ctx.textBaseline = "middle";
+            ctx.font = "700 " + fs + "px 'Plus Jakarta Sans', 'Segoe UI', sans-serif";
+
+            const startY = -((lines.length - 1) * lineHeight) / 2;
+            lines.forEach(function (line, li) {
+                const y = startY + li * lineHeight;
+                ctx.fillStyle = "#0f172a";
+                ctx.fillText(line, labelRadius, y);
+            });
             ctx.restore();
         }
-        // srodek
+
         ctx.beginPath();
-        ctx.arc(cx, cy, 26, 0, 2 * Math.PI);
-        ctx.fillStyle = "#0d1017";
+        ctx.arc(cx, cy, 38, 0, 2 * Math.PI);
+        ctx.fillStyle = "#ffffff";
         ctx.fill();
-        ctx.strokeStyle = "#ff5a1f";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#00A651";
+        ctx.lineWidth = 4;
         ctx.stroke();
+
+        const grd = ctx.createLinearGradient(cx - 20, cy - 20, cx + 20, cy + 20);
+        grd.addColorStop(0, "#00A651");
+        grd.addColorStop(1, "#6A1B9A");
+        ctx.fillStyle = grd;
+        ctx.font = "800 17px 'Space Grotesk', 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PB", cx, cy);
     }
 
     drawWheel();
@@ -58,7 +127,8 @@
     let currentRotation = 0;
 
     if (!window.CAN_SPIN) {
-        info.textContent = "Dzis juz losowales. Wroc jutro!";
+        if (btn) btn.disabled = true;
+        if (info) info.textContent = "Dzis juz losowales. Wroc jutro!";
     }
 
     function csrf() {
@@ -67,11 +137,12 @@
         return { header: h ? h.content : null, token: t ? t.content : null };
     }
 
+    if (!btn) return;
     btn.addEventListener("click", async function () {
-        if (spinning) return;
+        if (spinning || !window.CAN_SPIN) return;
         spinning = true;
         btn.disabled = true;
-        reward.textContent = "";
+        if (reward) reward.textContent = "";
 
         try {
             const c = csrf();
@@ -81,24 +152,25 @@
             const data = await res.json();
 
             if (!data.spun) {
-                info.textContent = data.message;
+                if (info) info.textContent = data.message;
                 spinning = false;
                 btn.disabled = true;
                 return;
             }
 
-            // Docelowy obrot: srodek wylosowanego pola pod wskaznikiem (gora).
             const idx = data.rewardIndex;
-            const target = 360 * 6 - (idx + 0.5) * segAngleDeg;
-            currentRotation = target;
+            currentRotation += 360 * 6 + (360 - (idx + 0.5) * segAngleDeg);
+            canvas.style.transition = "transform 4.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)";
             canvas.style.transform = "rotate(" + currentRotation + "deg)";
 
             setTimeout(function () {
-                reward.textContent = "🎉 " + data.rewardLabel;
-                info.textContent = data.message + " (Daily streak: " + data.dailyStreak + " 🔥)";
-            }, 4600);
+                if (reward) reward.textContent = "🎉 " + data.rewardLabel;
+                if (info) info.textContent = data.message + " (Daily streak: " + data.dailyStreak + " 🔥)";
+                spinning = false;
+                window.CAN_SPIN = false;
+            }, 4700);
         } catch (e) {
-            info.textContent = "Blad podczas losowania.";
+            if (info) info.textContent = "Blad podczas losowania.";
             spinning = false;
             btn.disabled = false;
         }

@@ -10,10 +10,21 @@
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}" style="margin-bottom:16px;"></div>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}" style="margin-bottom:16px;"></div>
+    <div class="alert alert-error" role="alert" th:if="${user.suspended}" style="margin-bottom:16px;">
+        <strong>Konto zawieszone.</strong>
+        <span th:if="${user.suspensionReason}" th:text="${user.suspensionReason}">Powod</span>
+        <span th:unless="${user.suspensionReason}">Nie mozesz grac do odwieszenia przez moderatora.</span>
+    </div>
+    <div class="alert alert-error" role="alert" th:if="${!myWarnings.isEmpty()}" style="margin-bottom:16px;">
+        <strong>Ostrzezenie od moderatora:</strong>
+        <span th:text="${myWarnings[0].message}">Tresc</span>
+        <span th:if="${myWarnings.size() > 1}" th:text="' (+' + (${myWarnings.size()} - 1) + ' w historii)'"></span>
+    </div>
     <div class="alert alert-success" role="status" th:if="${!activeSessions.isEmpty()}" style="margin-bottom:16px;">
-        Aktywna rozgrywka:
-        <a th:each="s : ${activeSessions}" th:href="@{/game/{id}(id=${s.id})}"
-           th:text="${s.name} + ' (' + ${s.code} + ')'">pokoj</a>
+        Twoje pokoje:
+        <a th:each="s : ${activeSessions}"
+           th:href="@{/game/{id}(id=${s.id})}"
+           th:text="${s.name} + ' (' + ${s.code} + ')' + (${s.status.name() == 'WAITING'} ? ' — lobby' : ' — gra')">pokoj</a>
     </div>
 
     <!-- PROFILE HEADER -->
@@ -27,8 +38,14 @@
             <div class="lp-ph-identity">
                 <div class="lp-ph-avatar profile-avatar-frame"
                      th:classappend="${equippedFrame != null} ? ' pf-' + ${equippedFrame} : ''">
-                    <img th:src="@{/api/avatar/{u}(u=${user.username})}" alt="Awatar"
-                         id="profileAvatarImg" width="120" height="120" loading="lazy"
+                    <img th:if="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
+                         th:src="${user.avatarUrl + (user.avatarUrl.contains('?') ? '&' : '?') + 'v=' + #dates.createNow().time}"
+                         th:attr="data-username=${user.username}"
+                         alt="Awatar" id="profileAvatarImg" class="avatar-img" width="120" height="120" loading="lazy"
+                         onerror="this.onerror=null;this.src='/api/avatar/'+encodeURIComponent(this.dataset.username||'')+'?t='+Date.now();">
+                    <img th:unless="${user.avatarUrl != null and !#strings.isEmpty(user.avatarUrl)}"
+                         th:src="@{/api/avatar/{u}(u=${user.username})}" alt="Awatar"
+                         id="profileAvatarImg" class="avatar-img" width="120" height="120" loading="lazy"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                     <span style="display:none;font-family:var(--font-display);font-size:48px;font-weight:800;color:#fff;"
                           th:text="${#strings.toUpperCase(#strings.substring(user.username,0,1))}">G</span>
@@ -121,11 +138,6 @@
                         <div class="lp-q-icon purple"><i class="fa-solid fa-dice"></i></div>
                         <div class="lp-q-text"><strong>Lobby gry</strong><span>Stwórz pokój lub dołącz</span></div>
                     </a>
-                    <a sec:authorize="hasAnyRole('ADMIN','MODERATOR')"
-                       th:href="@{/properties}" class="lp-q-item">
-                        <div class="lp-q-icon blue"><i class="fa-solid fa-building"></i></div>
-                        <div class="lp-q-text"><strong>Nieruchomości</strong><span>Lista pól planszy</span></div>
-                    </a>
                     <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}" class="lp-q-item">
                         <div class="lp-q-icon" style="background:rgba(225,29,72,.1);color:#e11d48;"><i class="fa-solid fa-shield-halved"></i></div>
                         <div class="lp-q-text"><strong>Panel admina</strong><span>Zarządzaj graczami</span></div>
@@ -136,6 +148,10 @@
             <!-- Znajomi - sidebar -->
             <div class="lp-mini-panel">
                 <h3>Znajomi (<span th:text="${friends.size()}">0</span>)</h3>
+                <p class="muted" style="font-size:.72rem;margin:0 0 10px;">
+                    <span class="presence-dot-inline presence-dot-inline--online"></span> online
+                    <span class="presence-dot-inline presence-dot-inline--offline" style="margin-left:.6rem;"></span> offline
+                </p>
                 <div class="lp-friend-row" th:each="f : ${friends}">
                     <div class="mini-avatar" style="padding:0;overflow:hidden;">
                         <img th:src="@{/api/avatar/{u}(u=${f.username})}" alt=""
@@ -145,10 +161,15 @@
                               th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</span>
                     </div>
                     <div style="flex:1;">
-                        <strong style="font-size:.88rem;" th:text="${f.username}">login</strong><br>
+                        <strong class="player-name-row" style="font-size:.88rem;">
+                        <span class="presence-dot-inline"
+                              th:classappend="${f.online} ? ' presence-dot-inline--online' : ' presence-dot-inline--offline'"
+                              th:title="${f.online} ? 'Online' : 'Offline'"></span>
+                        <span th:text="${f.username}">login</span>
+                    </strong><br>
                         <span class="muted" style="font-size:.75rem;">LVL <span th:text="${f.level}">1</span> · <span th:text="${f.eloPoints}">1000</span> ELO</span>
                     </div>
-                    <a th:href="@{/u/{u}(u=${f.username})}" class="lp-btn-outline" style="font-size:11px;padding:5px 10px;" target="_blank">Profil</a>
+                    <a th:href="@{/u/{u}(u=${f.username})}" class="lp-btn-outline" style="font-size:11px;padding:5px 10px;">Profil</a>
                 </div>
                 <p class="muted" th:if="${friends.isEmpty()}" style="font-size:.85rem;margin:0;">Brak znajomych.</p>
                 <div th:if="${requests.size() > 0}" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.06);">
@@ -217,8 +238,8 @@
                     <span>Dostępne: <strong style="color:#0f172a;" id="availableBoxesBadge" th:text="${availableBoxes}">0</strong></span>
                 </div>
                 <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                    <div class="lootbox-chest-icon">
-                        <i class="fa-solid fa-box" id="chestIconMain"></i>
+                    <div class="lootbox-chest-icon" id="chestIconMain">
+                        <i class="fa-solid fa-box" style="font-size:1.6rem;color:#fff;"></i>
                         <span class="lootbox-chest-count" id="boxCountLabel" th:text="${availableBoxes}">0</span>
                     </div>
                     <div style="flex:1;">
@@ -241,36 +262,54 @@
             </div>
 
             <!-- Inwentarz -->
-            <div class="lp-sc">
-                <div class="lp-sc-head">
-                    <h3><i class="fa-solid fa-toolbox" style="margin-right:.4rem;color:#6A1B9A;"></i> Ekwipunek</h3>
-                    <span><span th:text="${inventory.size()}">0</span> przedmiotów</span>
-                </div>
-                <div id="inventoryGrid" class="inventory-grid">
-                    <div th:each="i : ${inventory}" class="inventory-item"
-                         th:classappend="' rarity-' + ${#strings.toLowerCase(i.rarity)} + (${i.equipped} ? ' item-equipped' : '') + (${i.category == 'Naklejka'} ? ' item-cosmetic-only' : '')"
-                         th:style="'border-color:' + ${i.rarityColor}"
-                         th:data-item-id="${i.ownedId}" th:data-category="${i.category}" th:data-slug="${i.slug}">
-                        <div class="inventory-icon" th:style="'color:' + ${i.rarityColor}">
-                            <i th:class="${i.iconClass}"></i>
-                        </div>
-                        <div style="flex:1">
-                            <strong th:text="${i.name}">Item</strong>
-                            <span class="inventory-rarity" th:style="'color:' + ${i.rarityColor}">
-                                <span th:text="${i.rarityLabel}">Common</span> &middot;
-                                <span th:text="${i.category}">Awatar</span>
-                            </span>
-                        </div>
-                        <div>
-                            <span th:if="${i.equipped}" class="badge badge-ok" style="font-size:.7rem;"><i class="fa-solid fa-check"></i> Założony</span>
-                            <button th:if="${i.category != 'Naklejka'}" class="btn btn-small btn-equip"
-                                    th:data-id="${i.ownedId}" th:data-category="${i.category}"
-                                    th:text="${i.equipped} ? 'Zdejmij' : 'Załóż'">Załóż</button>
-                        </div>
+            <div class="lp-sc inventory-section" id="inventorySection">
+                <div class="lp-sc-head inventory-sc-head">
+                    <div class="inventory-sc-title">
+                        <button type="button" class="inventory-toggle-btn" id="inventoryToggleBtn"
+                                aria-expanded="true" aria-controls="inventoryBody"
+                                title="Zwiń / rozwiń ekwipunek">
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <h3><i class="fa-solid fa-toolbox" style="margin-right:.4rem;color:#6A1B9A;"></i> Ekwipunek</h3>
                     </div>
-                    <p th:if="${inventory.isEmpty()}" class="muted" style="grid-column:1/-1;">
-                        Brak przedmiotów. Wygraj grę i zdobądź pierwszą skrzynkę!
-                    </p>
+                    <span class="inventory-count"><span id="inventoryCount" th:text="${inventory.size()}">0</span> przedmiotów</span>
+                </div>
+                <div class="inventory-section-body" id="inventoryBody">
+                    <div class="inv-pager-wrap" id="inventoryPagerWrap" hidden>
+                        <button type="button" class="hist-carousel-btn inv-pager-prev" id="inventoryPrev" aria-label="Poprzednia strona przedmiotów">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <span class="inv-pager-label" id="inventoryPagerLabel">1 / 1</span>
+                        <button type="button" class="hist-carousel-btn inv-pager-next" id="inventoryNext" aria-label="Następna strona przedmiotów">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div id="inventoryGrid" class="inventory-grid">
+                        <div th:each="i : ${inventory}" class="inventory-item"
+                             th:classappend="' rarity-' + ${#strings.toLowerCase(i.rarity)} + (${i.equipped} ? ' item-equipped' : '') + (${i.category == 'Naklejka'} ? ' item-cosmetic-only' : '')"
+                             th:style="'border-color:' + ${i.rarityColor}"
+                             th:data-item-id="${i.ownedId}" th:data-category="${i.category}" th:data-slug="${i.slug}">
+                            <div class="inventory-icon" th:style="'color:' + ${i.rarityColor}">
+                                <i th:class="${i.iconClass}"></i>
+                            </div>
+                            <div style="flex:1">
+                                <strong th:text="${i.name}">Item</strong>
+                                <span class="inventory-rarity" th:style="'color:' + ${i.rarityColor}">
+                                    <span th:text="${i.rarityLabel}">Common</span> &middot;
+                                    <span th:text="${i.category}">Awatar</span>
+                                </span>
+                            </div>
+                            <div>
+                                <span th:if="${i.equipped}" class="badge badge-ok" style="font-size:.7rem;"><i class="fa-solid fa-check"></i> Założony</span>
+                                <button th:if="${i.category != 'Naklejka'}" class="btn btn-small btn-equip"
+                                        th:data-id="${i.ownedId}" th:data-category="${i.category}"
+                                        th:text="${i.equipped} ? 'Zdejmij' : 'Załóż'">Załóż</button>
+                            </div>
+                        </div>
+                        <p th:if="${inventory.isEmpty()}" class="muted inventory-empty" style="grid-column:1/-1;">
+                            Brak przedmiotów. Wygraj grę i zdobądź pierwszą skrzynkę!
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -278,59 +317,23 @@
             <div class="lp-sc">
                 <div class="lp-sc-head">
                     <h3>Historia meczów</h3>
-                    <span>Ostatnie 30 dni</span>
+                    <span>Ostatnie 6</span>
                 </div>
-                <div class="lp-match-list" th:if="${!matches.isEmpty()}">
-                    <div class="lp-m-card" th:each="m : ${matches}">
-                        <span class="lp-m-result" th:classappend="${m.won} ? ' lp-m-win' : ' lp-m-loss'"
-                              th:text="${m.won} ? 'WIN' : 'LOSS'">WIN</span>
-                        <div class="lp-m-info">
-                            <div class="lp-m-opp" th:text="${m.boardName}">Kampus PB</div>
-                            <div class="lp-m-date" th:text="${#temporals.format(m.playedAt, 'dd.MM.yyyy HH:mm')} + ' · ' + ${m.durationMinutes} + ' min'">01.01.2026</div>
-                        </div>
-                        <div class="lp-m-elo"
-                             th:classappend="${m.eloChange >= 0} ? ' lp-elo-pos' : ' lp-elo-neg'"
-                             th:text="(${m.eloChange >= 0} ? '+' : '') + ${m.eloChange} + ' ELO'">+20 ELO</div>
-                        <div class="lp-m-place"
-                             th:text="${m.placement} + '. / ' + ${m.playersCount} + ' graczy'">1. / 4 graczy</div>
-                    </div>
-                </div>
-                <p class="muted" th:if="${matches.isEmpty()}">
-                    Brak rozegranych meczów. <a th:href="@{/game}">Zagraj pierwszy mecz!</a>
-                </p>
+                <div th:replace="~{fragments/match-carousel :: matchCarousel(${matches})}"></div>
             </div>
 
-            <!-- Znajomi - sekcja dodawania -->
+            <!-- Znajdź graczy -->
             <div class="lp-sc">
-                <div class="lp-sc-head"><h3>Dodaj znajomego</h3></div>
-                <form th:action="@{/dashboard}" method="get" style="display:flex;gap:.5rem;margin-bottom:1rem;">
-                    <input type="text" name="q" th:value="${query}" placeholder="Wpisz login gracza…"
-                           style="flex:1;padding:.58rem .85rem;border-radius:10px;border:1px solid rgba(0,166,81,0.18);background:rgba(255,255,255,0.88);color:#0f172a;font-size:.9rem;">
-                    <button type="submit" class="lp-btn-outline"><i class="fa-solid fa-magnifying-glass"></i> Szukaj</button>
-                </form>
-                <div th:if="${results != null and !results.isEmpty()}">
-                    <div class="lp-friend-row" th:each="u : ${results}">
-                        <div class="mini-avatar" style="padding:0;overflow:hidden;">
-                            <img th:src="@{/api/avatar/{u2}(u2=${u.username})}" alt=""
-                                 style="width:100%;height:100%;object-fit:cover;display:block;"
-                                 th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
-                            <span style="display:none;width:100%;height:100%;place-items:center;font-weight:800;font-size:.9rem;"
-                                  th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</span>
-                        </div>
-                        <div style="flex:1;font-size:.875rem;">
-                            <strong th:text="${u.username}">login</strong>
-                            <span class="muted"> · LVL <span th:text="${u.level}">1</span></span>
-                        </div>
-                        <form th:action="@{/friends/add}" method="post" class="inline-form">
-                            <input type="hidden" name="from" value="dashboard">
-                            <input type="hidden" name="username" th:value="${u.username}">
-                            <button type="submit" class="lp-btn-play" style="animation:none;font-size:11px;padding:6px 14px;">+ Dodaj</button>
-                        </form>
+                <a th:href="@{/friends}" class="lp-find-players-card">
+                    <div class="lp-find-players-icon" aria-hidden="true">
+                        <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
-                </div>
-                <p class="muted" th:if="${query != null and results != null and results.isEmpty()}" style="font-size:.85rem;">
-                    Brak graczy dla "<span th:text="${query}">x</span>".
-                </p>
+                    <div class="lp-find-players-text">
+                        <strong>Znajdź graczy</strong>
+                        <span>Wyszukaj login i dodaj znajomych</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-right lp-find-players-arrow" aria-hidden="true"></i>
+                </a>
             </div>
 
         </div><!-- /lp-main -->
@@ -348,9 +351,8 @@
         <p class="muted" style="text-align:center;margin-top:-.3rem;">Spin raz dziennie!</p>
         <div class="wheel-container" id="wheelContainer">
             <div class="wheel-pointer"><i class="fa-solid fa-caret-down"></i></div>
-            <div class="wheel-disc-wrap">
-                <div class="wheel-disc" id="wheelDisc"></div>
-            </div>
+            <canvas id="wheelCanvas" width="400" height="400"
+                    style="width:400px;max-width:88vw;height:auto;display:block;border-radius:50%;"></canvas>
         </div>
         <div id="wheelMessage" class="wheel-message" aria-live="polite"></div>
         <div style="text-align:center;margin-top:1rem;">
@@ -365,7 +367,9 @@
 
 <footer th:replace="~{fragments/layout :: lp-footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
-<script th:src="@{/js/lootbox.js}"></script>
+<script th:src="@{/js/match-carousel.js}"></script>
+<script th:src="@{/js/inventory-panel.js}"></script>
+<script th:src="@{/js/lootbox.js(v='20250613-dedup')}"></script>
 <script th:inline="javascript">
 /*<![CDATA[*/
 var WHEEL_SEGMENTS = /*[[${wheelSegments}]]*/ [];
@@ -380,23 +384,62 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
     var modal   = document.getElementById("wheelModal");
     var closeBtn= document.getElementById("closeWheelModal");
     var spinBtn = document.getElementById("spinBtn");
-    var disc    = document.getElementById("wheelDisc");
+    var canvas  = document.getElementById("wheelCanvas");
+    var ctx     = canvas ? canvas.getContext("2d") : null;
     var msg     = document.getElementById("wheelMessage");
-    var COLORS  = ["#f59e0b","#10b981","#3b82f6","#e879f9","#f43f5e","#a855f7","#06b6d4","#84cc16"];
+    /* Pastele PB — jak /wheel */
+    var COLORS  = ["#C8EDD8","#DDD0F5","#C8DCFF","#FFE8C2","#FFD4DE","#C4EDF5","#D0F5E0","#E8DDFA"];
     var currentRotation = 0, spinning = false;
 
-    function buildWheel() {
-        if (!disc || !WHEEL_SEGMENTS.length) return;
-        var n = WHEEL_SEGMENTS.length, deg = 360 / n;
-        disc.style.background = "conic-gradient(" + WHEEL_SEGMENTS.map(function(_, i){ return COLORS[i%COLORS.length]+" "+(i*deg)+"deg "+(i+1)*deg+"deg"; }).join(",") + ")";
-        disc.innerHTML = "";
-        WHEEL_SEGMENTS.forEach(function(label, i) {
-            var span = document.createElement("span");
-            span.className = "wheel-label";
-            span.style.transform = "rotate("+(i*deg+deg/2)+"deg) translateY(-45%)";
-            span.textContent = label.length > 18 ? label.substring(0,16)+"…" : label;
-            disc.appendChild(span);
+    function splitLabel(text, maxLen) {
+        var words = String(text||"").split(/\s+/).filter(Boolean);
+        var lines = [], cur = "";
+        words.forEach(function(w){
+            var next = cur ? cur+" "+w : w;
+            if (next.length <= maxLen) cur = next;
+            else { if(cur) lines.push(cur); cur = w.length>maxLen ? w.slice(0,maxLen-1)+"…" : w; }
         });
+        if (cur) lines.push(cur);
+        return lines.slice(0, 3);
+    }
+
+    function buildWheel() {
+        if (!ctx || !WHEEL_SEGMENTS.length) return;
+        var size = canvas.width, cx = size/2, cy = size/2, r = size/2 - 12;
+        var n = WHEEL_SEGMENTS.length, seg = 2*Math.PI/n;
+        var labelR = r - 28;
+        ctx.clearRect(0,0,size,size);
+        ctx.beginPath(); ctx.arc(cx,cy,r+6,0,2*Math.PI); ctx.fillStyle="#ffffff"; ctx.fill();
+        ctx.strokeStyle="rgba(0,166,81,0.28)"; ctx.lineWidth=5; ctx.stroke();
+        for (var i=0;i<n;i++){
+            var start = -Math.PI/2 + i*seg, end = start+seg;
+            ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+            ctx.fillStyle = COLORS[i%COLORS.length]; ctx.fill();
+            ctx.strokeStyle="rgba(255,255,255,0.95)"; ctx.lineWidth=2; ctx.stroke();
+            var raw = WHEEL_SEGMENTS[i]||"";
+            var chord = 2*labelR*Math.sin(seg/2);
+            var maxChars = Math.max(8, Math.floor(chord/7.2));
+            var lines = splitLabel(raw, maxChars);
+            var fs = Math.max(9, Math.min(12, Math.floor(chord*0.11)));
+            if (raw.length>28) fs -= 1;
+            var lineH = fs*1.12;
+            ctx.save();
+            ctx.translate(cx,cy); ctx.rotate(start+seg/2);
+            ctx.textAlign="right"; ctx.textBaseline="middle";
+            ctx.font="700 "+fs+"px 'Plus Jakarta Sans','Segoe UI',sans-serif";
+            var startY = -((lines.length-1)*lineH)/2;
+            for (var li=0; li<lines.length; li++) {
+                ctx.fillStyle="#0f172a";
+                ctx.fillText(lines[li], labelR, startY + li*lineH);
+            }
+            ctx.restore();
+        }
+        ctx.beginPath(); ctx.arc(cx,cy,32,0,2*Math.PI); ctx.fillStyle="#ffffff"; ctx.fill();
+        ctx.strokeStyle="#00A651"; ctx.lineWidth=4; ctx.stroke();
+        var grd = ctx.createLinearGradient(cx-18,cy-18,cx+18,cy+18);
+        grd.addColorStop(0,"#00A651"); grd.addColorStop(1,"#6A1B9A");
+        ctx.fillStyle=grd; ctx.font="800 16px 'Space Grotesk','Segoe UI',sans-serif";
+        ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText("PB",cx,cy);
     }
     if (openBtn && modal) { buildWheel(); openBtn.addEventListener("click", function(){ modal.style.display="flex"; document.body.style.overflow="hidden"; }); }
     if (closeBtn) closeBtn.addEventListener("click", function(){ modal.style.display="none"; document.body.style.overflow=""; });
@@ -415,16 +458,27 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
         fetch("/wheel/spin",{method:"POST",headers:csrfHeaders()})
         .then(function(r){return r.json();})
         .then(function(data){
-            var n=WHEEL_SEGMENTS.length, deg=360/n, idx=data.winIndex>=0?data.winIndex:0;
-            var segCenter=idx*deg+deg/2, targetAngle=5*360+(360-segCenter)+15;
+            if(!data.spun){
+                spinning=false;
+                if(msg) msg.textContent=data.message||"Dzis juz losowales.";
+                spinBtn.disabled=true;
+                spinBtn.innerHTML='<i class="fa-solid fa-check"></i> Wróć jutro';
+                return;
+            }
+            var n=WHEEL_SEGMENTS.length, deg=360/n;
+            var idx=typeof data.rewardIndex==="number"?data.rewardIndex:0;
+            var segCenter=idx*deg+deg/2;
+            var targetAngle=5*360+(360-segCenter);
             currentRotation+=targetAngle;
-            disc.style.transition="transform 4s cubic-bezier(0.17,0.67,0.12,0.99)";
-            disc.style.transform="rotate("+currentRotation+"deg)";
+            if(canvas){
+                canvas.style.transition="transform 4.5s cubic-bezier(0.17,0.67,0.12,0.99)";
+                canvas.style.transform="rotate("+currentRotation+"deg)";
+            }
             setTimeout(function(){
                 spinning=false; CAN_SPIN=false;
-                if(msg) msg.innerHTML='<span class="wheel-win-label">'+(data.reward||WHEEL_SEGMENTS[idx]||"Nagroda!")+'</span><br><span class="muted">'+(data.message||"")+'</span>';
+                if(msg) msg.innerHTML='<span class="wheel-win-label">'+(data.rewardLabel||WHEEL_SEGMENTS[idx]||"Nagroda!")+'</span><br><span class="muted">'+(data.message||"")+'</span>';
                 spinBtn.disabled=true; spinBtn.innerHTML='<i class="fa-solid fa-check"></i> Wróć jutro';
-            },4200);
+            },4600);
         }).catch(function(){ spinning=false; spinBtn.disabled=false; if(msg) msg.textContent="Błąd połączenia."; });
     });
 
@@ -432,8 +486,6 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
         var orig=document.getElementById("lootboxOpenBtn");
         if(!orig) return;
         orig.addEventListener("click", function(){
-            var icon=document.getElementById("chestIconMain");
-            if(icon){ icon.className="fa-solid fa-box-open"; setTimeout(function(){icon.className="fa-solid fa-box";},1800); }
             var carousel=document.getElementById("lootboxCarousel");
             if(carousel) carousel.style.display="block";
         });
@@ -481,6 +533,50 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
         });
     });
 })();
+
+/* ===== AJAX: zaproszenia znajomych bez przeladowania strony ===== */
+(function(){
+    function csrfHdr(){
+        var t=document.querySelector('meta[name="_csrf"]');
+        var h=document.querySelector('meta[name="_csrf_header"]');
+        var hd={};
+        if(t&&h) hd[h.content]=t.content;
+        return hd;
+    }
+    function ajaxFriendForm(form, btn, successLabel){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var fd=new FormData(form);
+            var params=new URLSearchParams();
+            fd.forEach(function(v,k){ params.append(k,v); });
+            var headers=Object.assign({'Content-Type':'application/x-www-form-urlencoded'}, csrfHdr());
+            fetch(form.action, {method:'POST', headers:headers, body:params.toString(), redirect:'manual'})
+            .then(function(){
+                btn.innerHTML=successLabel;
+                btn.disabled=true;
+                btn.style.opacity='0.75';
+            })
+            .catch(function(){ form.submit(); });
+        });
+    }
+    /* Formularze: + Dodaj znajomego */
+    document.querySelectorAll('form[action*="/friends/add"]').forEach(function(form){
+        var btn=form.querySelector('button[type="submit"]');
+        if(btn) ajaxFriendForm(form, btn, '<i class="fa-solid fa-check"></i> Wysłano');
+    });
+    /* Formularze: Akceptuj zaproszenie (OK) */
+    document.querySelectorAll('form[action*="/accept"]').forEach(function(form){
+        var btn=form.querySelector('button[type="submit"]');
+        if(btn) ajaxFriendForm(form, btn, '<i class="fa-solid fa-user-check"></i> Dodano');
+    });
+})();
 </script>
+
+<div id="gameInviteToastHost"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script th:inline="javascript">window.__CURRENT_USER__ = /*[[${#authentication.name}]]*/ '';</script>
+<script th:src="@{/js/game-notifications.js}"></script>
+
 </body>
 </html>

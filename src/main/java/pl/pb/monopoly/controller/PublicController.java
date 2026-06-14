@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.UserRepository;
+import pl.pb.monopoly.service.UserPresenceService;
 
 /**
  * Publiczne profile graczy — dostepne bez logowania (wymaganie: wyswietlenie z linku).
@@ -16,11 +17,14 @@ public class PublicController {
 
     private final UserRepository userRepository;
     private final MatchHistoryRepository matchHistoryRepository;
+    private final UserPresenceService presenceService;
 
     public PublicController(UserRepository userRepository,
-                            MatchHistoryRepository matchHistoryRepository) {
+                            MatchHistoryRepository matchHistoryRepository,
+                            UserPresenceService presenceService) {
         this.userRepository = userRepository;
         this.matchHistoryRepository = matchHistoryRepository;
+        this.presenceService = presenceService;
     }
 
     @GetMapping("/u/{username}")
@@ -32,6 +36,7 @@ public class PublicController {
             return "public/profile";
         }
         model.addAttribute("profileUser", user);
+        model.addAttribute("profileOnline", presenceService.isOnline(user.getUsername()));
         model.addAttribute("stats", user.getStatistics());
         model.addAttribute("matches",
                 matchHistoryRepository.findByUserIdOrderByPlayedAtDesc(user.getId()));

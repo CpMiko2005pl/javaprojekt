@@ -10,8 +10,10 @@ import pl.pb.monopoly.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -86,6 +88,14 @@ public class LootboxService {
                     "fa-solid fa-medal", "Stylowa, blyszczy w ciemnosci."),
             new LootboxItem("title-stypendysta", "Tytul: Stypendysta", Rarity.RARE, "Tytul",
                     "fa-solid fa-award", "Nadawany w panelu profilu."),
+            new LootboxItem("pawn-3d-skeleton", "Pionek 3D: Szkielet", Rarity.RARE, "Pionek 3D",
+                    "fa-solid fa-skull", "Klik-klak po polach Monopoly."),
+            new LootboxItem("pawn-3d-piglin", "Pionek 3D: Piglin", Rarity.RARE, "Pionek 3D",
+                    "fa-solid fa-piggy-bank", "Netherowy handlarz jako Twoj pionek."),
+            new LootboxItem("pawn-3d-pillager", "Pionek 3D: Rozbojnik", Rarity.RARE, "Pionek 3D",
+                    "fa-solid fa-user-ninja", "Najezdzca z wioski — strzela do konkurencji."),
+            new LootboxItem("pawn-3d-goblin", "Pionek 3D: Goblin", Rarity.RARE, "Pionek 3D",
+                    "fa-solid fa-frog", "Zlosliwy stwor — widoczny na planszy 3D."),
 
             // EPIC
             new LootboxItem("avatar-dziekan", "Awatar: Dziekan w gniewie", Rarity.EPIC, "Awatar",
@@ -98,6 +108,12 @@ public class LootboxService {
                     "fa-solid fa-skull", "Stoisz tam czesciej niz wykladowca."),
             new LootboxItem("emoji-trophy", "Naklejka: Puchar Spartakiady", Rarity.EPIC, "Naklejka",
                     "fa-solid fa-trophy", "Spartakiada PB - I miejsce."),
+            new LootboxItem("pawn-3d-creeper", "Pionek 3D: Creeper", Rarity.EPIC, "Pionek 3D",
+                    "fa-solid fa-bomb", "Sssss... na planszy wyglada groznie."),
+            new LootboxItem("pawn-3d-enderman", "Pionek 3D: Enderman", Rarity.EPIC, "Pionek 3D",
+                    "fa-solid fa-ghost", "Wysoki, cienisty — idealny na nocne rozgrywki."),
+            new LootboxItem("pawn-3d-penguin", "Pionek 3D: Pingwin", Rarity.EPIC, "Pionek 3D",
+                    "fa-solid fa-snowflake", "Pingwin z blockowego swiata — rzadki drop."),
 
             // LEGENDARY
             new LootboxItem("avatar-rektor", "Awatar: Rektor PB", Rarity.LEGENDARY, "Awatar",
@@ -105,7 +121,11 @@ public class LootboxService {
             new LootboxItem("frame-rainbow", "Ramka profilu: Tecza", Rarity.LEGENDARY, "Ramka",
                     "fa-solid fa-rainbow", "Animowana, spektakularna."),
             new LootboxItem("title-legenda", "Tytul: Legenda Kampusu", Rarity.LEGENDARY, "Tytul",
-                    "fa-solid fa-star", "Wszyscy o Tobie slyszeli.")
+                    "fa-solid fa-star", "Wszyscy o Tobie slyszeli."),
+            new LootboxItem("pawn-3d-corn", "Pionek 3D: Zlota Kukurydza", Rarity.LEGENDARY, "Pionek 3D",
+                    "fa-solid fa-chess-pawn", "Unikalny zloty pionek 3D widoczny na planszy."),
+            new LootboxItem("pawn-3d-steve", "Pionek 3D: Steve", Rarity.LEGENDARY, "Pionek 3D",
+                    "fa-solid fa-cube", "Klasyk blockowego swiata — legendarny pionek na planszy.")
     );
 
     private final OwnedItemRepository ownedItemRepository;
@@ -141,9 +161,12 @@ public class LootboxService {
         }
     }
 
-    /** Otwiera skrzynke jezeli gracz ma >0 dostepnych. Zwraca wylosowany item. */
+    /** Wynik otwarcia skrzynki — item moze byc bez zapisu, gdy gracz ma juz caly katalog. */
+    public record OpenResult(LootboxItem item, boolean addedToInventory, String inventoryNote) {}
+
+    /** Otwiera skrzynke jezeli gracz ma >0 dostepnych. Duplikaty nie trafiaja do ekwipunku. */
     @Transactional
-    public LootboxItem open(String username) {
+    public OpenResult open(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
         PlayerStatistics stats = user.getStatistics();
         if (stats == null) {
@@ -153,10 +176,19 @@ public class LootboxService {
             throw new IllegalArgumentException("Nie masz dostepnych skrzynek - wroc jutro!");
         }
 
-        LootboxItem rolled = rollItem();
+        Set<String> ownedSlugs = ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
+                .map(OwnedItem::getItemSlug)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        LootboxItem rolled = rollItemNotOwned(ownedSlugs);
         stats.setAvailableLootboxes(stats.getAvailableLootboxes() - 1);
+
+        if (ownedSlugs.contains(rolled.slug())) {
+            return new OpenResult(rolled, false,
+                    "Masz juz ten przedmiot — nie dodano duplikatu do ekwipunku.");
+        }
         ownedItemRepository.save(new OwnedItem(user, rolled.slug()));
-        return rolled;
+        return new OpenResult(rolled, true, null);
     }
 
     @Transactional(readOnly = true)
@@ -166,20 +198,45 @@ public class LootboxService {
 
     /** Losuje item z waga rarity. */
     private LootboxItem rollItem() {
+        return rollItemFromPool(new ArrayList<>(LOOTBOX_ITEMS));
+    }
+
+    /** Losuje item, ktorego gracz jeszcze nie ma. Gdy ma caly katalog — zwykly roll bez zapisu. */
+    private LootboxItem rollItemNotOwned(Set<String> ownedSlugs) {
+        List<LootboxItem> unowned = LOOTBOX_ITEMS.stream()
+                .filter(i -> !ownedSlugs.contains(i.slug()))
+                .collect(Collectors.toList());
+        if (unowned.isEmpty()) {
+            return rollItem();
+        }
+        return rollItemFromPool(unowned);
+    }
+
+    private LootboxItem rollItemFromPool(List<LootboxItem> pool) {
+        if (pool.isEmpty()) {
+            return LOOTBOX_ITEMS.get(ThreadLocalRandom.current().nextInt(LOOTBOX_ITEMS.size()));
+        }
         int totalWeight = 0;
-        for (Rarity r : Rarity.values()) totalWeight += r.weight;
+        for (Rarity r : Rarity.values()) {
+            boolean has = pool.stream().anyMatch(i -> i.rarity() == r);
+            if (has) totalWeight += r.weight;
+        }
+        if (totalWeight <= 0) {
+            return pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+        }
         int roll = ThreadLocalRandom.current().nextInt(totalWeight);
         Rarity picked = Rarity.COMMON;
         int acc = 0;
         for (Rarity r : Rarity.values()) {
+            if (pool.stream().noneMatch(i -> i.rarity() == r)) continue;
             acc += r.weight;
             if (roll < acc) { picked = r; break; }
         }
         final Rarity selected = picked;
-        List<LootboxItem> pool = LOOTBOX_ITEMS.stream()
+        List<LootboxItem> rarityPool = pool.stream()
                 .filter(i -> i.rarity() == selected).collect(Collectors.toList());
-        if (pool.isEmpty()) pool = new ArrayList<>(LOOTBOX_ITEMS);
-        return pool.get(ThreadLocalRandom.current().nextInt(pool.size()));
+        if (rarityPool.isEmpty()) rarityPool = pool;
+        return rarityPool.get(ThreadLocalRandom.current().nextInt(rarityPool.size()));
     }
 
     /**

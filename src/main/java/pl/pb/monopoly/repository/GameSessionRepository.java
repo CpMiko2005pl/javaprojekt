@@ -20,6 +20,13 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
            "order by s.createdAt desc")
     List<GameSession> findActiveByUser(@Param("username") String username);
 
+    /** Otwarte sesje (lobby WAITING + trwajaca gra ACTIVE) uzytkownika — bez opuszczonych. */
+    @Query("select distinct s from GameSession s join s.players p " +
+           "where p.user.username = :username and p.bankrupt = false " +
+           "and s.status in (pl.pb.monopoly.domain.GameStatus.WAITING, pl.pb.monopoly.domain.GameStatus.ACTIVE) " +
+           "order by s.createdAt desc")
+    List<GameSession> findOpenByUser(@Param("username") String username);
+
     /** Wszystkie aktywne sesje (dla moderatora). */
     @Query("select s from GameSession s where s.status = pl.pb.monopoly.domain.GameStatus.ACTIVE order by s.createdAt desc")
     List<GameSession> findAllActive();

@@ -13,6 +13,10 @@
         <div class="alert alert-error" role="alert" th:if="${param.error}" style="margin-bottom:1rem;">
             Błędny login lub hasło. Spróbuj ponownie.
         </div>
+        <div class="alert alert-error" role="alert" th:if="${param.locked}" style="margin-bottom:1rem;">
+            Twoje konto jest zawieszone — nie możesz się zalogować ani grać.
+            Skontaktuj się z moderatorem.
+        </div>
         <div class="alert alert-success" role="status" th:if="${registered}" style="margin-bottom:1rem;">
             Konto zostało utworzone. Możesz się zalogować.
         </div>

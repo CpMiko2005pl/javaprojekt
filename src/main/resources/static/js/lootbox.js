@@ -129,14 +129,18 @@
                 }
                 var winnerIdx = 40;
                 spinCarousel(res.data.strip, winnerIdx, function () {
-                    showResult(res.data.winner);
+                    var added = res.data.addedToInventory !== false;
+                    showResult(res.data.winner, added, res.data.inventoryNote);
                     if (availableBadge) availableBadge.textContent = res.data.availableBoxes;
                     var boxCountLabel = document.getElementById("boxCountLabel");
                     if (boxCountLabel) boxCountLabel.textContent = res.data.availableBoxes;
-                    if (inventoryGrid) {
+                    if (added && inventoryGrid) {
                         var card = buildInventoryCard(res.data.winner);
                         card.classList.add("just-obtained");
                         inventoryGrid.insertBefore(card, inventoryGrid.firstChild);
+                        if (typeof window.refreshInventoryPanel === "function") {
+                            window.refreshInventoryPanel({ goFirstPage: true });
+                        }
                     }
                     rolling = false;
                     openBtn.disabled = res.data.availableBoxes <= 0;
@@ -157,8 +161,12 @@
         resultEl.classList.add("visible");
     }
 
-    function showResult(item) {
+    function showResult(item, added, note) {
         if (!resultEl) return;
+        var dupNote = !added
+            ? '<p class="lootbox-dup-note"><i class="fa-solid fa-clone"></i> ' +
+              escapeHtml(note || "Masz juz ten przedmiot — nie dodano do ekwipunku.") + '</p>'
+            : "";
         resultEl.innerHTML =
             '<div class="lootbox-result-card ' + rarityClass(item.rarity) + '" ' +
             'style="border-color:' + item.rarityColor + '">' +
@@ -170,11 +178,16 @@
             (item.rarityLabel || "Common") + '</span>' +
             '<strong>' + escapeHtml(item.name) + '</strong>' +
             '<p>' + escapeHtml(item.description || "") + '</p>' +
+            dupNote +
             '</div>' +
             '</div>';
         resultEl.classList.add("visible");
         if (typeof showInventoryToast === "function") {
-            showInventoryToast("Wylosowano: " + item.name, false);
+            if (added) {
+                showInventoryToast("Wylosowano: " + item.name, false);
+            } else {
+                showInventoryToast(note || "Masz juz ten przedmiot.", true);
+            }
         }
     }
 })();

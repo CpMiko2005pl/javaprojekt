@@ -11,6 +11,10 @@
     /* BUG FIX: uzyj username z atrybutu HTML zamiast polegac na isMe z WS (ktore zawsze = false).
        Dzieki temu fixIsMe dziala poprawnie nawet gdy WS message przyjdzie przed REST fetch. */
     var myUsername = main.dataset.username || null;
+    var myPlayerId = null;
+    if (main.dataset.playerId) {
+        myPlayerId = Number(main.dataset.playerId);
+    }
 
     var container = document.getElementById("game-canvas-container");
     if (!container || typeof THREE === "undefined") return;
@@ -86,10 +90,10 @@
     var ownerMarkers = {};
     var tileFaces = {};
     var tileBlocks = {};
-    var myPlayerId = null;
     var lastState = null;
     var lastChanceKey = "";
     var animating = false;
+    var rollInFlight = false;
     var stompClient = null;
     var lastEventKey = "";
     var hudSeq = 0;
@@ -147,21 +151,22 @@
     }
 
     function parsePrice(effect, pos) {
-        if (pos === 0) return "+200 PLN";
-        if (pos === 10) return "Lapowka 100 PLN";
+        if (pos === 0) return "+300 000 PLN";
+        if (pos === 10) return "Lapowka 200 000 PLN";
         if (pos === 20) return "Postoj";
         if (pos === 30) return "-> Dziekanat";
-        if (pos === 39) return "+200 PLN";
+        if (pos === 39) return "+300 000 PLN";
         if (!effect) return "";
         if (effect.indexOf("Szans") >= 0 || effect.indexOf("Losuj") >= 0) return "SZANSA";
-        if (effect.indexOf("Dworzec") >= 0) return "DWORZEC";
-        if (effect.indexOf("Stypendium") >= 0) return "+200 PLN";
+        if (effect.indexOf("Resort") >= 0 || effect.indexOf("Dworzec") >= 0) return "RESORT";
+        if (effect.indexOf("Stypendium") >= 0) return "+150 000 PLN";
+        if (effect.indexOf("Podatek") >= 0) return "PODATEK 10%";
         if (effect.indexOf("Oplata") >= 0) {
             var m = effect.match(/(\d+)/);
             return m ? "Oplata " + m[1] + " PLN" : "OPLATA";
         }
-        var mm = effect.match(/(\d+)\s*PLN/);
-        return mm ? mm[1] + " PLN" : "";
+        var mm = effect.match(/(\d[\d ]*)\s*PLN/);
+        return mm ? mm[1].replace(/ /g, " ") + " PLN" : "";
     }
 
     /* Tekstura pola w stylu top-down: bialy kafelek, pasek koloru, miejsce na zdjecie + tytul + cena. */
@@ -518,8 +523,16 @@
         return g;
     }
 
-    function showBoardDice(rolling) {
+    function showBoardDice(rolling, atPos) {
         if (!diceGroup) return;
+        /* Kostki przy pionku rzucajacego (kamera tam patrzy) zamiast na srodku planszy —
+           dzieki temu zawsze widac rzut, nawet przy zoomie na gracza. */
+        if (atPos != null) {
+            var w = posToWorld(atPos);
+            diceGroup.position.set(w.x, 0.95, w.z);
+        } else {
+            diceGroup.position.set(0, 0.55, 0);
+        }
         while (diceGroup.children.length) diceGroup.remove(diceGroup.children[0]);
         var die1 = makeDieMesh(0xe53935);
         die1.position.set(-0.5, 0, 0);
@@ -549,77 +562,123 @@
         mesh.position.set(w.x + off.ox, y != null ? y : 0.4, w.z + off.oz);
     }
 
-    /* ===== PIONKI: model 3D /models/CornPawn.glb + kolorowa podstawka gracza.
+    /* ===== PIONKI 3D ze skrzynki — kazdy model to osobny GLB w /models/.
        Fallback (model jeszcze sie laduje / blad): dotychczasowy walec + kula. ===== */
-    var pawnTemplate = null;     /* znormalizowany wzorzec GLB do klonowania */
-    var PAWN_HEIGHT = 0.62;      /* docelowa wysokosc pionka w jednostkach planszy */
+    var pawnTemplates = {};      /* url -> znormalizowany wzorzec GLB */
+    var pawnLoadsPending = {};   /* url -> [callback] */
+    var PAWN_PRELOAD_PATHS = [
+        "/models/CornPawn.glb", "/models/PawnSteve.glb", "/models/PawnCreeper.glb",
+        "/models/PawnEnderman.glb", "/models/PawnSkeleton.glb", "/models/PawnPiglin.glb",
+        "/models/PawnPillager.glb", "/models/PawnPenguin.glb", "/models/PawnGoblin.glb"
+    ];
+    var PAWN_HEIGHT = 0.62;
 
-    function loadPawnModel() {
+    function normalizePawnScene(model) {
+        var box = new THREE.Box3().setFromObject(model);
+        var size = new THREE.Vector3();
+        box.getSize(size);
+        model.scale.setScalar(PAWN_HEIGHT / Math.max(size.y, 0.0001));
+        box.setFromObject(model);
+        var center = new THREE.Vector3();
+        box.getCenter(center);
+        model.position.x -= center.x;
+        model.position.z -= center.z;
+        model.position.y -= box.min.y;
+        model.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+        var grp = new THREE.Group();
+        grp.add(model);
+        return grp;
+    }
+
+    function refreshAllPawnVisuals() {
+        Object.keys(playerMeshes).forEach(function (key) {
+            var group = playerMeshes[key];
+            setPawnVisual(group, group.userData.color, group.userData.pawnModel);
+        });
+    }
+
+    function ensurePawnTemplate(url, callback) {
+        if (!url) return;
+        if (pawnTemplates[url]) {
+            callback(pawnTemplates[url]);
+            return;
+        }
+        if (!pawnLoadsPending[url]) pawnLoadsPending[url] = [];
+        pawnLoadsPending[url].push(callback);
+        if (pawnLoadsPending[url].length > 1) return;
         if (typeof THREE.GLTFLoader === "undefined") return;
         var loader = new THREE.GLTFLoader();
-        loader.load("/models/CornPawn.glb", function (gltf) {
-            var model = gltf.scene;
-            /* Normalizacja: skala do PAWN_HEIGHT, wysrodkowanie XZ, podstawa na y=0 */
-            var box = new THREE.Box3().setFromObject(model);
-            var size = new THREE.Vector3(); box.getSize(size);
-            model.scale.setScalar(PAWN_HEIGHT / Math.max(size.y, 0.0001));
-            box.setFromObject(model);
-            var center = new THREE.Vector3(); box.getCenter(center);
-            model.position.x -= center.x;
-            model.position.z -= center.z;
-            model.position.y -= box.min.y;
-            model.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
-            pawnTemplate = new THREE.Group();
-            pawnTemplate.add(model);
-            /* Podmien pionki graczy, ktorzy sa juz na planszy */
-            Object.keys(playerMeshes).forEach(function (key) {
-                var group = playerMeshes[key];
-                setPawnVisual(group, group.userData.color);
-            });
-        }, undefined, function () { /* zostaja proste pionki */ });
+        loader.load(url, function (gltf) {
+            pawnTemplates[url] = normalizePawnScene(gltf.scene.clone(true));
+            var cbs = pawnLoadsPending[url] || [];
+            delete pawnLoadsPending[url];
+            cbs.forEach(function (cb) { cb(pawnTemplates[url]); });
+            refreshAllPawnVisuals();
+        }, undefined, function () {
+            delete pawnLoadsPending[url];
+        });
+    }
+
+    function loadPawnModels() {
+        PAWN_PRELOAD_PATHS.forEach(function (url) {
+            ensurePawnTemplate(url, function () { /* preload */ });
+        });
     }
 
     /* Buduje/wymienia widok pionka w grupie gracza (dziecko [0] = cien, reszta = pionek). */
-    function setPawnVisual(group, colorHex) {
+    function setPawnVisual(group, colorHex, pawnModelUrl) {
         var col = new THREE.Color(colorHex || "#e91e63");
-        for (var i = group.children.length - 1; i >= 1; i--) group.remove(group.children[i]);
-        var visual = new THREE.Group();
-        if (pawnTemplate) {
-            var clone = pawnTemplate.clone(true);
-            clone.traverse(function (o) {
-                if (o.isMesh && o.material) {
-                    o.material = o.material.clone();
-                    /* delikatna poswiata w kolorze gracza — tekstura zostaje czytelna */
-                    if (o.material.emissive) o.material.emissive.copy(col).multiplyScalar(0.22);
-                }
-            });
-            visual.add(clone);
-            /* kolorowa podstawka identyfikujaca gracza */
-            var base = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.19, 0.21, 0.05, 20),
-                new THREE.MeshLambertMaterial({ color: col })
-            );
-            base.position.y = 0.025;
-            base.castShadow = true;
-            visual.add(base);
-        } else {
-            var body = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.13, 0.17, 0.42, 16),
-                new THREE.MeshLambertMaterial({ color: col })
-            );
-            body.position.y = 0.21;
-            body.castShadow = true;
-            visual.add(body);
-            var head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.14, 16, 16),
-                new THREE.MeshLambertMaterial({ color: col })
-            );
-            head.position.y = 0.5;
-            head.castShadow = true;
-            visual.add(head);
+        var modelUrl = pawnModelUrl || null;
+
+        function buildVisual(template) {
+            for (var i = group.children.length - 1; i >= 1; i--) group.remove(group.children[i]);
+            var visual = new THREE.Group();
+            if (template) {
+                var clone = template.clone(true);
+                clone.traverse(function (o) {
+                    if (o.isMesh && o.material) {
+                        o.material = o.material.clone();
+                        if (o.material.emissive) o.material.emissive.copy(col).multiplyScalar(0.22);
+                    }
+                });
+                visual.add(clone);
+                var base = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.19, 0.21, 0.05, 20),
+                    new THREE.MeshLambertMaterial({ color: col })
+                );
+                base.position.y = 0.025;
+                base.castShadow = true;
+                visual.add(base);
+            } else {
+                var body = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.13, 0.17, 0.42, 16),
+                    new THREE.MeshLambertMaterial({ color: col })
+                );
+                body.position.y = 0.21;
+                body.castShadow = true;
+                visual.add(body);
+                var head = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.14, 16, 16),
+                    new THREE.MeshLambertMaterial({ color: col })
+                );
+                head.position.y = 0.5;
+                head.castShadow = true;
+                visual.add(head);
+            }
+            group.add(visual);
+            group.userData.color = colorHex;
+            group.userData.pawnModel = modelUrl;
         }
-        group.add(visual);
-        group.userData.color = colorHex;
+
+        if (modelUrl && !pawnTemplates[modelUrl]) {
+            ensurePawnTemplate(modelUrl, function (template) {
+                if (group.userData.pawnModel === modelUrl) buildVisual(template);
+            });
+            if (group.userData.pawnModel !== modelUrl) buildVisual(null);
+            group.userData.pawnModel = modelUrl;
+            return;
+        }
+        buildVisual(modelUrl ? pawnTemplates[modelUrl] : null);
     }
 
     function upsertPlayerMesh(p, index, pos) {
@@ -634,12 +693,11 @@
             shadow.rotation.x = -Math.PI / 2;
             shadow.position.y = 0.005;
             mesh.add(shadow);
-            setPawnVisual(mesh, p.color);
+            setPawnVisual(mesh, p.color, p.pawnModel);
             boardPivot.add(mesh);
             playerMeshes[key] = mesh;
-        } else if (mesh.userData.color !== p.color) {
-            /* zmiana koloru (np. zalozony item) — przebuduj pionek */
-            setPawnVisual(mesh, p.color);
+        } else if (mesh.userData.color !== p.color || mesh.userData.pawnModel !== (p.pawnModel || null)) {
+            setPawnVisual(mesh, p.color, p.pawnModel);
         }
         /* Nie nadpisuj pozycji animowanego pionka - inaczej teleportuje sie podczas hopu. */
         if (!(mesh.userData && mesh.userData.animating)) {
@@ -648,7 +706,7 @@
         return mesh;
     }
 
-    function animateDice(d1, d2, done) {
+    function animateDice(d1, d2, done, atPos) {
         /* Referencje do nowego badge wynikowego (nie ma juz #d1/#d2 w canvas-shell). */
         var badge   = document.getElementById("diceBadge");
         var bdD1    = document.getElementById("diceBadgeD1");
@@ -658,12 +716,18 @@
         var toast   = document.getElementById("diceToast");
         var toastSum= document.getElementById("diceToastSum");
         if (toast) toast.classList.remove("visible");
-        /* Startuj 3D kostki na planszy. */
-        showBoardDice(true);
+        /* Startuj 3D kostki na planszy — przy pionku rzucajacego. */
+        showBoardDice(true, atPos);
         if (badge) { badge.classList.remove("visible"); }
         if (bdD1) bdD1.textContent = "?";
         if (bdD2) bdD2.textContent = "?";
         if (bdSum) bdSum.textContent = "?";
+        /* Gdy w kolejce czekaja kolejne ruchy (np. kilka botow), kreci szybciej —
+           dzieki temu rozgrywka nie jest "opozniona" przy wielu graczach. */
+        var fast = animationQueue.length > 0;
+        var maxStep = fast ? 7 : 12;
+        var tick = fast ? 40 : 55;
+        var endDelay = fast ? 230 : 360;
         var step = 0;
         var iv = setInterval(function () {
             var r1 = Math.floor(Math.random() * 6) + 1;
@@ -672,7 +736,7 @@
             if (bdD2) bdD2.textContent = r2;
             if (bdSum) bdSum.textContent = r1 + r2;
             step++;
-            if (step >= 16) {
+            if (step >= maxStep) {
                 clearInterval(iv);
                 if (bdD1) bdD1.textContent = d1;
                 if (bdD2) bdD2.textContent = d2;
@@ -685,9 +749,9 @@
                     hideBoardDice();
                     /* Schowaj badge po zakończeniu animacji ruchu (zrobimy to w done-callback). */
                     done();
-                }, 450);
+                }, endDelay);
             }
-        }, 70);
+        }, tick);
     }
 
     function buildPath(from, to) {
@@ -707,6 +771,10 @@
         var idx = players.findIndex(function (p) { return p.id === playerId; });
         if (idx < 0) idx = 0;
         var step = 0;
+        /* Szybciej, gdy kolejne ruchy czekaja w kolejce (kilku graczy/botow). */
+        var fastMove = animationQueue.length > 0;
+        var hopDur = fastMove ? 190 : 300;
+        var hopGap = fastMove ? 25 : 55;
 
         /* Wlacz tryb kinowy: kamera podaza za pionkiem ze zblizeniem.
            Nowy ruch -> resetujemy pan/rotacje uzytkownika (recentruje sie). */
@@ -746,8 +814,8 @@
             var off = playerOffset(idx);
             var end = { x: endW.x + off.ox, y: 0.4, z: endW.z + off.oz };
             var t0 = performance.now();
-            /* Dluzszy hop dla efektu Business Tour - ladnie widac skok i ladowanie. */
-            var dur = 320;
+            /* Hop dla efektu Business Tour - ladnie widac skok i ladowanie. */
+            var dur = hopDur;
             /* Wysokosc skoku rosnie dla dluzszych ruchow - bardziej dynamiczne. */
             var jumpH = 0.55;
 
@@ -763,7 +831,7 @@
                 else {
                     mesh.position.y = 0.4;
                     /* Krotka pauza pomiedzy skokami - wyrazny "lap" na polu. */
-                    setTimeout(function () { step++; next(); }, 60);
+                    setTimeout(function () { step++; next(); }, hopGap);
                 }
             }
             requestAnimationFrame(tween);
@@ -887,25 +955,10 @@
 
     /* Aktualizuje cel kamery, by sledzila pionek aktywnego/animowanego gracza. */
     function updateCameraTarget() {
-        /* Faza decyzji ma najwyzszy priorytet: kamera ZAWSZE blisko pionka,
-           niezaleznie od recznego przeciagniecia (override userPanned). */
-        var pendingDecision = lastState && lastState.pendingPurchase &&
-            lastState.pendingPurchase.deciderId != null;
-        var pendingPay = lastState && lastState.pendingPayment &&
-            lastState.pendingPayment.debtorId != null;
-        if (pendingPay) {
-            camState.followPlayerId = lastState.pendingPayment.debtorId;
-            camState.cinematic = true;
-            camState.userPanned = false;
-        } else if (pendingDecision) {
-            camState.followPlayerId = lastState.pendingPurchase.deciderId;
-            camState.cinematic = true;
-            camState.userPanned = false;
-        }
-
-        /* Kiedy uzytkownik recznie przesunal/obrocil kamere - nie nadpisuj,
-           ale tylko gdy NIE ma decyzji do podjecia. */
-        if (camState.userPanned && !pendingDecision && !pendingPay) return;
+        /* Szanuj reczne sterowanie kamera ZAWSZE — gdy gracz sam oddali/przesunie widok,
+           nie nadpisujemy go (rowniez podczas decyzji o kupnie). Focus na graczu wynika
+           wylacznie z followPlayerId ustawianego na czas ruchu pionka. */
+        if (camState.userPanned) return;
 
         var followId = camState.followPlayerId;
         var targetMesh = followId != null ? playerMeshes[String(followId)] : null;
@@ -983,24 +1036,26 @@
         return d.innerHTML;
     }
 
+    function sameId(a, b) {
+        return a != null && b != null && Number(a) === Number(b);
+    }
+
     function fixIsMe(state) {
-        /* BUG FIX: identyfikuj gracza po username (pewne), nie po isMe z serwera (WS broadcast = null). */
-        if (myUsername) {
+        /* Identifikacja gracza: playerId z HTML (pewne), potem username, na koncu isMe z REST. */
+        if (myPlayerId == null && myUsername) {
             state.players.forEach(function (p) {
-                if (p.name === myUsername) {
-                    p.isMe = true;
-                    myPlayerId = p.id;
-                } else {
-                    p.isMe = false;
+                if (p.name && p.name.toLowerCase() === myUsername.toLowerCase()) {
+                    myPlayerId = Number(p.id);
                 }
             });
-        } else {
-            if (myPlayerId == null) {
-                state.players.forEach(function (p) { if (p.isMe) myPlayerId = p.id; });
-            }
-            state.players.forEach(function (p) { p.isMe = p.id === myPlayerId; });
         }
-        state.myTurn = state.currentTurnPlayerId === myPlayerId;
+        if (myPlayerId == null) {
+            state.players.forEach(function (p) { if (p.isMe) myPlayerId = Number(p.id); });
+        }
+        state.players.forEach(function (p) {
+            p.isMe = sameId(p.id, myPlayerId);
+        });
+        state.myTurn = sameId(state.currentTurnPlayerId, myPlayerId);
         return state;
     }
 
@@ -1043,28 +1098,7 @@
             marker.position.set(w.x + dx, 0.21, w.z + dz);
             if (pos >= 10 && pos < 20 || pos >= 30) marker.rotation.y = Math.PI / 2;
             boardPivot.add(marker);
-
-            /* Mini "domek" na zwyklych polach (nie dworce/wodociagi/karty). */
-            if (!isStation(pos) && pos !== 28 && !isChance(pos)) {
-                var house = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.18, 0.22, 0.18),
-                    new THREE.MeshLambertMaterial({ color: 0xffffff })
-                );
-                house.position.set(w.x + dx * 0.6, 0.32, w.z + dz * 0.6);
-                house.castShadow = true;
-                boardPivot.add(house);
-                var roof = new THREE.Mesh(
-                    new THREE.ConeGeometry(0.14, 0.12, 4),
-                    new THREE.MeshLambertMaterial({ color: col })
-                );
-                roof.position.set(w.x + dx * 0.6, 0.49, w.z + dz * 0.6);
-                roof.rotation.y = Math.PI / 4;
-                roof.castShadow = true;
-                boardPivot.add(roof);
-                ownerMarkers[pos] = { mesh: marker, house: house, roof: roof };
-            } else {
-                ownerMarkers[pos] = { mesh: marker };
-            }
+            ownerMarkers[pos] = { mesh: marker };
         });
     }
 
@@ -1122,7 +1156,7 @@
                 card.style.borderColor = p.color;
                 var nameHtml = p.bot
                     ? '<strong>' + escapeHtml(p.name) + ' <span style="color:var(--slate-400);font-size:.7rem;">BOT</span></strong>'
-                    : '<strong><a href="/u/' + encodeURIComponent(p.name) + '" target="_blank" class="player-profile-link">' + escapeHtml(p.name) + '</a>' +
+                    : '<strong><a href="/u/' + encodeURIComponent(p.name) + '" class="player-profile-link">' + escapeHtml(p.name) + '</a>' +
                       (p.isMe ? ' <span style="color:var(--brand-emerald);font-size:.68rem;">Ty</span>' : '') +
                       (p.bankrupt ? ' <span style="color:var(--brand-rose);font-size:.68rem;">💀</span>' : '') + '</strong>';
                 card.innerHTML =
@@ -1148,22 +1182,30 @@
         if (online) online.textContent = state.players.length;
 
         /* BUG FIX: dodano pendingUpgrade do warunkow blokujacych przycisk */
-        if (rollBtn) rollBtn.disabled = animating || !state.myTurn || !!state.pendingPurchase
-            || !!state.pendingPayment || !!state.pendingUpgrade || state.status === "FINISHED";
+        if (rollBtn) rollBtn.disabled = animating || rollInFlight || !state.myTurn || !!state.pendingPurchase
+            || !!state.pendingPayment || !!state.pendingUpgrade || !!state.pendingBuyback || state.status === "FINISHED";
         updateCenterDicePanel(state);
         updateWinnerBanner(state);
         if (state.message) {
             var logEl = document.getElementById("log");
             if (logEl) logEl.textContent = state.message;
-            pushToastFromMessage(state.message, state);
+            if (!animating && animationQueue.length === 0) {
+                pushToastFromMessage(state.message, state);
+            }
         }
         updateTileInfo(state);
-        updateOwnerMarkers(state);
-        updateUpgradeMarkers(state);
+        if (!animating && animationQueue.length === 0) {
+            updateOwnerMarkers(state);
+            updateUpgradeMarkers(state);
+        }
         updateActiveTileHighlight(state);
         renderActionPanel(state);
         renderHandCards(state);
+        renderMyProperties(state);
         if (state.chanceCard) showChanceCard(state, state.chanceCard);
+        /* Gdy nic nie animujemy i nie ma decyzji — zwolnij kamere do widoku planszy,
+           by przed wlasnym rzutem kamera nie wisiala w zoomie na innym graczu. */
+        resetCameraIfIdle();
     }
 
     /* === PANEL RZUTU: aktualizacja etykiety tury i stanu przycisku (nowy floating layout) === */
@@ -1173,12 +1215,12 @@
         var rollPanel = document.getElementById("rollPanel");
         if (!rollPanel) return;
 
-        var current = state.players.find(function (p) { return p.id === state.currentTurnPlayerId; })
+        var current = state.players.find(function (p) { return sameId(p.id, state.currentTurnPlayerId); })
             || state.players[0];
         var displayName = current ? (current.name || "Gracz") : "Gracz";
 
         /* Faza decyzji — ukryj przycisk rzutu (zastepuje go action panel) */
-        if (state.pendingPurchase || state.pendingPayment || state.pendingUpgrade) {
+        if (state.pendingPurchase || state.pendingPayment || state.pendingUpgrade || state.pendingBuyback) {
             rollPanel.style.display = "none";
             return;
         }
@@ -1194,11 +1236,17 @@
             label.textContent = state.myTurn ? "Twoja kolej" : ("Tura: " + displayName);
         }
         if (hint) {
-            if (state.myTurn && !animating) {
-                hint.textContent = "Rzuć!";
-                hint.style.background = "rgba(16, 185, 129, .2)";
-                hint.style.color = "var(--brand-emerald)";
-            } else if (animating) {
+            if (state.myTurn && !animating && !rollInFlight) {
+                if (state.canRollAgain) {
+                    hint.textContent = "Dublet — rzuć ponownie!";
+                    hint.style.background = "rgba(56,189,248,.18)";
+                    hint.style.color = "#0284c7";
+                } else {
+                    hint.textContent = "Rzuć!";
+                    hint.style.background = "rgba(16, 185, 129, .2)";
+                    hint.style.color = "var(--brand-emerald)";
+                }
+            } else if (animating || rollInFlight) {
                 hint.textContent = "Ruch...";
                 hint.style.background = "rgba(245,158,11,.15)";
                 hint.style.color = "var(--brand-gold)";
@@ -1287,7 +1335,7 @@
             if (msell) return pushToast(actor + "sprzedal " + escapeHtml(msell[1]) + " za " + msell[2] + " PLN", "skip", "fa-hand-holding-dollar");
         }
         if (/przejscie przez START/i.test(message)) {
-            return pushToast(actor + "przeszedl przez START (+200 PLN)", "buy", "fa-flag-checkered");
+            return pushToast(actor + "przeszedl przez START (+300 000 PLN)", "buy", "fa-flag-checkered");
         }
         if (/rzuca/.test(message)) {
             var md = message.match(/rzuca (\d+\+\d+=\d+).*Staje na: ([^.]+)\./);
@@ -1426,25 +1474,31 @@
     function renderActionPanel(state) {
         var ap = document.getElementById("actionPanel");
         if (!ap) return;
+        /* Brak decyzji — chowamy panel ZAWSZE (rowniez w trakcie animacji), dzieki czemu
+           panel "Zakup — decyduje Bot" nigdy nie zostaje na ekranie po decyzji bota. */
+        if (!state.pendingPayment && !state.pendingUpgrade && !state.pendingPurchase && !state.pendingBuyback) {
+            ap.style.display = "none";
+            ap.innerHTML = "";
+            lastActionPanelKey = null;
+            clearActionTimer();
+            return;
+        }
+        /* Panel decyzji (kupno/oplata/ulepszenie) pokazujemy DOPIERO gdy pionek doleci
+           na pole — czyli po zakonczeniu animacji ruchu, nie w jej trakcie. */
+        if (animating) return;
         if (state.pendingPayment) {
             closeFloatingPopups();
             renderPaymentPanel(state, ap);
             return;
         }
+        if (state.pendingBuyback) {
+            closeFloatingPopups();
+            renderBuybackPanel(state, ap);
+            return;
+        }
         if (state.pendingUpgrade) {
             closeFloatingPopups();
             renderUpgradePanel(state, ap);
-            return;
-        }
-        if (!state.pendingPurchase) {
-            ap.style.display = "none";
-            ap.innerHTML = "";
-            lastActionPanelKey = null;
-            clearActionTimer();
-            if (camState.cinematic && camState.followPlayerId != null) {
-                camState.cinematic = false;
-                setTimeout(function () { camState.followPlayerId = null; }, 800);
-            }
             return;
         }
         var pp = state.pendingPurchase;
@@ -1453,8 +1507,8 @@
         lastActionPanelKey = panelKey;
 
         closeFloatingPopups();
-        var amDecider = state.players.some(function (p) { return p.isMe && p.id === pp.deciderId; });
-        var decider = state.players.find(function (p) { return p.id === pp.deciderId; }) || {};
+        var amDecider = sameId(pp.deciderId, myPlayerId);
+        var decider = state.players.find(function (p) { return sameId(p.id, pp.deciderId); }) || {};
         var deciderIsBot = decider.bot === true;
 
         var html = '<div class="bt-action-header">' +
@@ -1570,33 +1624,48 @@
         if (btnBankrupt) btnBankrupt.addEventListener("click", function () { postAction("/bankrupt"); });
     }
 
+    var actionInFlight = false;
+
     function postAction(path, body) {
+        if (actionInFlight) return;
+        actionInFlight = true;
         var errBox = document.getElementById("actionErr");
+        var btnBuy = document.getElementById("btnBuy");
+        var btnSkip = document.getElementById("btnSkip");
+        if (btnBuy) btnBuy.disabled = true;
+        if (btnSkip) btnSkip.disabled = true;
         var opts = { method: "POST", headers: authHeaders(!!body) };
         if (body) opts.body = JSON.stringify(body);
         fetch("/api/game/" + sessionId + path, opts)
-            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (d) {
+                    return { ok: r.ok, status: r.status, data: d };
+                });
+            })
             .then(function (res) {
                 if (!res.ok) {
-                    var errMsg = (res.data && res.data.error) || "Blad operacji.";
+                    var errMsg = (res.data && res.data.error) || (res.status >= 500
+                        ? "Blad serwera (" + res.status + "). Odswiezam stan..."
+                        : "Blad operacji.");
                     if (errBox) {
                         errBox.textContent = errMsg;
                         errBox.style.display = "block";
                     }
-                    /* DESYNC RECOVERY: jesli serwer twierdzi, ze nie ma juz aktywnego pola/decyzji
-                       (np. zadzialal auto-skip albo zgubilismy WS-broadcast), panel jest nieaktualny.
-                       Pobieramy swiezy stan, by panel zniknal i mozna bylo grac dalej zamiast utknac. */
-                    if (/Brak aktywneg|Brak aktywnej|To nie Ty|Najpierw zakoncz/i.test(errMsg)) {
-                        lastActionPanelKey = null;
-                        fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
-                            .then(function (r) { return r.json(); })
-                            .then(function (s) { applyStateWithAnimation(s); })
-                            .catch(function () {});
-                    }
+                    lastActionPanelKey = null;
+                    fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
+                        .then(function (r) { return r.json(); })
+                        .then(function (s) { applyStateWithAnimation(s); })
+                        .catch(function () {});
                     return;
                 }
+                lastActionPanelKey = null;
                 applyStateWithAnimation(res.data);
-            });
+            })
+            .catch(function () {
+                if (btnBuy) btnBuy.disabled = false;
+                if (btnSkip) btnSkip.disabled = false;
+            })
+            .finally(function () { actionInFlight = false; });
     }
 
     /* === MODAL KARTY SZANSY === */
@@ -1637,6 +1706,37 @@
        Dedup po eventKey eliminuje duplikaty (REST response + WS broadcast dla tego samego ruchu). */
     var animationQueue = [];
     var processedKeys = {};
+    var animSafetyTimer = null;   /* wymusza zakonczenie zawieszonej animacji (rAF w tle) */
+    var animToken = 0;            /* uniewaznia spoznione callbacki po force-complete */
+
+    /* Zwolnij kamere do widoku planszy, gdy nie ma decyzji i nic sie nie animuje. */
+    function resetCameraIfIdle() {
+        if (animating) return;
+        if (!lastState) return;
+        var pend = lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback;
+        if (!pend) { camState.cinematic = false; camState.followPlayerId = null; }
+    }
+
+    /* Awaryjne zakonczenie: gdy animacja utknie (np. karta w tle wstrzymala rAF),
+       wymuszamy synchronizacje stanu, by plansza nie "stala". Porzucamy zalegle ruchy
+       (nie odtwarzamy starych animacji botow po fakcie). */
+    function forceCompleteAnimation() {
+        animToken++;
+        animSafetyTimer = null;
+        animating = false;
+        rollInFlight = false;
+        animationQueue.length = 0;
+        try {
+            var badge = document.getElementById("diceBadge");
+            if (badge) badge.classList.remove("visible");
+            hideBoardDice();
+            if (lastState && lastState.players) {
+                lastState.players.forEach(function (p, idx) { upsertPlayerMesh(p, idx, p.position); });
+                resetCameraIfIdle();
+                renderHud(lastState);
+            }
+        } catch (e) { /* ignore */ }
+    }
     /* Bezpieczne ostatnie znane state pod ktore renderujemy gdy nie animujemy. */
     function applyStateWithAnimation(state) {
         if (!state) return;
@@ -1664,6 +1764,18 @@
                na pole (na koncu animacji), inaczej "pole wyswietla sie juz z kupnem". */
             lastState = state;
             animationQueue.push(state);
+            /* COLLAPSE: animujemy tylko NAJNOWSZY ruch. Gdy boty rzucaja szybciej niz
+               trwa animacja, stare ruchy lądowałyby w kolejce i odtwarzaly sie z opoznieniem
+               (np. "przed moim rzutem juz cos sie rusza"). Zostawiamy ostatni, reszte
+               oznaczamy jako obsluzona — koncowe pozycje i tak ustawi finalny stan. */
+            if (animationQueue.length > 1) {
+                var keep = animationQueue[animationQueue.length - 1];
+                for (var z = 0; z < animationQueue.length - 1; z++) {
+                    processedKeys[animationQueue[z]._animKey] = true;
+                }
+                animationQueue.length = 0;
+                animationQueue.push(keep);
+            }
             processAnimationQueue();
             return;
         }
@@ -1723,37 +1835,56 @@
            przyjdzie swiezszy stan (np. bot zdecydowal o zakupie) to renderHud(state)
            z kolejki nie nadpisze nowszego UI. */
         var seqAtStart = hudSeq;
+        var myToken = ++animToken;
+        if (animSafetyTimer) clearTimeout(animSafetyTimer);
+        animSafetyTimer = setTimeout(forceCompleteAnimation, 9000);
 
         animateDice(state.dice1, state.dice2, function () {
+            if (myToken !== animToken) return;   /* animacja zostala juz wymuszona/anulowana */
             animateMove(state.movedPlayerId, state.fromPosition, state.toPosition, state.players, function () {
+                if (myToken !== animToken) return;
+                if (animSafetyTimer) { clearTimeout(animSafetyTimer); animSafetyTimer = null; }
                 /* Schowaj badge z wynikiem rzutu po zakończeniu ruchu pionka. */
                 var badge = document.getElementById("diceBadge");
                 if (badge) badge.classList.remove("visible");
                 /* Zawsze ustawiamy pozycje pionkow na finalne z tego ruchu. */
                 state.players.forEach(function (p, idx) { upsertPlayerMesh(p, idx, p.position); });
                 animating = false;
-                /* Renderuj HUD tylko jesli zadne nowsze wywolanie renderHud nie pojawilo sie
-                   w trakcie animacji (np. z szybkiej decyzji bota lub non-anim WS-state).
-                   Jesli sie pojawilo - stary state nie nadpisze nowszego. */
-                if (hudSeq === seqAtStart) {
-                    /* Renderuj stan WLASNIE zakonczonej animacji — panel kupna/akcji
-                       pojawia sie dokladnie gdy pionek doleci na pole. renderHud sam
-                       ustawi lastState, wiec pozostaje on spojny z tym co widac. */
-                    renderHud(state);
-                } else {
-                    /* Nowszy stan juz wyrenderowany - tylko odswiezamy guziki/panel. */
-                    if (lastState) {
-                        if (rollBtn) rollBtn.disabled = animating || !lastState.myTurn || !!lastState.pendingPurchase
-                            || !!lastState.pendingPayment || !!lastState.pendingUpgrade || lastState.status === "FINISHED";
-                        updateCenterDicePanel(lastState);
+                /* Po animacji: polacz stan ruchu z ewentualnym nowszym stanem z WS. */
+                var finalState = state;
+                if (hudSeq !== seqAtStart && lastState) {
+                    /* lastState jest NAJNOWSZY — jego pending* sa prawda. NIE robimy OR ze
+                       starym stanem, bo wtedy panel "decyduje Bot" wracalby po decyzji bota. */
+                    finalState = Object.assign({}, state, lastState, {
+                        pendingPurchase: lastState.pendingPurchase,
+                        pendingPayment: lastState.pendingPayment,
+                        pendingUpgrade: lastState.pendingUpgrade,
+                        pendingBuyback: lastState.pendingBuyback,
+                        ownership: lastState.ownership || state.ownership,
+                        players: lastState.players || state.players,
+                        dice1: state.dice1 != null ? state.dice1 : lastState.dice1,
+                        dice2: state.dice2 != null ? state.dice2 : lastState.dice2,
+                        movedPlayerId: state.movedPlayerId != null ? state.movedPlayerId : lastState.movedPlayerId,
+                        fromPosition: state.fromPosition != null ? state.fromPosition : lastState.fromPosition,
+                        toPosition: state.toPosition != null ? state.toPosition : lastState.toPosition,
+                        message: lastState.message || state.message
+                    });
+                    finalState = fixIsMe(finalState);
+                }
+                renderHud(finalState);
+                rollInFlight = false;
+                if (animationQueue.length === 0) {
+                    updateOwnerMarkers(finalState);
+                    updateUpgradeMarkers(finalState);
+                    if (finalState.message) {
+                        pushToastFromMessage(finalState.message, finalState);
                     }
                 }
-                /* Kolejny ruch z kolejki (bot moze byc szybciej niz nasza animacja). */
                 if (animationQueue.length > 0) {
-                    setTimeout(processAnimationQueue, 250);
+                    setTimeout(processAnimationQueue, 200);
                 }
             });
-        });
+        });   /* kostka rzuca sie na srodku planszy (bez atPos) */
     }
 
     var wsWasConnected = false;
@@ -1806,6 +1937,7 @@
         if (!animating && animationQueue.length === 0 &&
             lastState && lastState.myTurn &&
             !lastState.pendingPurchase && !lastState.pendingPayment && !lastState.pendingUpgrade &&
+            !lastState.pendingBuyback &&
             lastState.status !== "FINISHED" &&
             rollBtn && rollBtn.disabled) {
             fetch("/api/game/" + sessionId + "/state")
@@ -1816,34 +1948,79 @@
     }, 5000);
 
     function loadState() {
-        fetch("/api/game/" + sessionId + "/state")
-            .then(function (r) { return r.json(); })
-            .then(function (state) {
+        fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
+            .then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            })
+            .then(function (res) {
+                if (!res.ok) {
+                    if (loader) loader.innerHTML = "<span>" + ((res.data && res.data.error) || "Blad ladowania gry.") + "</span>";
+                    return;
+                }
+                var state = res.data;
+                if (state.status === "WAITING") {
+                    window.location.href = "/game/" + sessionId;
+                    return;
+                }
+                if (state.status === "FINISHED") {
+                    window.location.href = "/game";
+                    return;
+                }
                 if (state.tileNames) {
                     TILE_NAMES = state.tileNames;
                     TILE_EFFECTS = state.tileEffects || [];
                     buildBoard(TILE_NAMES, TILE_EFFECTS);
                 }
                 applyStateWithAnimation(state);
+            })
+            .catch(function () {
+                if (loader) loader.innerHTML = "<span>Nie udalo sie polaczyc z serwerem.</span>";
             });
     }
 
     if (rollBtn) {
         rollBtn.addEventListener("click", function () {
-            if (animating || !lastState || !lastState.myTurn) return;
+            if (!lastState) {
+                pushToast("Ladowanie stanu gry...", "info", "fa-spinner");
+                loadState();
+                return;
+            }
+            lastState = fixIsMe(lastState);
+            if (animating) {
+                pushToast("Poczekaj na koniec animacji.", "info", "fa-hourglass-half");
+                return;
+            }
+            if (!lastState.myTurn) {
+                var cur = lastState.players.find(function (p) { return sameId(p.id, lastState.currentTurnPlayerId); });
+                pushToast("Tura: " + (cur ? cur.name : "innego gracza"), "info", "fa-clock");
+                return;
+            }
+            if (lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback) {
+                pushToast("Najpierw zakoncz decyzje na planszy.", "info", "fa-hand");
+                return;
+            }
+            if (rollInFlight) return;
+            rollInFlight = true;
             rollBtn.disabled = true;
             fetch("/api/game/" + sessionId + "/roll", { method: "POST", headers: authHeaders(false) })
                 .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
                 .then(function (res) {
                     if (!res.ok) {
-                        var logEl = document.getElementById("log");
-                        if (logEl) logEl.textContent = res.data.error || "Blad rzutu.";
-                        rollBtn.disabled = lastState && lastState.myTurn && !animating;
+                        rollInFlight = false;
+                        var errMsg = (res.data && res.data.error) || "Blad rzutu.";
+                        pushToast(errMsg, "info", "fa-triangle-exclamation");
+                        rollBtn.disabled = lastState && lastState.myTurn && !animating && !rollInFlight;
+                        fetch("/api/game/" + sessionId + "/state", { headers: authHeaders(false) })
+                            .then(function (r) { return r.json(); })
+                            .then(function (s) { applyStateWithAnimation(s); })
+                            .catch(function () {});
                         return;
                     }
                     applyStateWithAnimation(res.data);
                 })
                 .catch(function () {
+                    rollInFlight = false;
+                    pushToast("Blad polaczenia przy rzucie.", "info", "fa-triangle-exclamation");
                     if (lastState) rollBtn.disabled = lastState.myTurn && !animating;
                 });
         });
@@ -1878,7 +2055,8 @@
     }
 
     initThree();
-    loadPawnModel();
+    loadPawnModels();
+    loadBuildingModels();
     loadState();
     // ============================================================
     // KARTY W RECE
@@ -1913,15 +2091,20 @@
 
         var html = "";
         cards.forEach(function(card) {
-            html += '<div class="hand-card" data-type="' + escapeHtml(card.type) + '">' +
+            html += '<details class="hand-card-expand">' +
+                '<summary class="hand-card">' +
                 '<div class="hand-card-icon"><i class="' + escapeHtml(card.iconClass) + '"></i></div>' +
                 '<div class="hand-card-body">' +
                 '<strong>' + escapeHtml(card.label) + '</strong>' +
-                '<span class="muted">' + escapeHtml(card.description) + '</span>' +
+                '<span class="muted hand-card-teaser">Kliknij po szczegoly</span>' +
                 '</div>' +
+                '<span class="hand-card-chevron"><i class="fa-solid fa-chevron-down"></i></span>' +
+                '</summary>' +
+                '<div class="hand-card-detail">' +
+                '<p>' + escapeHtml(card.description) + '</p>' +
                 '<button class="btn btn-small btn-play-card" data-type="' + escapeHtml(card.type) + '">' +
-                'Zagraj</button>' +
-                '</div>';
+                '<i class="fa-solid fa-play"></i> Zagraj karte</button>' +
+                '</div></details>';
         });
         list.innerHTML = html;
 
@@ -2009,20 +2192,28 @@
 
         var amDecider = state.players.some(function(p) { return p.isMe && p.id === pu.deciderId; });
         var decider   = state.players.find(function(p) { return p.id === pu.deciderId; }) || {};
-        var levelName = pu.currentLevel === 0 ? "Domek" : "Hotel";
-        var icon      = pu.currentLevel === 0 ? "fa-house" : "fa-hotel";
+        var levelLabels = ["Lvl 1", "Lvl 2", "Lvl 3", "Biurowiec"];
+        var levelName = levelLabels[pu.currentLevel] || "Ulepszenie";
+        var icons = ["fa-house", "fa-house", "fa-building", "fa-city"];
+        var icon = icons[pu.currentLevel] || "fa-house";
 
         var html = '<div class="hud-panel-head">' +
-            '<h2><i class="fa-solid ' + icon + '"></i> Ulepszenie</h2>' +
-            '</div>' +
-            '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pu.tileName) + '</p>';
+            '<h2><i class="fa-solid ' + icon + '"></i> Ulepszenie</h2>';
+        if (amDecider) html += '<span id="actionTimerLabel" class="action-timer-label">15s</span>';
+        html += '</div>';
+        if (amDecider) html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
+        html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pu.tileName) + '</p>';
 
         if (amDecider) {
-            html += '<p class="muted">Budujesz: <strong>' + levelName + '</strong> za <strong>' +
-                pu.cost + ' PLN</strong>.<br>Nowy czynsz: <strong>' + pu.newRent + ' PLN</strong></p>' +
+            html += '<div class="bt-upgrade-offer">' +
+                '<p><span class="lbl">Budujesz</span> <strong>' + levelName + '</strong></p>' +
+                '<p><span class="lbl">Koszt</span> <strong>' + formatCash(pu.cost) + ' PLN</strong></p>' +
+                '<p><span class="lbl">Nowy czynsz</span> <strong class="rent-highlight">' + formatCash(pu.newRent) + ' PLN</strong></p>' +
+                '<p class="muted small">Brakuje siana? Sprzedaj inna posesje w panelu <strong>Moje posesje</strong> (70% ceny gruntu).</p>' +
+                '</div>' +
                 '<div class="action-buttons">' +
                 '<button class="btn btn-bt-roll" id="btnUpgrade">' +
-                '<i class="fa-solid ' + icon + '"></i> Ulepsz za ' + pu.cost + ' PLN</button>' +
+                '<i class="fa-solid ' + icon + '"></i> Ulepsz za ' + formatCash(pu.cost) + ' PLN</button>' +
                 '<button class="btn btn-secondary" id="btnSkipUpgrade">Pomin</button>' +
                 '</div>';
         } else {
@@ -2034,26 +2225,222 @@
         ap.className = "bt-action-float bt-action-anim";
         ap.innerHTML = html;
 
+        if (amDecider) startActionTimer(Date.now() + 15000);
+        else clearActionTimer();
+
         var btnUpgrade = document.getElementById("btnUpgrade");
         if (btnUpgrade) btnUpgrade.addEventListener("click", function() {
-            fetch("/api/game/" + sessionId + "/upgrade", {method:"POST", headers: authHeaders(false)})
-            .then(function(r){ return r.json(); }).then(function(d){ applyStateWithAnimation(d); });
+            postAction("/upgrade");
         });
         var btnSkipUpgrade = document.getElementById("btnSkipUpgrade");
         if (btnSkipUpgrade) btnSkipUpgrade.addEventListener("click", function() {
-            fetch("/api/game/" + sessionId + "/skip-upgrade", {method:"POST", headers: authHeaders(false)})
-            .then(function(r){ return r.json(); }).then(function(d){ applyStateWithAnimation(d); });
+            postAction("/skip-upgrade");
+        });
+    }
+
+    function renderBuybackPanel(state, ap) {
+        var pb = state.pendingBuyback;
+        if (!pb) { ap.style.display = "none"; ap.innerHTML = ""; return; }
+
+        var amVictim = state.players.some(function(p) { return p.isMe && p.id === pb.victimId; });
+        var panelKey = "buyback|" + pb.victimId + "|" + pb.position + "|" + pb.price;
+        if (panelKey === lastActionPanelKey) return;
+        lastActionPanelKey = panelKey;
+
+        var html = '<div class="hud-panel-head"><h2><i class="fa-solid fa-rotate-left"></i> Odkup posesji</h2>';
+        if (amVictim) html += '<span id="actionTimerLabel" class="action-timer-label">30s</span>';
+        html += '</div>';
+        if (amVictim) html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
+        html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pb.tileName) + '</p>' +
+            '<p class="muted">Pole ma teraz <strong>' + escapeHtml(pb.holderName || "rywal") + '</strong>.</p>' +
+            '<p class="muted action-tile-price">Odkup za <strong>' + pb.price + ' PLN</strong> (2x cena zakupu)</p>';
+
+        if (amVictim) {
+            var me = state.players.find(function(p) { return p.isMe; });
+            html += '<p class="muted small">Twoje siano: <strong>' + (me && me.cash != null ? me.cash : 0) + ' PLN</strong></p>' +
+                '<p class="muted small">Brakuje? Sprzedaj inna nieruchomosc z panelu <strong>Moje posesje</strong> po lewej.</p>' +
+                '<div class="action-buttons">' +
+                '<button class="btn btn-bt-roll" id="btnBuyback"><i class="fa-solid fa-rotate-left"></i> Odkup za ' + pb.price + ' PLN</button>' +
+                '<button class="btn btn-secondary" id="btnSkipBuyback">Rezygnuj</button>' +
+                '</div>';
+        } else {
+            html += '<p class="muted small">Gracz moze odkupic swoje pole lub zrezygnowac.</p>';
+        }
+        html += '<p class="error" id="actionErr" style="display:none;"></p>';
+        ap.style.display = "block";
+        ap.className = "bt-action-float bt-action-anim";
+        ap.innerHTML = html;
+
+        if (amVictim) startActionTimer(Date.now() + 30000);
+        else clearActionTimer();
+
+        var btnBuyback = document.getElementById("btnBuyback");
+        if (btnBuyback) btnBuyback.addEventListener("click", function() { postAction("/buyback"); });
+        var btnSkip = document.getElementById("btnSkipBuyback");
+        if (btnSkip) btnSkip.addEventListener("click", function() { postAction("/skip-buyback"); });
+    }
+
+    function propertyLevelLabel(level) {
+        if (level >= 4) return "Biurowiec";
+        if (level === 3) return "Lvl 3";
+        if (level === 2) return "Lvl 2";
+        if (level === 1) return "Lvl 1";
+        return "Sam grunt";
+    }
+
+    function renderMyProperties(state) {
+        var list = document.getElementById("propertiesList");
+        var badge = document.getElementById("propertiesCount");
+        var cards = state.myPropertyCards || [];
+        if (!list) return;
+        if (badge) badge.textContent = String(cards.length);
+        if (cards.length === 0) {
+            list.innerHTML = '<p class="muted small" style="padding:.4rem;">Nie masz jeszcze nieruchomosci.</p>';
+            return;
+        }
+        var debtPhase = state.pendingPayment && state.players.some(function(p) {
+            return p.isMe && p.id === state.pendingPayment.debtorId;
+        });
+        var html = '<p class="muted small bt-prop-hint">Kliknij posesje, aby zobaczyc czynsz i sprzedaz do banku (70%).</p>';
+        cards.forEach(function(card) {
+            var isUpgradeTarget = state.pendingUpgrade && state.pendingUpgrade.position === card.position;
+            html += '<details class="bt-property-item' + (isUpgradeTarget ? ' bt-property-item--active' : '') + '"' +
+                (debtPhase ? ' open' : '') + '>' +
+                '<summary><span class="bt-prop-name">' + escapeHtml(card.tileName) + '</span>' +
+                '<span class="bt-property-meta">' + escapeHtml(card.levelLabel || propertyLevelLabel(card.level)) + '</span></summary>' +
+                '<div class="bt-property-body">' +
+                '<div class="bt-property-stats">' +
+                '<div class="bt-prop-stat"><span class="lbl">Czynsz</span><strong class="rent-highlight">' + formatCash(card.currentRent) + ' PLN</strong></div>' +
+                '<div class="bt-prop-stat"><span class="lbl">Cena gruntu</span><span>' + formatCash(card.buyPrice) + ' PLN</span></div>' +
+                '<div class="bt-prop-stat"><span class="lbl">Sprzedaz do banku</span><span>' + formatCash(card.bankSellPrice) + ' PLN <em>(70%)</em></span></div>';
+            if (card.canUpgradeFurther && card.upgradeCost > 0) {
+                html += '<div class="bt-prop-stat"><span class="lbl">Kolejne ulepszenie</span><span>' + formatCash(card.upgradeCost) + ' PLN → czynsz ' + formatCash(card.nextRent) + ' PLN</span></div>';
+            }
+            if (isUpgradeTarget) {
+                html += '<p class="bt-prop-alert"><i class="fa-solid fa-hammer"></i> Stoisz na tym polu — mozesz ulepszyc w panelu akcji.</p>';
+            }
+            html += '</div>' +
+                '<button type="button" class="btn btn-secondary btn-small btn-sell-prop" data-pos="' + card.position + '">' +
+                '<i class="fa-solid fa-landmark"></i> Sprzedaj do banku (' + formatCash(card.bankSellPrice) + ' PLN)</button>' +
+                '</div></details>';
+        });
+        list.innerHTML = html;
+        list.querySelectorAll(".btn-sell-prop").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var pos = parseInt(btn.getAttribute("data-pos"), 10);
+                if (!confirm("Sprzedac te nieruchomosc do banku za 70% ceny gruntu? Ulepszenia przepadaja.")) return;
+                postAction("/sell", { position: pos });
+            });
         });
     }
 
     // ============================================================
     // RENDEROWANIE DOMKOW / HOTELI NA PLANSZY 3D
+    // Model: /models/Buildings.glb — PublicBuilding_3 (domek), PublicBuilding_1 (hotel/biurowiec)
     // ============================================================
     var upgradeMarkers = {};
+    var houseTemplate = null;
+    var hotelTemplate = null;
+    var HOUSE_HEIGHT = 0.28;
+    var HOTEL_HEIGHT = 0.44;
+
+    function extractBuildingTemplate(scene, nodeName, targetHeight) {
+        var node = null;
+        scene.traverse(function (o) {
+            if (!node && o.name === nodeName) node = o;
+        });
+        if (!node) return null;
+        var clone = node.clone(true);
+        var box = new THREE.Box3().setFromObject(clone);
+        var size = new THREE.Vector3();
+        box.getSize(size);
+        clone.scale.setScalar(targetHeight / Math.max(size.y, 0.0001));
+        box.setFromObject(clone);
+        var center = new THREE.Vector3();
+        box.getCenter(center);
+        clone.position.x -= center.x;
+        clone.position.z -= center.z;
+        clone.position.y -= box.min.y;
+        clone.traverse(function (o) { if (o.isMesh) o.castShadow = true; });
+        var grp = new THREE.Group();
+        grp.add(clone);
+        return grp;
+    }
+
+    function loadBuildingModels() {
+        if (typeof THREE.GLTFLoader === "undefined") return;
+        var loader = new THREE.GLTFLoader();
+        loader.load("/models/Buildings.glb", function (gltf) {
+            houseTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_3", HOUSE_HEIGHT);
+            hotelTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_1", HOTEL_HEIGHT);
+            if (lastState) updateUpgradeMarkers(lastState);
+        }, undefined, function () { /* fallback: proste boxy */ });
+    }
+
+    function tintBuildingClone(group, colorHex) {
+        var col = new THREE.Color(colorHex || "#ffd700");
+        group.traverse(function (o) {
+            if (o.isMesh && o.material) {
+                o.material = o.material.clone();
+                if (o.material.emissive) o.material.emissive.copy(col).multiplyScalar(0.14);
+            }
+        });
+    }
+
+    function placeBuildingMarker(key, template, x, y, z, colorHex, scaleMul) {
+        var marker = template.clone(true);
+        tintBuildingClone(marker, colorHex);
+        if (scaleMul && scaleMul !== 1) marker.scale.multiplyScalar(scaleMul);
+        marker.position.set(x, y, z);
+        boardPivot.add(marker);
+        upgradeMarkers[key] = marker;
+    }
+
+    function addFallbackHouse(posStr, hi, wx, wz, col, offX, offZ) {
+        var hh = 0.26, hw = 0.17;
+        var house = new THREE.Mesh(
+            new THREE.BoxGeometry(hw, hh, hw),
+            new THREE.MeshLambertMaterial({ color: 0x4caf50 })
+        );
+        house.position.set(wx + offX, (hh / 2) + 0.22, wz + offZ);
+        house.castShadow = true;
+        var hRoof = new THREE.Mesh(
+            new THREE.ConeGeometry(hw * 0.75, 0.12, 4),
+            new THREE.MeshLambertMaterial({ color: col })
+        );
+        hRoof.position.set(wx + offX, hh + 0.22 + 0.06, wz + offZ);
+        hRoof.rotation.y = Math.PI / 4;
+        boardPivot.add(house);
+        boardPivot.add(hRoof);
+        upgradeMarkers[posStr + "_h" + hi] = house;
+        upgradeMarkers[posStr + "_hr" + hi] = hRoof;
+    }
+
+    function addFallbackHotel(posStr, wx, wz, col) {
+        var h = 0.38, w2 = 0.22;
+        var marker = new THREE.Mesh(
+            new THREE.BoxGeometry(w2, h, w2),
+            new THREE.MeshLambertMaterial({ color: 0xe53935 })
+        );
+        marker.position.set(wx, (h / 2) + 0.22, wz);
+        marker.castShadow = true;
+        var roofH = 0.16;
+        var roof = new THREE.Mesh(
+            new THREE.ConeGeometry(w2 * 0.75, roofH, 4),
+            new THREE.MeshLambertMaterial({ color: col })
+        );
+        roof.position.set(wx, h + 0.22 + roofH / 2, wz);
+        roof.rotation.y = Math.PI / 4;
+        boardPivot.add(marker);
+        boardPivot.add(roof);
+        upgradeMarkers[posStr + "_hotel"] = marker;
+        upgradeMarkers[posStr + "_hotel_roof"] = roof;
+    }
 
     function updateUpgradeMarkers(state) {
-        // Usun stare
-        Object.keys(upgradeMarkers).forEach(function(k) {
+        Object.keys(upgradeMarkers).forEach(function (k) {
             if (upgradeMarkers[k] && upgradeMarkers[k].parentNode) {
                 boardPivot.remove(upgradeMarkers[k]);
             }
@@ -2061,38 +2448,72 @@
         upgradeMarkers = {};
 
         if (!boardPivot) return;
-        state.players.forEach(function(p) {
+        state.players.forEach(function (p) {
             if (!p.propertyLevels) return;
-            Object.keys(p.propertyLevels).forEach(function(posStr) {
+            Object.keys(p.propertyLevels).forEach(function (posStr) {
                 var level = p.propertyLevels[posStr];
                 if (level <= 0) return;
                 var pos = parseInt(posStr, 10);
                 var w = posToWorld(pos);
-                var isHotel = level >= 2;
-                var color = new THREE.Color(p.color || "#ffd700");
+                var col = new THREE.Color(p.color || "#ffd700");
+                var dx = 0, dz = 0;
+                if (pos < 10) dz = -0.42;
+                else if (pos < 20) dx = 0.42;
+                else if (pos < 30) dz = 0.42;
+                else dx = -0.42;
+                var bx = w.x + dx * 0.5;
+                var bz = w.z + dz * 0.5;
 
-                var h = isHotel ? 0.38 : 0.26;
-                var w2 = isHotel ? 0.22 : 0.17;
-                var marker = new THREE.Mesh(
-                    new THREE.BoxGeometry(w2, h, w2),
-                    new THREE.MeshLambertMaterial({ color: isHotel ? 0xe53935 : 0x4caf50 })
-                );
-                marker.position.set(w.x, (h / 2) + 0.22, w.z);
-                marker.castShadow = true;
-                var roofH = isHotel ? 0.16 : 0.12;
-                var roof = new THREE.Mesh(
-                    new THREE.ConeGeometry(w2 * 0.75, roofH, 4),
-                    new THREE.MeshLambertMaterial({ color: color })
-                );
-                roof.position.set(w.x, h + 0.22 + roofH / 2, w.z);
-                roof.rotation.y = Math.PI / 4;
-                boardPivot.add(marker);
-                boardPivot.add(roof);
-                upgradeMarkers[posStr + "_body"] = marker;
-                upgradeMarkers[posStr + "_roof"] = roof;
+                if (level >= 3) {
+                    if (hotelTemplate) {
+                        placeBuildingMarker(
+                            posStr + "_hotel",
+                            hotelTemplate,
+                            bx, 0.22, bz,
+                            p.color,
+                            level >= 4 ? 1.12 : 1
+                        );
+                    } else {
+                        addFallbackHotel(posStr, bx, bz, col);
+                    }
+                } else {
+                    var count = level >= 2 ? 2 : 1;
+                    for (var hi = 0; hi < count; hi++) {
+                        var offX = (hi === 0 ? -0.1 : 0.1);
+                        var offZ = (hi === 0 ? -0.1 : 0.1);
+                        if (houseTemplate) {
+                            placeBuildingMarker(
+                                posStr + "_h" + hi,
+                                houseTemplate,
+                                bx + offX, 0.22, bz + offZ,
+                                p.color,
+                                1
+                            );
+                        } else {
+                            addFallbackHouse(posStr, hi, bx, bz, col, offX, offZ);
+                        }
+                    }
+                }
             });
         });
     }
+
+    /* ===== TOGGLE: Moje posesje ===== */
+    (function () {
+        var toggle = document.getElementById("propertiesToggle");
+        var panel  = document.getElementById("propertiesPanel");
+        var close  = document.getElementById("propertiesClose");
+        if (toggle && panel) {
+            toggle.addEventListener("click", function () {
+                panel.style.display = panel.style.display === "none" ? "block" : "none";
+                var handPanel = document.getElementById("handCardsPanel");
+                if (handPanel) handPanel.style.display = "none";
+            });
+        }
+        if (close && panel) {
+            close.addEventListener("click", function () { panel.style.display = "none"; });
+        }
+    })();
 
     /* ===== TOGGLE: Karty w rece ===== */
     (function () {
@@ -2102,6 +2523,8 @@
         if (toggle && panel) {
             toggle.addEventListener("click", function () {
                 if (toggle.disabled) return;
+                var propPanel = document.getElementById("propertiesPanel");
+                if (propPanel) propPanel.style.display = "none";
                 var transferPanel = document.getElementById("transferPanel");
                 if (transferPanel) transferPanel.style.display = "none";
                 panel.style.display = panel.style.display === "none" ? "block" : "none";

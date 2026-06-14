@@ -1,11 +1,16 @@
 package pl.pb.monopoly.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import pl.pb.monopoly.dto.FriendDto;
 import pl.pb.monopoly.service.FriendService;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * System znajomych: lista, wyszukiwanie graczy, zaproszenia i ich akceptacja.
@@ -31,6 +36,27 @@ public class FriendsController {
         model.addAttribute("query", query);
         model.addAttribute("results", friendService.search(query, me));
         return "friends";
+    }
+
+    /** JSON: wyszukiwanie graczy na żywo (lupka w menu głównym / na /friends). */
+    @GetMapping("/api/search")
+    @ResponseBody
+    public List<FriendDto> apiSearch(@RequestParam(value = "q", required = false) String q,
+                                     Authentication auth) {
+        return friendService.search(q, auth.getName());
+    }
+
+    /** JSON: wyślij zaproszenie bez przeładowania strony (działa wielokrotnie). */
+    @PostMapping("/api/add")
+    @ResponseBody
+    public ResponseEntity<?> apiAdd(@RequestBody Map<String, String> body, Authentication auth) {
+        String username = body.get("username");
+        try {
+            friendService.sendRequest(auth.getName(), username);
+            return ResponseEntity.ok(Map.of("ok", true, "message", "Wysłano zaproszenie do " + username));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
     }
 
     @PostMapping("/add")

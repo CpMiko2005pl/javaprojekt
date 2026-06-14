@@ -1,26 +1,28 @@
 package pl.pb.monopoly.controller;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import pl.pb.monopoly.domain.GameStatus;
 import pl.pb.monopoly.domain.OwnedItem;
 import pl.pb.monopoly.domain.Role;
 import pl.pb.monopoly.domain.User;
+import pl.pb.monopoly.repository.GameSessionRepository;
+import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.LootboxService;
 import pl.pb.monopoly.service.UserService;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Panel administracyjny (tylko ROLE_ADMIN).
- * Zarzadzanie uzytkownikami + podglad/edycja ekwipunku gracza.
+ * Admin ma wszystkie funkcje moderatora (podglad i konczenie aktywnych gier,
+ * weryfikacja kont) oraz dodatkowe: zmiana rol, usuwanie kont, edycja ekwipunku.
  */
 @Controller
 @RequestMapping("/admin")
@@ -30,34 +32,40 @@ public class AdminController {
     private final OwnedItemRepository ownedItemRepository;
     private final UserRepository userRepository;
     private final LootboxService lootboxService;
+    private final GameSessionRepository gameSessionRepository;
+    private final MatchHistoryRepository matchHistoryRepository;
 
     public AdminController(UserService userService,
                            OwnedItemRepository ownedItemRepository,
                            UserRepository userRepository,
-                           LootboxService lootboxService) {
+                           LootboxService lootboxService,
+                           GameSessionRepository gameSessionRepository,
+                           MatchHistoryRepository matchHistoryRepository) {
         this.userService = userService;
         this.ownedItemRepository = ownedItemRepository;
         this.userRepository = userRepository;
         this.lootboxService = lootboxService;
+        this.gameSessionRepository = gameSessionRepository;
+        this.matchHistoryRepository = matchHistoryRepository;
     }
 
     @GetMapping("/users")
     public String users(Model model) {
         model.addAttribute("users", userService.findAll());
         model.addAttribute("roles", Role.values());
+        model.addAttribute("activeSessions", gameSessionRepository.findAllActive());
+        model.addAttribute("totalMatches", matchHistoryRepository.count());
         return "admin/users";
     }
 
-    @PostMapping("/users/{id}/topup")
-    public String topUp(@PathVariable Long id,
-                        @RequestParam BigDecimal amount,
-                        RedirectAttributes redirectAttributes) {
-        try {
-            userService.topUpBalance(id, amount);
-            redirectAttributes.addFlashAttribute("message", "Doladowano konto kwota " + amount + " PLN.");
-        } catch (IllegalArgumentException ex) {
-            redirectAttributes.addFlashAttribute("error", ex.getMessage());
-        }
+    /** Funkcja moderatora: admin moze zakonczyc dowolna aktywna sesje gry. */
+    @PostMapping("/sessions/{id}/end")
+    public String endSession(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        gameSessionRepository.findById(id).ifPresent(s -> {
+            s.setStatus(GameStatus.FINISHED);
+            gameSessionRepository.save(s);
+        });
+        redirectAttributes.addFlashAttribute("message", "Sesja zakonczona przez administratora.");
         return "redirect:/admin/users";
     }
 

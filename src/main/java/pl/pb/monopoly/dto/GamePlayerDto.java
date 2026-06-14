@@ -1,5 +1,7 @@
 package pl.pb.monopoly.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Map;
 
@@ -11,9 +13,13 @@ public record GamePlayerDto(
         int position,
         String color,
         boolean bankrupt,
-        boolean isMe,
+        @JsonProperty("isMe") boolean isMe,
         boolean bot,
         List<Integer> ownedPositions,
-        Map<Integer, Integer> propertyLevels
+        Map<Integer, Integer> propertyLevels,
+        boolean ready,
+        boolean leader,
+        /** Sciezka GLB zalozonego pionka 3D (np. /models/PawnSteve.glb) lub null = domyslny. */
+        String pawnModel
 ) {
 }

@@ -54,21 +54,20 @@
                     <p class="error" role="alert" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></p>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
-                    <div class="field">
-                        <label for="password">Hasło * <small style="font-weight:400;color:#94a3b8;">(min. 5 zn.)</small></label>
-                        <input type="password" id="password" th:field="*{password}"
-                               th:attr="aria-invalid=${#fields.hasErrors('password')} ? 'true' : 'false'"
-                               autocomplete="new-password" placeholder="••••••">
-                        <p class="error" role="alert" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
-                    </div>
-                    <div class="field">
-                        <label for="confirmPassword">Powtórz *</label>
-                        <input type="password" id="confirmPassword" th:field="*{confirmPassword}"
-                               th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')} ? 'true' : 'false'"
-                               autocomplete="new-password" placeholder="••••••">
-                        <p class="error" role="alert" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></p>
-                    </div>
+                <div class="field">
+                    <label for="password">Hasło * <small style="font-weight:400;color:#94a3b8;">(min. 5 zn.)</small></label>
+                    <input type="password" id="password" th:field="*{password}"
+                           th:attr="aria-invalid=${#fields.hasErrors('password')} ? 'true' : 'false'"
+                           autocomplete="new-password" placeholder="••••••">
+                    <p class="error" role="alert" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+                </div>
+
+                <div class="field">
+                    <label for="confirmPassword">Powtórz hasło *</label>
+                    <input type="password" id="confirmPassword" th:field="*{confirmPassword}"
+                           th:attr="aria-invalid=${#fields.hasErrors('confirmPassword')} ? 'true' : 'false'"
+                           autocomplete="new-password" placeholder="••••••">
+                    <p class="error" role="alert" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></p>
                 </div>
 
                 <button type="submit" class="lp-btn-play lp-auth-submit" style="animation:none;">

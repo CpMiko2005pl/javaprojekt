@@ -62,6 +62,15 @@ public class PlayerStatistics {
     @Column(name = "last_reward", length = 120)
     private String lastReward;
 
+    /** Bonusowa karta z Kola Fortuny — dolaczana do reki w nastepnej grze (HandCardType.name()). */
+    @Column(name = "pending_wheel_card", length = 40)
+    private String pendingWheelCard;
+
+    /** Bonus gotowki na start nastepnej gry z Kola Fortuny. */
+    @Min(0)
+    @Column(name = "pending_start_cash_bonus", nullable = false)
+    private int pendingStartCashBonus = 0;
+
     /** Liczba dostepnych skrzynek (lootboxow) do otwarcia. */
     @Min(0)
     @Column(name = "available_lootboxes", nullable = false)
@@ -162,6 +171,22 @@ public class PlayerStatistics {
 
     public void setLastReward(String lastReward) {
         this.lastReward = lastReward;
+    }
+
+    public String getPendingWheelCard() {
+        return pendingWheelCard;
+    }
+
+    public void setPendingWheelCard(String pendingWheelCard) {
+        this.pendingWheelCard = pendingWheelCard;
+    }
+
+    public int getPendingStartCashBonus() {
+        return pendingStartCashBonus;
+    }
+
+    public void setPendingStartCashBonus(int pendingStartCashBonus) {
+        this.pendingStartCashBonus = pendingStartCashBonus;
     }
 
     public User getUser() {

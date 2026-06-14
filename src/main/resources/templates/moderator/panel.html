@@ -10,7 +10,7 @@
     <div class="page-header">
         <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Moderacja</span>
         <h1>Panel moderatora</h1>
-        <p class="lead">Przeglad aktywnych gier, weryfikacja graczy i zarzadzanie sesjami.</p>
+        <p class="lead">Przeglad aktywnych gier, weryfikacja graczy, zawieszenia i ostrzezenia.</p>
         <div style="margin-top:.8rem;display:flex;gap:.5rem;">
             <a th:href="@{/dashboard}" class="btn btn-secondary btn-small">
                 <i class="fa-solid fa-user"></i> Mój profil gracza
@@ -75,6 +75,7 @@
             <th scope="col">E-mail</th>
             <th scope="col">Rola</th>
             <th scope="col">Status</th>
+            <th scope="col">Ostrz.</th>
             <th scope="col">ELO</th>
             <th scope="col">Akcje</th>
         </tr>
@@ -94,19 +95,55 @@
                 </span>
             </td>
             <td>
-                <span th:if="${u.verified}" class="badge badge-ok">zweryfikowany</span>
-                <span th:unless="${u.verified}" class="badge badge-no">nie</span>
+                <span th:if="${u.suspended}" class="badge badge-no">zawieszony</span>
+                <span th:if="${!u.suspended and u.verified}" class="badge badge-ok">zweryfikowany</span>
+                <span th:if="${!u.suspended and !u.verified}" class="badge badge-no">niezweryfikowany</span>
+            </td>
+            <td>
+                <a th:href="@{/moderator/users/{id}/warnings(id=${u.id})}"
+                   th:text="${warningCounts[u.id]} ?: 0">0</a>
             </td>
             <td th:text="${u.statistics != null} ? ${u.statistics.eloPoints} : '—'">1000</td>
-            <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+            <td>
+                <div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:flex-start;">
                 <form th:action="@{/moderator/users/{id}/verify(id=${u.id})}" method="post" class="inline-form">
                     <input type="hidden" name="verified" th:value="${!u.verified}">
                     <button type="submit" class="btn btn-secondary btn-small"
                             th:text="${u.verified} ? 'Cofnij weryfikacje' : 'Zweryfikuj'">Zweryfikuj</button>
                 </form>
+                <form th:if="${!u.suspended}" th:action="@{/moderator/users/{id}/suspend(id=${u.id})}"
+                      method="post" class="inline-form mod-action-form"
+                      onsubmit="return confirm('Zawiesic tego gracza? Nie bedzie mogl grac.');">
+                    <input type="text" name="reason" placeholder="Powod" maxlength="200" required
+                           style="width:120px;font-size:.75rem;padding:.2rem .35rem;">
+                    <select name="days" style="font-size:.75rem;padding:.2rem;">
+                        <option value="0">Bezterminowo</option>
+                        <option value="1">1 dzien</option>
+                        <option value="7">7 dni</option>
+                        <option value="30">30 dni</option>
+                    </select>
+                    <button type="submit" class="btn btn-danger btn-small">
+                        <i class="fa-solid fa-ban"></i> Zawies
+                    </button>
+                </form>
+                <form th:if="${u.suspended}" th:action="@{/moderator/users/{id}/unsuspend(id=${u.id})}"
+                      method="post" class="inline-form">
+                    <button type="submit" class="btn btn-secondary btn-small">
+                        <i class="fa-solid fa-unlock"></i> Odwies
+                    </button>
+                </form>
+                <form th:action="@{/moderator/users/{id}/warn(id=${u.id})}" method="post"
+                      class="inline-form mod-action-form">
+                    <input type="text" name="message" placeholder="Ostrzezenie..." maxlength="500" required
+                           style="width:140px;font-size:.75rem;padding:.2rem .35rem;">
+                    <button type="submit" class="btn btn-small">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Ostrzez
+                    </button>
+                </form>
                 <a th:href="@{/u/{u}(u=${u.username})}" class="btn btn-ghost btn-small" target="_blank">
                     <i class="fa-solid fa-user"></i>
                 </a>
+                </div>
             </td>
         </tr>
         </tbody>

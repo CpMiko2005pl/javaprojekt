@@ -1,6 +1,5 @@
 package pl.pb.monopoly.controller;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +9,6 @@ import org.springframework.web.client.RestClient;
 import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.LootboxService;
-
-import java.net.URI;
 
 import java.util.Map;
 
@@ -54,13 +51,24 @@ public class AvatarController {
         try {
             var userOpt = userRepository.findByUsername(username);
 
-            // Jezeli uzytkownik ma ustawiony wlasny URL awatara — przekieruj tam
+            // Wlasny awatar — serwuj bezposrednio (img nie zawsze dobrze obsluguje redirect)
             if (userOpt.isPresent()) {
                 String customUrl = userOpt.get().getAvatarUrl();
                 if (customUrl != null && !customUrl.isBlank()) {
-                    return ResponseEntity.status(HttpStatus.FOUND)
-                            .location(URI.create(customUrl))
-                            .build();
+                    byte[] body = restClient.get()
+                            .uri(customUrl)
+                            .retrieve()
+                            .body(byte[].class);
+                    if (body != null && body.length > 0) {
+                        MediaType type = customUrl.toLowerCase().contains(".png") ? MediaType.IMAGE_PNG
+                                : customUrl.toLowerCase().contains(".webp") ? MediaType.valueOf("image/webp")
+                                : customUrl.toLowerCase().contains(".gif") ? MediaType.IMAGE_GIF
+                                : MediaType.IMAGE_JPEG;
+                        return ResponseEntity.ok()
+                                .contentType(type)
+                                .header("Cache-Control", "public, max-age=60")
+                                .body(body);
+                    }
                 }
             }
 

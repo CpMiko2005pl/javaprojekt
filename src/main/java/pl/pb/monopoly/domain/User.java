@@ -87,6 +87,17 @@ public class User {
     @Column(name = "bio", length = 200)
     private String bio;
 
+    /** Konto zawieszone — gracz nie moze sie logowac ani grac. */
+    @Column(nullable = false)
+    private boolean suspended = false;
+
+    /** Koniec zawieszenia (null = bezterminowo). */
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
     // --- KOMPOZYCJA ---
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
@@ -243,5 +254,29 @@ public class User {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public boolean isSuspended() {
+        return suspended;
+    }
+
+    public void setSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
+    public LocalDateTime getSuspendedUntil() {
+        return suspendedUntil;
+    }
+
+    public void setSuspendedUntil(LocalDateTime suspendedUntil) {
+        this.suspendedUntil = suspendedUntil;
+    }
+
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+
+    public void setSuspensionReason(String suspensionReason) {
+        this.suspensionReason = suspensionReason;
     }
 }

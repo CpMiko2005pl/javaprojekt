@@ -25,7 +25,7 @@ public class WheelController {
 
     @GetMapping("/wheel")
     public String wheelPage(Authentication authentication, Model model) {
-        model.addAttribute("segments", WheelService.REWARDS);
+        model.addAttribute("segments", WheelService.rewardLabels());
         model.addAttribute("canSpin", wheelService.canSpinToday(authentication.getName()));
         return "wheel";
     }

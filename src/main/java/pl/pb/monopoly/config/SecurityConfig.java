@@ -53,7 +53,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // zasoby publiczne (rowniez dla niezalogowanego "Goscia")
                 .requestMatchers("/", "/register", "/login", "/error").permitAll()
-                .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/media/**", "/favicon.ico").permitAll()
                 .requestMatchers("/ws/**").authenticated()
                 .requestMatchers("/api/ranking-najlepszych").permitAll()
                 .requestMatchers("/api/avatar/**").permitAll()
@@ -62,15 +62,19 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 // panel moderatora
                 .requestMatchers("/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
-                // CRUD nieruchomosci: modyfikacje tylko admin/moderator
-                .requestMatchers("/properties/new", "/properties/*/edit", "/properties/*/delete",
-                        "/properties/save").hasAnyRole("ADMIN", "MODERATOR")
                 // pozostale operacje wymagaja zalogowania
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", true)
+                .failureHandler((request, response, exception) -> {
+                    String redirect = "/login?error";
+                    if (exception instanceof org.springframework.security.authentication.LockedException) {
+                        redirect = "/login?locked";
+                    }
+                    response.sendRedirect(redirect);
+                })
                 .permitAll()
             )
             .logout(logout -> logout

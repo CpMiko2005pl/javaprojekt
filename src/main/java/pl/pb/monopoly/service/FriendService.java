@@ -22,10 +22,14 @@ public class FriendService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final UserPresenceService presenceService;
 
-    public FriendService(FriendshipRepository friendshipRepository, UserRepository userRepository) {
+    public FriendService(FriendshipRepository friendshipRepository,
+                         UserRepository userRepository,
+                         UserPresenceService presenceService) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
+        this.presenceService = presenceService;
     }
 
     private User user(String username) {
@@ -52,7 +56,8 @@ public class FriendService {
                         FriendStatus.ACCEPTED, me.getId());
         return rels.stream().map(f -> {
             User other = f.getRequester().getId().equals(me.getId()) ? f.getAddressee() : f.getRequester();
-            return new FriendDto(f.getId(), other.getId(), other.getUsername(), levelOf(other), eloOf(other));
+            return new FriendDto(f.getId(), other.getId(), other.getUsername(),
+                    levelOf(other), eloOf(other), presenceService.isOnline(other.getUsername()));
         }).toList();
     }
 
@@ -75,7 +80,8 @@ public class FriendService {
         }
         return userRepository.findTop10ByUsernameContainingIgnoreCase(fragment.trim()).stream()
                 .filter(u -> !u.getUsername().equals(username))
-                .map(u -> new FriendDto(null, u.getId(), u.getUsername(), levelOf(u), eloOf(u)))
+                .map(u -> new FriendDto(null, u.getId(), u.getUsername(),
+                        levelOf(u), eloOf(u), presenceService.isOnline(u.getUsername())))
                 .toList();
     }
 
@@ -104,6 +110,13 @@ public class FriendService {
             throw new IllegalArgumentException("To nie Twoje zaproszenie");
         }
         f.setStatus(FriendStatus.ACCEPTED);
+    }
+
+    /** Czy uzytkownik ma zaakceptowana znajomosc z danym graczem. */
+    @Transactional(readOnly = true)
+    public boolean isFriend(String username, Long otherUserId) {
+        if (otherUserId == null) return false;
+        return friendsOf(username).stream().anyMatch(f -> otherUserId.equals(f.userId()));
     }
 
     /** Odrzucenie zaproszenia lub usuniecie znajomego. */

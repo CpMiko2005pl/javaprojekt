@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Match Lobby')}"></head>
+<body class="light-page game-lobby-page">
+
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main" class="fc-main"
+      th:attr="data-session=${sessionId},data-server-url=${serverUrl}">
+
+    <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
+    <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
+
+    <section id="lobbyView" class="fc-lobby">
+        <div class="fc-lobby-head">
+            <div>
+                <a th:href="@{/game}" class="fc-back-link"><i class="fa-solid fa-arrow-left"></i> Matchmaking</a>
+                <span class="fc-live"><span class="fc-live-dot"></span> Match Lobby</span>
+                <h1 class="fc-lobby-title" th:text="${sessionName}">Pokoj</h1>
+                <p class="fc-lobby-map"><i class="fa-solid fa-map"></i> Kampus PB · Monopoly 3D</p>
+            </div>
+            <div class="fc-lobby-status" id="lobbyStatus">Oczekiwanie...</div>
+        </div>
+
+        <div class="fc-invite-bar">
+            <div class="fc-invite-code">
+                <span class="fc-invite-label">Kod pokoju</span>
+                <strong id="lobbyCode" th:text="${sessionCode}">ABC123</strong>
+            </div>
+            <button type="button" class="fc-btn fc-btn-ghost" id="copyCodeBtn">
+                <i class="fa-solid fa-copy"></i> Kopiuj kod
+            </button>
+            <button type="button" class="fc-btn fc-btn-ghost" id="copyLinkBtn">
+                <i class="fa-solid fa-link"></i> Kopiuj link
+            </button>
+        </div>
+
+        <div class="fc-slots-wrap">
+            <div class="fc-slots-label">Gracze <span id="readyCounter">0/0</span></div>
+            <div class="fc-slots" id="playerSlots"></div>
+        </div>
+
+        <div id="botPicker" class="fc-bot-picker" style="display:none;">
+            <span class="fc-bot-picker-label">Wybierz bota do dodania:</span>
+            <div class="fc-bot-presets" id="botPresets"></div>
+        </div>
+
+        <div class="fc-action-bar">
+            <button type="button" id="readyBtn" class="fc-btn fc-btn-ready">
+                <i class="fa-solid fa-check"></i> Gotowy
+            </button>
+            <form th:action="@{/game/{id}/leave(id=${sessionId})}" method="post" class="fc-leave-form">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="fc-btn fc-btn-leave"
+                        onclick="return confirm('Opuscic lobby?')">
+                    <i class="fa-solid fa-right-from-bracket"></i> Opuść
+                </button>
+            </form>
+            <div class="fc-action-spacer"></div>
+            <button type="button" id="startBtn" class="fc-btn fc-btn-start" style="display:none;">
+                <i class="fa-solid fa-play"></i> Start meczu
+            </button>
+        </div>
+        <p class="fc-hint" id="startHint">Lider rozpocznie mecz gdy wszyscy będą gotowi.</p>
+    </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/game-lobby.js}"></script>
+</body>
+</html>

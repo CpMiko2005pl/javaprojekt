@@ -125,6 +125,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     display: block; padding: .55rem 0; color: var(--slate-300); font-weight: 600;
 }
 .mobile-menu a:hover { color: var(--brand-accent); }
+.mobile-menu-logout {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    cursor: pointer; padding: .55rem 0; color: var(--slate-300); font-weight: 600;
+    font-family: inherit; font-size: inherit;
+}
+.mobile-menu-logout:hover { color: var(--brand-rose); }
 
 @media (min-width: 900px) {
     .nav-links { display: flex; }
@@ -338,6 +344,40 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
 .online-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--brand-emerald); display: inline-block;
+}
+
+/* Status online/offline obok nicku gracza */
+.presence-dot-inline {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+}
+.presence-dot-inline--online { background: #22c55e; }
+.presence-dot-inline--offline { background: #ef4444; }
+
+.page-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    margin-bottom: 1rem;
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--slate-500, #64748b);
+    text-decoration: none;
+    transition: color .15s;
+}
+.page-back-link:hover { color: var(--brand-emerald, #00a651); }
+
+.player-name-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
 }
 
 .card {
@@ -1362,7 +1402,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
 .modal-title { text-align: center; margin-top: 0; margin-bottom: .8rem; font-size: 1.25rem; }
 
 /* ===== KOLO FORTUNY (popup CSS) ===== */
-.wheel-modal-box { max-width: 440px; }
+.wheel-modal-box { max-width: 480px; }
 .wheel-container {
     position: relative; display: flex;
     align-items: center; justify-content: center;
@@ -1619,13 +1659,14 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     display: flex; align-items: center; justify-content: center;
 }
 
-/* Hand cards popup — fixed, nie obcinany przez overflow planszy */
+/* Hand cards popup — fixed, wycentrowany poziomo nad dolnym HUD */
 .bt-hand-popup {
     position: fixed;
-    left: max(12px, env(safe-area-inset-left, 12px));
+    left: 50%;
+    transform: translateX(-50%);
     bottom: 96px;
-    width: min(360px, calc(100vw - 24px));
-    max-height: min(440px, calc(100vh - 180px));
+    width: min(400px, calc(100vw - 24px));
+    max-height: min(460px, calc(100vh - 180px));
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--brand-card);
@@ -1633,7 +1674,11 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     border-radius: 14px; padding: .6rem .7rem;
     box-shadow: 0 8px 32px rgba(0,0,0,.65);
     z-index: 500;
-    animation: btSlideUp .2s ease both;
+    animation: btHandPopupIn .22s ease both;
+}
+@keyframes btHandPopupIn {
+    from { transform: translateX(-50%) translateY(18px); opacity: 0; }
+    to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
 }
 .bt-hand-popup-header {
     display: flex; justify-content: space-between; align-items: center;
@@ -1680,16 +1725,22 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     position: relative; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
 }
+/* Ramka aplikowana na KONTENER awatara (widoczna nawet gdy <img> sie nie zaladowal
+   i pokazuje sie fallback z inicjalem) oraz dodatkowo na sam obraz. */
+.profile-avatar-frame.pf-frame-bronze,
 .profile-avatar-frame.pf-frame-bronze .avatar-img,
 .profile-avatar-frame.pf-frame-bronze .avatar {
     outline: 3px solid #cd7f32; outline-offset: 2px; border-radius: 14px;
     box-shadow: 0 0 10px rgba(205,127,50,.4);
 }
+.profile-avatar-frame.pf-frame-silver,
 .profile-avatar-frame.pf-frame-silver .avatar-img,
 .profile-avatar-frame.pf-frame-silver .avatar {
     outline: 3px solid #c0c0c0; outline-offset: 2px; border-radius: 14px;
     box-shadow: 0 0 10px rgba(192,192,192,.4);
 }
+.profile-avatar-frame.pf-frame-frame-gold,
+.profile-avatar-frame.pf-frame-gold,
 .profile-avatar-frame.pf-frame-frame-gold .avatar-img,
 .profile-avatar-frame.pf-frame-frame-gold .avatar,
 .profile-avatar-frame.pf-frame-gold .avatar-img,
@@ -1697,6 +1748,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     outline: 3px solid #ffd700; outline-offset: 2px; border-radius: 14px;
     box-shadow: 0 0 16px rgba(255,215,0,.5);
 }
+.profile-avatar-frame.pf-frame-rainbow,
 .profile-avatar-frame.pf-frame-rainbow .avatar-img,
 .profile-avatar-frame.pf-frame-rainbow .avatar {
     outline: 3px solid transparent; outline-offset: 2px; border-radius: 14px;

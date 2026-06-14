@@ -5,10 +5,15 @@
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <main id="main">
+    <a th:replace="~{fragments/layout :: backLink('/dashboard', 'Wróć do profilu')}"></a>
     <div class="page-header">
         <span class="section-kicker"><i class="fa-solid fa-user-group"></i> Spolecznosc</span>
         <h1>Znajomi</h1>
-        <p class="lead">Dodawaj graczy, akceptuj zaproszenia i zapraszaj do wspolnej rozgrywki.</p>
+        <p class="lead">Dodawaj graczy, akceptuj zaproszenia i przeglądaj profile.</p>
+        <p class="muted" style="font-size:.82rem;margin-top:.35rem;">
+            <span class="presence-dot-inline presence-dot-inline--online"></span> online
+            <span class="presence-dot-inline presence-dot-inline--offline" style="margin-left:1rem;"></span> offline
+        </p>
     </div>
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
@@ -20,14 +25,26 @@
             <h2>Twoi znajomi (<span th:text="${friends.size()}">0</span>)</h2>
 
             <div class="list-row" th:each="f : ${friends}">
-                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</div>
+                <div class="mini-avatar avatar-img-wrap">
+                    <img th:src="@{/api/avatar/{u}(u=${f.username})}" alt=""
+                         th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
+                    <span class="avatar-letter-fallback"
+                          th:text="${#strings.toUpperCase(#strings.substring(f.username,0,1))}">A</span>
+                </div>
                 <div>
-                    <strong th:text="${f.username}">login</strong><br>
+                    <strong class="player-name-row">
+                        <span class="presence-dot-inline"
+                              th:classappend="${f.online} ? ' presence-dot-inline--online' : ' presence-dot-inline--offline'"
+                              th:title="${f.online} ? 'Online' : 'Offline'"></span>
+                        <span th:text="${f.username}">login</span>
+                    </strong><br>
                     <span class="muted">LVL <span th:text="${f.level}">1</span>
                         · <span th:text="${f.eloPoints}">1000</span> ELO</span>
                 </div>
                 <div class="spacer"></div>
-                <a th:href="@{/game}" class="btn btn-small">Zapros do gry</a>
+                <a th:href="@{/u/{username}(username=${f.username})}" class="btn btn-ghost btn-small">
+                    <i class="fa-solid fa-user"></i> Profil
+                </a>
                 <form th:action="@{/friends/{id}/remove(id=${f.friendshipId})}" method="post" class="inline-form">
                     <button type="submit" class="btn btn-danger btn-small">Usun</button>
                 </form>
@@ -39,12 +56,20 @@
         <section class="panel">
             <h2>Zaproszenia (<span th:text="${requests.size()}">0</span>)</h2>
             <div class="list-row" th:each="r : ${requests}">
-                <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</div>
+                <div class="mini-avatar avatar-img-wrap">
+                    <img th:src="@{/api/avatar/{u}(u=${r.fromUsername})}" alt=""
+                         th:onerror="'this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;'">
+                    <span class="avatar-letter-fallback"
+                          th:text="${#strings.toUpperCase(#strings.substring(r.fromUsername,0,1))}">A</span>
+                </div>
                 <div>
                     <strong th:text="${r.fromUsername}">login</strong><br>
                     <span class="muted">LVL <span th:text="${r.level}">1</span> · chce Cie dodac</span>
                 </div>
                 <div class="spacer"></div>
+                <a th:href="@{/u/{username}(username=${r.fromUsername})}" class="btn btn-ghost btn-small">
+                    <i class="fa-solid fa-user"></i> Profil
+                </a>
                 <form th:action="@{/friends/{id}/accept(id=${r.friendshipId})}" method="post" class="inline-form">
                     <button type="submit" class="btn btn-small">Akceptuj</button>
                 </form>
@@ -54,29 +79,14 @@
             </div>
             <p class="muted" th:if="${requests.isEmpty()}">Brak nowych zaproszen.</p>
 
-            <h2 style="margin-top:1.6rem;">Znajdz graczy</h2>
-            <form th:action="@{/friends}" method="get" style="display:flex; gap:.5rem;">
-                <input type="text" name="q" th:value="${query}" placeholder="login gracza…"
+            <h2 style="margin-top:1.6rem;"><i class="fa-solid fa-magnifying-glass"></i> Znajdź graczy</h2>
+            <div style="display:flex; gap:.5rem;">
+                <input type="text" id="playerSearch" placeholder="wpisz login gracza…" autocomplete="off"
                        style="flex:1; padding:.55rem; border-radius:8px; border:1px solid var(--border); background:var(--bg-2); color:var(--text);">
-                <button type="submit" class="btn btn-secondary">Szukaj</button>
-            </form>
-
-            <div th:if="${results != null and !results.isEmpty()}" style="margin-top:.8rem;">
-                <div class="list-row" th:each="u : ${results}">
-                    <div class="mini-avatar" th:text="${#strings.toUpperCase(#strings.substring(u.username,0,1))}">A</div>
-                    <div>
-                        <strong th:text="${u.username}">login</strong><br>
-                        <span class="muted">LVL <span th:text="${u.level}">1</span></span>
-                    </div>
-                    <div class="spacer"></div>
-                    <form th:action="@{/friends/add}" method="post" class="inline-form">
-                        <input type="hidden" name="username" th:value="${u.username}">
-                        <button type="submit" class="btn btn-small">+ Dodaj</button>
-                    </form>
-                </div>
             </div>
-            <p class="muted" th:if="${query != null and results != null and results.isEmpty()}">
-                Brak graczy dla "<span th:text="${query}">x</span>".
+            <div id="searchResults" style="margin-top:.8rem;"></div>
+            <p class="muted" id="searchHint" style="margin-top:.6rem;font-size:.85rem;">
+                Wpisz min. 2 znaki. Możesz dodać wielu graczy z rzędu — wyszukiwarka działa cały czas.
             </p>
         </section>
     </div>
@@ -84,5 +94,128 @@
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
+<script>
+(function(){
+    function csrfHdr(){
+        var t=document.querySelector('meta[name="_csrf"]');
+        var h=document.querySelector('meta[name="_csrf_header"]');
+        var hd={};
+        if(t&&h) hd[h.content]=t.content;
+        return hd;
+    }
+    function esc(s){
+        return (s||'').replace(/[&<>"']/g,function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+    }
+
+    /* ===== Akceptacja / odrzucenie / usuniecie znajomego (AJAX, bez przeladowania) ===== */
+    function bindAjaxForm(form, successHtml){
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            var btn=form.querySelector('button[type="submit"]');
+            var fd=new FormData(form);
+            var params=new URLSearchParams();
+            fd.forEach(function(v,k){ params.append(k,v); });
+            var headers=Object.assign({'Content-Type':'application/x-www-form-urlencoded'}, csrfHdr());
+            fetch(form.action, {method:'POST', headers:headers, body:params.toString(), redirect:'manual'})
+            .then(function(){
+                var row=form.closest('.list-row');
+                if(row){ row.style.transition='opacity .3s'; row.style.opacity='0.4'; }
+                if(btn){ btn.innerHTML=successHtml; btn.disabled=true; }
+            })
+            .catch(function(){ form.submit(); });
+        });
+    }
+    document.querySelectorAll('form[action*="/accept"]').forEach(function(f){
+        bindAjaxForm(f, '<i class="fa-solid fa-user-check"></i> Dodano');
+    });
+    document.querySelectorAll('form[action*="/remove"]').forEach(function(f){
+        bindAjaxForm(f, 'OK');
+    });
+
+    /* ===== Wyszukiwarka graczy NA ŻYWO + dodawanie wielokrotne ===== */
+    var input=document.getElementById('playerSearch');
+    var box=document.getElementById('searchResults');
+    var hint=document.getElementById('searchHint');
+    var timer=null, lastQuery='';
+
+    function addPlayer(username, btn){
+        var headers=Object.assign({'Content-Type':'application/json'}, csrfHdr());
+        fetch('/friends/api/add', {method:'POST', headers:headers, body:JSON.stringify({username:username})})
+        .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+        .then(function(res){
+            if(res.ok){
+                btn.innerHTML='<i class="fa-solid fa-check"></i> Wysłano';
+                btn.disabled=true; btn.classList.add('btn-secondary');
+            } else {
+                btn.innerHTML=esc((res.data && res.data.error) || 'Błąd');
+                btn.disabled=true; btn.style.opacity='0.7';
+            }
+        })
+        .catch(function(){ btn.textContent='Błąd sieci'; });
+    }
+
+    function presenceDotHtml(online) {
+        var cls = online ? 'presence-dot-inline--online' : 'presence-dot-inline--offline';
+        var title = online ? 'Online' : 'Offline';
+        return '<span class="presence-dot-inline ' + cls + '" title="' + title + '" aria-hidden="true"></span>';
+    }
+
+    function avatarHtml(username) {
+        var u = username || "?";
+        var letter = u.charAt(0).toUpperCase();
+        return '<div class="mini-avatar avatar-img-wrap">' +
+            '<img src="/api/avatar/' + encodeURIComponent(u) + '" alt="" ' +
+            'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+            '<span class="avatar-letter-fallback">' + esc(letter) + '</span></div>';
+    }
+
+    function render(list){
+        box.innerHTML='';
+        if(!list || list.length===0){
+            box.innerHTML='<p class="muted" style="font-size:.85rem;">Brak graczy dla „'+esc(lastQuery)+'”.</p>';
+            return;
+        }
+        list.forEach(function(u){
+            var row=document.createElement('div');
+            row.className='list-row';
+            row.innerHTML=
+                avatarHtml(u.username)+
+                '<div><strong class="player-name-row">'+presenceDotHtml(!!u.online)+esc(u.username)+'</strong><br>'+
+                '<span class="muted">LVL '+(u.level||1)+' · '+(u.eloPoints||0)+' ELO</span></div>'+
+                '<div class="spacer"></div>';
+            var profBtn=document.createElement('a');
+            profBtn.href='/u/'+encodeURIComponent(u.username);
+            profBtn.className='btn btn-ghost btn-small';
+            profBtn.innerHTML='<i class="fa-solid fa-user"></i> Profil';
+            row.appendChild(profBtn);
+            var btn=document.createElement('button');
+            btn.type='button'; btn.className='btn btn-small'; btn.innerHTML='+ Dodaj';
+            btn.addEventListener('click', function(){ addPlayer(u.username, btn); });
+            row.appendChild(btn);
+            box.appendChild(row);
+        });
+    }
+
+    function doSearch(q){
+        fetch('/friends/api/search?q='+encodeURIComponent(q), {headers:csrfHdr()})
+        .then(function(r){ return r.json(); })
+        .then(function(list){ if(q===lastQuery) render(list); })
+        .catch(function(){});
+    }
+
+    if(input){
+        input.addEventListener('input', function(){
+            var q=input.value.trim();
+            lastQuery=q;
+            if(timer) clearTimeout(timer);
+            if(q.length<2){ box.innerHTML=''; if(hint) hint.style.display='block'; return; }
+            if(hint) hint.style.display='none';
+            timer=setTimeout(function(){ doSearch(q); }, 280);
+        });
+    }
+})();
+</script>
 </body>
 </html>

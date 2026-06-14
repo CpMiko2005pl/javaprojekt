@@ -10,6 +10,10 @@
 
     <div th:if="${profileUser != null}">
 
+        <button type="button" class="page-back-link" id="profileBackBtn" style="background:none;border:none;padding:0;cursor:pointer;font:inherit;">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Wstecz
+        </button>
+
         <!-- PROFILE HEADER (FACEIT style) -->
         <div class="lp-ph" style="margin-bottom:24px;">
             <div class="lp-ph-banner">
@@ -27,8 +31,17 @@
                               th:text="${#strings.toUpperCase(#strings.substring(profileUser.username,0,1))}">G</span>
                     </div>
                     <div class="lp-ph-details">
-                        <h2 th:text="${profileUser.username}">gracz</h2>
-                        <p class="lp-role" th:text="${profileUser.role.displayName}">Rola</p>
+                        <h2 class="player-name-row">
+                            <span class="presence-dot-inline"
+                                  th:classappend="${profileOnline} ? ' presence-dot-inline--online' : ' presence-dot-inline--offline'"
+                                  th:title="${profileOnline} ? 'Online' : 'Offline'"></span>
+                            <span th:text="${profileUser.username}">gracz</span>
+                        </h2>
+                        <p class="lp-role">
+                            <span th:text="${profileUser.role.displayName}">Rola</span>
+                            <span class="muted" style="font-size:.8rem;margin-left:.5rem;"
+                                  th:text="${profileOnline} ? '· Online' : '· Offline'">· Offline</span>
+                        </p>
                         <p th:if="${profileUser.bio != null and !#strings.isEmpty(profileUser.bio)}"
                            style="font-size:.83rem;color:#475569;margin:3px 0 0;max-width:400px;"
                            th:text="${profileUser.bio}"></p>
@@ -107,5 +120,18 @@
 
 <footer th:replace="~{fragments/layout :: lp-footer}"></footer>
 <script th:src="@{/js/app.js}"></script>
+<script>
+(function(){
+    var btn = document.getElementById('profileBackBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+        if (document.referrer && document.referrer.indexOf(window.location.origin) === 0) {
+            history.back();
+        } else {
+            window.location.href = '/friends';
+        }
+    });
+})();
+</script>
 </body>
 </html>

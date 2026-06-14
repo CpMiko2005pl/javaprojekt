@@ -11,7 +11,6 @@ import pl.pb.monopoly.dto.RankingEntryDto;
 import pl.pb.monopoly.dto.RegistrationForm;
 import pl.pb.monopoly.repository.UserRepository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -64,16 +63,6 @@ public class UserService {
     public User getById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Nie ma uzytkownika o id " + id));
-    }
-
-    /** Panel admina/moderatora: doladowanie srodkow (PLN) na konto gracza. */
-    @Transactional
-    public void topUpBalance(Long userId, BigDecimal amount) {
-        if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("Kwota doladowania musi byc dodatnia");
-        }
-        User user = getById(userId);
-        user.setBalance(user.getBalance().add(amount));
     }
 
     /** Panel admina: weryfikacja konta po przeslaniu legitymacji PB. */

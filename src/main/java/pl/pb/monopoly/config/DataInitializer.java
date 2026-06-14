@@ -26,7 +26,6 @@ public class DataInitializer {
 
     @Bean
     CommandLineRunner seedData(UserRepository users,
-                               PropertyRepository properties,
                                MonopolyCardRepository cards,
                                MatchHistoryRepository matches,
                                FriendshipRepository friendships,
@@ -60,17 +59,6 @@ public class DataInitializer {
                 friendships.save(new Friendship(kuba, gracz, FriendStatus.ACCEPTED));
                 friendships.save(new Friendship(admin, gracz, FriendStatus.PENDING));
                 friendships.save(new Friendship(ola, gracz, FriendStatus.PENDING));
-            }
-
-            if (properties.count() == 0) {
-                properties.save(buildProperty("Wydzial Informatyki PB", "Wiejska 45A",
-                        "320.00", "45.00", "Granatowy"));
-                properties.save(buildProperty("Biblioteka PB", "Zwierzyniecka 16",
-                        "220.00", "30.00", "Czerwony"));
-                properties.save(buildProperty("Klub Gwint", "Centrum Bialystok",
-                        "180.00", "25.00", "Zolty"));
-                properties.save(buildProperty("Akademik Alfa", "Zwierzyniecka 8",
-                        "140.00", "18.00", "Zielony"));
             }
 
             if (cards.count() == 0) {
@@ -127,16 +115,6 @@ public class DataInitializer {
                                : -ThreadLocalRandom.current().nextInt(12, 26));
             matches.save(m);
         }
-    }
-
-    private Property buildProperty(String name, String location, String price, String rent, String color) {
-        Property p = new Property();
-        p.setName(name);
-        p.setLocation(location);
-        p.setPrice(new BigDecimal(price));
-        p.setRent(new BigDecimal(rent));
-        p.setColorGroup(color);
-        return p;
     }
 
     private MonopolyCard buildCard(String title, String description, CardType type, int effect) {

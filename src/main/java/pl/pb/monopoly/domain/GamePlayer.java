@@ -13,7 +13,7 @@ import java.util.Set;
  * Gracz w obrebie jednej sesji rozgrywki.
  * - cash: "siano" (gotowka w grze)
  * - ownedPositions: posiadane pola
- * - propertyLevels: poziomy ulepszenia pol (0=brak, 1=domek, 2=hotel)
+ * - propertyLevels: poziomy ulepszenia pol (0=brak, 1-2=domki, 3=hotel)
  * - landingCounts: ile razy wlasciciel SZNUROWL na WLASNYM polu (do oferty ulepszenia)
  * - handCards: karty w rece (maks. 3, nazwy HandCardType)
  * - skipNextRent: karta "Ochrona" jest aktywna
@@ -39,7 +39,8 @@ public class GamePlayer {
     private String displayName;
 
     @Column(nullable = false)
-    private int cash = 1500;
+    /** Startowy kapitał — Business Tour (2 000 000 PLN). */
+    private int cash = 2_000_000;
 
     @Column(nullable = false)
     private int position = 0;
@@ -82,6 +83,18 @@ public class GamePlayer {
             joinColumns = @JoinColumn(name = "player_id"))
     @Column(name = "card_type")
     private List<String> handCards = new ArrayList<>();
+
+    /** Gracz zglosil gotowosc w fazie lobby (WAITING). */
+    @Column(name = "ready", nullable = false, columnDefinition = "boolean default false")
+    private boolean ready = false;
+
+    /** Liczba dubletow z rzedu w biezacej kolejce ruchu (3 dublety = wiezienie). */
+    @Column(name = "doubles_count", nullable = false, columnDefinition = "integer default 0")
+    private int doublesCount = 0;
+
+    /** Ile razy gracz rzucil kostka w biezacej turze (blokada podwojnego rzutu). */
+    @Column(name = "rolls_this_turn", nullable = false, columnDefinition = "integer default 0")
+    private int rollsThisTurn = 0;
 
     /** Karta "Karta Ochrony" jest aktywna — nastepny czynsz jest pomijany. */
     @Column(name = "skip_next_rent", nullable = false)
@@ -137,6 +150,15 @@ public class GamePlayer {
 
     public List<String> getHandCards() { return handCards; }
     public void setHandCards(List<String> handCards) { this.handCards = handCards; }
+
+    public boolean isReady() { return ready; }
+    public void setReady(boolean ready) { this.ready = ready; }
+
+    public int getDoublesCount() { return doublesCount; }
+    public void setDoublesCount(int doublesCount) { this.doublesCount = doublesCount; }
+
+    public int getRollsThisTurn() { return rollsThisTurn; }
+    public void setRollsThisTurn(int rollsThisTurn) { this.rollsThisTurn = rollsThisTurn; }
 
     public boolean isSkipNextRent() { return skipNextRent; }
     public void setSkipNextRent(boolean skipNextRent) { this.skipNextRent = skipNextRent; }

@@ -31,6 +31,10 @@ public record GameStateDto(
         Long winnerId,
         String winnerName,
         List<HandCardDto> myHandCards,
-        PendingUpgradeDto pendingUpgrade
+        PendingUpgradeDto pendingUpgrade,
+        PendingBuybackDto pendingBuyback,
+        Long leaderId,
+        boolean canRollAgain,
+        List<PropertyCardDto> myPropertyCards
 ) {
 }

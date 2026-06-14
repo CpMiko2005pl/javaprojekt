@@ -8,22 +8,44 @@
     <div class="page-header">
         <span class="section-kicker"><i class="fa-solid fa-shield-halved"></i> Admin</span>
         <h1>Panel administratora</h1>
-        <p class="lead">Zarzadzanie uzytkownikami, rolami, doladowaniem PLN i weryfikacja kont.</p>
+        <p class="lead">Pełne funkcje moderatora (gry, weryfikacja) oraz zarządzanie rolami, kontami i ekwipunkiem.</p>
     </div>
 
     <div class="alert alert-success" role="status" th:if="${message}" th:text="${message}"></div>
     <div class="alert alert-error" role="alert" th:if="${error}" th:text="${error}"></div>
 
+    <!-- Aktywne gry (funkcja moderatora) -->
+    <section class="panel" style="margin-bottom:1.4rem;">
+        <h2><i class="fa-solid fa-tower-broadcast"></i> Aktywne gry
+            (<span th:text="${activeSessions != null ? activeSessions.size() : 0}">0</span>)
+            <span class="muted" style="font-size:.85rem;font-weight:400;">· rozegranych meczów łącznie: <span th:text="${totalMatches}">0</span></span>
+        </h2>
+        <div class="list-row" th:each="s : ${activeSessions}">
+            <div class="mini-avatar">🎲</div>
+            <div>
+                <strong th:text="${s.name}">Pokój</strong><br>
+                <span class="muted">kod: </span><span class="code-chip" th:text="${s.code}">ABC123</span>
+                <span class="muted"> · graczy: <span th:text="${s.players.size()}">0</span></span>
+            </div>
+            <div class="spacer"></div>
+            <form th:action="@{/admin/sessions/{id}/end(id=${s.id})}" method="post" class="inline-form"
+                  onsubmit="return confirm('Zakończyć tę sesję gry?');">
+                <button type="submit" class="btn btn-danger btn-small">
+                    <i class="fa-solid fa-stop"></i> Zakończ sesję
+                </button>
+            </form>
+        </div>
+        <p class="muted" th:if="${activeSessions == null or activeSessions.isEmpty()}">Brak aktywnych gier.</p>
+    </section>
+
     <table>
-        <caption>Lista uzytkownikow z mozliwoscia doladowania, weryfikacji i zmiany roli</caption>
+        <caption>Lista uzytkownikow z mozliwoscia weryfikacji, zmiany roli i edycji ekwipunku</caption>
         <thead>
         <tr>
             <th scope="col">Login</th>
             <th scope="col">E-mail</th>
-            <th scope="col">Saldo (PLN)</th>
             <th scope="col">Rola</th>
             <th scope="col">Status</th>
-            <th scope="col">Doladuj</th>
             <th scope="col">Akcje</th>
         </tr>
         </thead>
@@ -34,7 +56,6 @@
                    style="font-weight:600;" th:text="${u.username}">login</a>
             </td>
             <td th:text="${u.email}">email</td>
-            <td th:text="${#numbers.formatDecimal(u.balance, 1, 2)}">0,00</td>
 
             <!-- Zmiana roli -->
             <td>
@@ -57,16 +78,6 @@
                     <input type="hidden" name="verified" th:value="${!u.verified}">
                     <button type="submit" class="btn btn-secondary btn-small"
                             th:text="${u.verified} ? 'Cofnij' : 'Zweryfikuj'">Zweryfikuj</button>
-                </form>
-            </td>
-
-            <!-- Doladowanie srodkow PLN -->
-            <td>
-                <form th:action="@{/admin/users/{id}/topup(id=${u.id})}" method="post" class="inline-form">
-                    <label class="sr-only" th:for="'amt-' + ${u.id}">Kwota doładowania</label>
-                    <input th:id="'amt-' + ${u.id}" type="number" name="amount" step="0.01" min="0.01"
-                           value="100" style="width:90px;">
-                    <button type="submit" class="btn btn-small">+ PLN</button>
                 </form>
             </td>
 

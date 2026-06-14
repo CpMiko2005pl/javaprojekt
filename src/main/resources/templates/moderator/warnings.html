@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pl"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Ostrzezenia gracza')}"></head>
+<body class="light-page">
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main">
+    <div class="page-header">
+        <a th:href="@{/moderator}" class="btn btn-ghost btn-small" style="margin-bottom:.75rem;">
+            <i class="fa-solid fa-arrow-left"></i> Panel moderatora
+        </a>
+        <h1>Ostrzezenia: <span th:text="${targetUser.username}">gracz</span></h1>
+    </div>
+
+    <table th:if="${!warnings.isEmpty()}">
+        <thead>
+        <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Moderator</th>
+            <th scope="col">Tresc</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="w : ${warnings}">
+            <td th:text="${#temporals.format(w.createdAt, 'dd.MM.yyyy HH:mm')}">-</td>
+            <td th:text="${w.moderator.username}">mod</td>
+            <td th:text="${w.message}">msg</td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="muted" th:if="${warnings.isEmpty()}">Brak ostrzezen dla tego gracza.</p>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
