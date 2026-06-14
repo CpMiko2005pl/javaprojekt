@@ -8,12 +8,42 @@
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
     <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <!-- Tryb nocny: globalna funkcja pbToggleTheme() + flash-free init -->
+    <script>
+    /* Natychmiastowy anty-błysk: html.pb-dark przed renderowaniem CSS */
+    if(localStorage.getItem('pb-theme')==='dark'){document.documentElement.classList.add('pb-dark');}
+
+    /* Globalna funkcja przełącznika — wywoływana przez onclick na przycisku */
+    window.pbToggleTheme = function(btn) {
+        var next = (localStorage.getItem('pb-theme')||'light')==='dark' ? 'light' : 'dark';
+        localStorage.setItem('pb-theme', next);
+        document.body.classList.toggle('light-page', next==='light');
+        document.documentElement.classList.toggle('pb-dark', next==='dark');
+        document.body.classList.add('theme-transitioning');
+        setTimeout(function(){ document.body.classList.remove('theme-transitioning'); }, 350);
+        var ic = document.getElementById('themeIcon');
+        if(ic) ic.className = next==='dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        if(btn) {
+            btn.setAttribute('aria-pressed', next==='dark' ? 'true' : 'false');
+            btn.title = next==='dark' ? 'Przelacz na tryb jasny' : 'Przelacz na tryb nocny';
+        }
+    };
+
+    /* Po zaladowaniu DOM: zastosuj zapisany motyw + zaktualizuj ikone */
+    document.addEventListener('DOMContentLoaded', function() {
+        var t = localStorage.getItem('pb-theme') || 'light';
+        if(t==='dark') { document.body.classList.remove('light-page'); document.documentElement.classList.add('pb-dark'); }
+        var ic = document.getElementById('themeIcon'), bt = document.getElementById('themeToggle');
+        if(ic) ic.className = t==='dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        if(bt) { bt.setAttribute('aria-pressed', t==='dark'?'true':'false'); bt.title = t==='dark'?'Przelacz na tryb jasny':'Przelacz na tryb nocny'; }
+    });
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260614-v2')}">
-    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v2')}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260614-v20')}">
+    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v20')}">
 </head>
 
 <!-- Wariant dla strony startowej: dodatkowo home-page.css (styl commit8) -->
@@ -23,12 +53,34 @@
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
     <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <!-- Tryb nocny: globalna funkcja pbToggleTheme() + flash-free init -->
+    <script>
+    if(localStorage.getItem('pb-theme')==='dark'){document.documentElement.classList.add('pb-dark');}
+    window.pbToggleTheme = function(btn) {
+        var next = (localStorage.getItem('pb-theme')||'light')==='dark' ? 'light' : 'dark';
+        localStorage.setItem('pb-theme', next);
+        document.body.classList.toggle('light-page', next==='light');
+        document.documentElement.classList.toggle('pb-dark', next==='dark');
+        document.body.classList.add('theme-transitioning');
+        setTimeout(function(){ document.body.classList.remove('theme-transitioning'); }, 350);
+        var ic = document.getElementById('themeIcon');
+        if(ic) ic.className = next==='dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        if(btn) { btn.setAttribute('aria-pressed', next==='dark'?'true':'false'); btn.title = next==='dark'?'Przelacz na tryb jasny':'Przelacz na tryb nocny'; }
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        var t = localStorage.getItem('pb-theme') || 'light';
+        if(t==='dark') { document.body.classList.remove('light-page'); document.documentElement.classList.add('pb-dark'); }
+        var ic = document.getElementById('themeIcon'), bt = document.getElementById('themeToggle');
+        if(ic) ic.className = t==='dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        if(bt) { bt.setAttribute('aria-pressed', t==='dark'?'true':'false'); bt.title = t==='dark'?'Przelacz na tryb jasny':'Przelacz na tryb nocny'; }
+    });
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260614-v2')}">
-    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v2')}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260614-v20')}">
+    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v20')}">
     <link rel="stylesheet" th:href="@{/css/home-page.css}">
 </head>
 
@@ -56,6 +108,12 @@
                 <span class="online-dot" aria-hidden="true"></span>
                 <strong sec:authentication="name">login</strong>
             </span>
+            <!-- Przełącznik trybu nocnego -->
+            <button type="button" id="themeToggle" class="btn-theme-toggle"
+                    title="Przelacz tryb nocny" aria-label="Przelacz tryb nocny" aria-pressed="false"
+                    onclick="pbToggleTheme(this)">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+            </button>
             <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-secondary btn-small">
                 <i class="fa-solid fa-user"></i> Profil
             </a>
@@ -91,11 +149,6 @@
         </div>
     </nav>
 </header>
-
-<footer th:fragment="footer" class="footer">
-    <p>Politechnika Monopoly &middot; Projekt studencki PB &middot;
-        <span th:text="${#dates.year(#dates.createNow())}">2026</span></p>
-</footer>
 
 <!-- Zielona / czerwona kropka statusu obok nicku -->
 <span th:fragment="presenceDot(online)"

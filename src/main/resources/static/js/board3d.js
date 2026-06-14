@@ -306,11 +306,20 @@
         return mat;
     }
 
+    function isDarkMode() {
+        return document.documentElement.classList.contains("pb-dark");
+    }
+
+    function applySceneTheme() {
+        if (!scene) return;
+        var dark = isDarkMode();
+        scene.background = new THREE.Color(dark ? 0x05060c : 0xe9f2ec);
+    }
+
     function initThree() {
         scene = new THREE.Scene();
-        /* Jasny motyw (light-page) — jasne tlo sceny zamiast granatu */
-        var lightTheme = document.body.classList.contains("light-page");
-        scene.background = new THREE.Color(lightTheme ? 0xe9f2ec : 0x101820);
+        var dark = isDarkMode();
+        scene.background = new THREE.Color(dark ? 0x05060c : 0xe9f2ec);
 
         var aspect = container.clientWidth / Math.max(container.clientHeight, 520);
         camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 200);
@@ -323,6 +332,12 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         container.appendChild(renderer.domElement);
 
+        /* Nasłuchuj zmiany motywu i aktualizuj tło sceny na żywo */
+        new MutationObserver(applySceneTheme).observe(
+            document.documentElement, { attributeFilter: ["class"] }
+        );
+
+        var lightTheme = !dark;
         scene.add(new THREE.HemisphereLight(0xffffff, lightTheme ? 0xcfe3d8 : 0x223344, lightTheme ? 0.85 : 0.7));
         var sun = new THREE.DirectionalLight(0xffffff, 0.85);
         sun.position.set(8, 22, 12);

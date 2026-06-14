@@ -259,7 +259,7 @@ th {
 }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(148, 163, 184, 0.04); }
-caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
+caption { text-align: left; font-weight: 700; margin-bottom: .6rem; margin-top: .6rem; margin-left: .6rem;}
 .sort-link { color: #fff; text-decoration: none; }
 .sort-link:hover { color: var(--brand-accent); }
 
@@ -1985,7 +1985,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     padding: .4rem .45rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(245,158,11,.3) transparent;
-    color: #000;
+    color: #0f172a; /* light mode default — nadpisane w dark mode niżej */
 }
 
 /* Individual property card */
@@ -2017,7 +2017,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
 .bt-prop-name {
     font-size: .82rem;
     font-weight: 700;
-    color: #000;
+    color: #0f172a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2060,7 +2060,7 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     margin-bottom: .05rem;
 }
 .bt-prop-stat strong,
-.bt-prop-stat span { color: #000; }
+.bt-prop-stat span { color: #0f172a; }
 .rent-highlight { color: var(--brand-emerald) !important; font-weight: 800; font-size: .82rem; }
 .bt-prop-alert {
     font-size: .73rem;
@@ -2096,3 +2096,709 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
       background: rgba(245,158,11,.1); border-color: rgba(245,158,11,.3);
       color: var(--brand-gold);
   }
+
+/* =====================================================================
+   TRYB NOCNY — kompletny system ciemnego motywu
+   Selektor html.pb-dark dziala flash-free (ustawiany w <head>)
+   Nadpisuje wszystkie biale .lp- klasy z light.css
+   ===================================================================== */
+
+/* Plasne przejście przy przełączaniu motywu */
+body.theme-transitioning,
+body.theme-transitioning * {
+    transition:
+        background-color .3s ease,
+        color .3s ease,
+        border-color .3s ease,
+        box-shadow .3s ease !important;
+}
+
+/* ---- Przycisk przełącznika (navbar + board topbar) ---- */
+.btn-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--brand-card);
+    color: var(--slate-300);
+    cursor: pointer;
+    font-size: .95rem;
+    flex-shrink: 0;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.btn-theme-toggle:hover {
+    color: var(--brand-gold);
+    border-color: rgba(245,158,11,.45);
+    background: var(--brand-card-2);
+}
+.btn-theme-toggle:focus-visible { outline: 3px solid var(--brand-gold); outline-offset: 2px; }
+body.light-page .btn-theme-toggle {
+    background: rgba(255,255,255,.78);
+    border-color: rgba(0,0,0,.1);
+    color: #475569;
+}
+body.light-page .btn-theme-toggle:hover { color: #0f172a; border-color: rgba(0,0,0,.2); background: #fff; }
+#themeIcon { transition: transform .25s ease; }
+.btn-theme-toggle:active #themeIcon { transform: rotate(20deg) scale(.85); }
+
+/* =====================================================================
+   html.pb-dark — NADPISANIA CIEMNEGO MOTYWU
+   Selektor html.pb-dark działa niezależnie od klasy light-page na body
+   (JS usuwa light-page po DOMContentLoaded, ale html.pb-dark zostaje)
+   Paleta: tlo #09090f | karta #0e1120 | karta2 #141828 | obramowanie rgba(255,255,255,.07)
+   ===================================================================== */
+
+/* BODY + OGÓLNE */
+html.pb-dark body {
+    background: #09090f !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark body::-webkit-scrollbar-track  { background: #09090f; }
+html.pb-dark body::-webkit-scrollbar-thumb  { background: #1a2240; border-radius: 4px; }
+html.pb-dark body h1,
+html.pb-dark body h2,
+html.pb-dark body h3 { color: #fff !important; }
+html.pb-dark body a { color: #38bdf8 !important; }
+html.pb-dark body a:hover { color: #7dd3fc !important; }
+html.pb-dark body .muted { color: #7a8499 !important; }
+
+/* NAVBAR */
+html.pb-dark body .navbar {
+    background: rgba(9,9,15,0.92) !important;
+    border-bottom-color: rgba(255,255,255,0.07) !important;
+}
+html.pb-dark body .brand-title { color: #fff !important; }
+html.pb-dark body .brand-sub   { color: #a855f7 !important; }
+html.pb-dark body .nav-links a { color: #8899b8 !important; }
+html.pb-dark body .nav-links a:hover { color: #38bdf8 !important; }
+html.pb-dark body .welcome      { color: #8899b8 !important; }
+html.pb-dark body .welcome strong { color: #fff !important; }
+html.pb-dark body .mobile-menu-btn {
+    background: #0e1120 !important; border-color: rgba(255,255,255,.1) !important; color: #8899b8 !important;
+}
+html.pb-dark body .mobile-menu {
+    background: rgba(9,9,15,0.97) !important; border-top-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body .mobile-menu a,
+html.pb-dark body .mobile-menu-logout { color: #8899b8 !important; }
+
+/* PRZYCISKI */
+html.pb-dark body .btn-secondary {
+    background: #0e1120 !important; color: #e8edf5 !important; border-color: rgba(255,255,255,.1) !important;
+}
+html.pb-dark body .btn-ghost {
+    background: transparent !important; color: #e8edf5 !important; border-color: rgba(255,255,255,.15) !important;
+}
+html.pb-dark body .section-kicker {
+    background: #0e1120 !important; border-color: rgba(255,255,255,.08) !important; color: #38bdf8 !important;
+}
+html.pb-dark body .page-header h1 { color: #fff !important; }
+
+/* FORMULARZE */
+html.pb-dark body .form-card,
+html.pb-dark body .panel {
+    background: rgba(14,17,32,0.97) !important; border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body .field label { color: #7a8499 !important; }
+html.pb-dark body .field input,
+html.pb-dark body .field select {
+    background: #0e1120 !important; color: #e8edf5 !important; border-color: rgba(255,255,255,.1) !important;
+}
+
+/* KARTY / TABELE */
+html.pb-dark body .card {
+    background: rgba(14,17,32,0.97) !important; border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body .card h3 { color: #38bdf8 !important; }
+html.pb-dark body table {
+    background: rgba(14,17,32,0.6) !important; border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body thead,
+html.pb-dark body th {
+    background: rgba(9,9,15,0.8) !important; color: #7a8499 !important;
+}
+html.pb-dark body td { color: #e8edf5 !important; border-bottom-color: rgba(255,255,255,.05) !important; }
+html.pb-dark body tr:hover td { background: rgba(255,255,255,.03) !important; }
+html.pb-dark body .sort-link { color: #fff !important; }
+
+/* ODZNAKI */
+html.pb-dark body .badge-ok { background: rgba(16,185,129,.12) !important; color: #10b981 !important; border-color: rgba(16,185,129,.25) !important; }
+html.pb-dark body .alert-success { background: rgba(16,185,129,.1) !important; color: #10b981 !important; border-color: rgba(16,185,129,.28) !important; }
+html.pb-dark body .alert-error   { background: rgba(244,63,94,.1)  !important; color: #f43f5e !important; border-color: rgba(244,63,94,.28)  !important; }
+
+/* QUICK CARDS */
+html.pb-dark body .quick-card {
+    background: #0e1120 !important; border-color: rgba(255,255,255,.07) !important; color: #e8edf5 !important;
+}
+html.pb-dark body .quick-card:hover { border-color: rgba(0,166,81,.3) !important; }
+html.pb-dark body .quick-body span  { color: #7a8499 !important; }
+
+/* LOOTBOX / KOLO FORTUNY */
+html.pb-dark body .lootbox-section {
+    background: #0e1120 !important; border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body .wheel-panel,
+html.pb-dark body .wheel-modal-box {
+    background: rgba(14,17,32,0.97) !important; border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark body .wheel-modal-box .modal-title { color: #fff !important; }
+html.pb-dark body .wheel-message { color: #7a8499 !important; }
+html.pb-dark body .wheel-win-label { color: #10b981 !important; font-weight: 800; }
+
+/* ================================================================
+   DASHBOARD — KLASY .lp- (hardcoded w light.css bez body.light-page)
+   ================================================================ */
+
+/* PROFIL — pasek górny */
+html.pb-dark .lp-ph {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5) !important;
+}
+html.pb-dark .lp-ph-banner {
+    background: linear-gradient(135deg,rgba(0,120,55,.18),rgba(90,0,140,.22)) !important;
+}
+/* Usunięto .lp-ph-banner::after i .lp-ph-avatar — awatar ma wyglądać jak w trybie jasnym */
+html.pb-dark .lp-ph-details h2 { color: #fff !important; }
+html.pb-dark .lp-ph-details .lp-role { color: #a855f7 !important; }
+
+/* SIATKA PROFILU */
+html.pb-dark .lp-pg { gap: 20px; }
+
+/* SIDEBAR STATYSTYK */
+html.pb-dark .lp-stat-panel {
+    background: #0e1120 !important;
+    border: 1px solid rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-s-row { border-bottom-color: rgba(255,255,255,.06) !important; }
+html.pb-dark .lp-s-lbl { color: #7a8499 !important; }
+html.pb-dark .lp-s-val { color: #fff !important; }
+html.pb-dark .lp-s-val.green  { color: #10b981 !important; }
+html.pb-dark .lp-s-val.purple { color: #a855f7 !important; }
+
+html.pb-dark .lp-s-box {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-s-big       { color: #fff !important; }
+html.pb-dark .lp-s-big.green  { color: #10b981 !important; }
+html.pb-dark .lp-s-big.purple { color: #a855f7 !important; }
+html.pb-dark .lp-s-lbl2 { color: #7a8499 !important; }
+
+/* PRZYCISKI PROFILU */
+html.pb-dark .lp-btn-outline {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.12) !important;
+    color: #e8edf5 !important;
+    box-shadow: none !important;
+}
+html.pb-dark .lp-btn-outline:hover { background: #141828 !important; color: #fff !important; }
+
+/* FEATURE KARTY */
+html.pb-dark .lp-feat-card {
+    background: linear-gradient(180deg,#0e1120,#0a0e1c) !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .lp-feat-card:hover { border-color: rgba(56,189,248,.2) !important; }
+html.pb-dark .lp-feat-card h3 { color: #fff !important; }
+html.pb-dark .lp-feat-card p  { color: #7a8499 !important; }
+
+/* RANKING */
+html.pb-dark .lp-ranking-wrap {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .lp-rank-table th {
+    background: rgba(9,9,15,.7) !important;
+    color: #7a8499 !important;
+    border-bottom-color: rgba(255,255,255,.06) !important;
+}
+html.pb-dark .lp-rank-table td {
+    color: #e8edf5 !important;
+    border-bottom-color: rgba(255,255,255,.04) !important;
+}
+html.pb-dark .lp-rank-table tbody tr:hover td { background: rgba(255,255,255,.03) !important; }
+html.pb-dark .lp-rank-badge { background: rgba(255,255,255,.07) !important; color: #7a8499 !important; }
+
+/* MATCHMAKING WIDGET (strona główna) */
+html.pb-dark .lp-mw {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .lp-mw-title { color: #a855f7 !important; }
+html.pb-dark .lp-mw-sub   { color: #7a8499 !important; }
+html.pb-dark .lp-mw-row {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-mw-left { color: #e8edf5 !important; }
+html.pb-dark .lp-mw-elo  { color: #7a8499 !important; }
+html.pb-dark .lp-mw-wait {
+    border-color: rgba(255,255,255,.1) !important; color: #7a8499 !important;
+}
+
+/* HERO (strona główna) */
+html.pb-dark .lp-hero-overlay {
+    background: linear-gradient(105deg,rgba(9,9,15,.97) 0%,rgba(9,9,15,.88) 48%,rgba(9,9,15,.08) 100%) !important;
+}
+html.pb-dark .lp-hero h1 { color: #fff !important; }
+html.pb-dark .lp-hero-lead { color: #8899b8 !important; }
+html.pb-dark .lp-badge-live {
+    background: rgba(14,17,32,0.92) !important;
+    border-color: rgba(255,255,255,.12) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .lp-hero-stats { border-top-color: rgba(255,255,255,.08) !important; }
+html.pb-dark .lp-stat-item .val { color: #fff !important; }
+html.pb-dark .lp-stat-item .lbl { color: #7a8499 !important; }
+
+/* SEKCJE OGÓLNE (strona główna) */
+html.pb-dark .lp-sec-title h2 { color: #fff !important; }
+html.pb-dark .lp-sec-title p  { color: #7a8499 !important; }
+html.pb-dark .lp-hero-stats .lp-stat-item .val { color: #fff !important; }
+
+/* ================================================================
+   BRAKUJĄCE .lp- PANELE — lp-sc, lp-m-card, auth, inventory
+   ================================================================ */
+
+/* Główne sekcje na dashboardzie (.lp-sc = karty-kontenery) */
+html.pb-dark .lp-sc {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-sc-head h3 { color: #fff !important; }
+html.pb-dark .lp-sc-head span { color: #7a8499 !important; }
+
+/* Siatkia statystyk (lp-stat-grid zawiera lp-s-box — juz pokryte) */
+html.pb-dark .lp-s-box {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+
+/* Historia meczów */
+html.pb-dark .lp-m-card {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-m-card:hover { background: #1a2038 !important; border-color: rgba(56,189,248,.2) !important; }
+html.pb-dark .lp-m-opp   { color: #e8edf5 !important; }
+html.pb-dark .lp-m-date  { color: #7a8499 !important; }
+html.pb-dark .lp-m-place { color: #7a8499 !important; }
+
+/* Znajomi */
+html.pb-dark .lp-friend-row { border-bottom-color: rgba(255,255,255,.06) !important; }
+
+/* Strony auth (logowanie / rejestracja) */
+html.pb-dark .lp-auth-box h1 { color: #fff !important; }
+html.pb-dark .lp-auth-box .sub { color: #7a8499 !important; }
+html.pb-dark .lp-auth-card {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .lp-auth-card .field label { color: #7a8499 !important; }
+html.pb-dark .lp-auth-card .field input {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .lp-auth-card .field input:focus { border-color: #38bdf8 !important; }
+html.pb-dark .lp-auth-card .error { color: #f43f5e !important; }
+html.pb-dark .lp-auth-link { color: #7a8499 !important; }
+html.pb-dark .lp-auth-link a { color: #38bdf8 !important; }
+
+/* Test cards (panel ekwipunku/ustawień) */
+html.pb-dark .lp-test-card {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-test-head {
+    background: rgba(9,9,15,.6) !important;
+    border-bottom-color: rgba(255,255,255,.06) !important;
+    color: #7a8499 !important;
+}
+html.pb-dark .lp-test-row {
+    color: #e8edf5 !important;
+    border-bottom-color: rgba(255,255,255,.04) !important;
+}
+
+/* Przycisk zwijania sekcji ekwipunku */
+html.pb-dark .inventory-toggle-btn {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #7a8499 !important;
+}
+html.pb-dark .inventory-toggle-btn:hover { background: #1a2038 !important; color: #38bdf8 !important; }
+
+/* ================================================================
+   GLOBALNE NADPISANIE CSS VARIABLES — automatycznie ciemni elementy
+   używające --lp-glass, --glass-bg, --lp-glass-b, --glass-border itd.
+   ================================================================ */
+html.pb-dark {
+    /* light.css variables */
+    --lp-glass:   rgba(14,17,32,0.97);
+    --lp-glass-b: rgba(255,255,255,0.07);
+    --lp-shadow:  0 8px 32px rgba(0,0,0,.65);
+    --lp-bg:      #09090f;
+    --lp-txt:     #e8edf5;
+    --lp-muted:   #8899b8;
+    /* home-page.css variables */
+    --glass-bg:     rgba(14,17,32,0.97);
+    --glass-border: rgba(255,255,255,0.07);
+    --glass-shadow: 0 10px 40px rgba(0,0,0,.55);
+    --t:  #e8edf5;
+    --tm: #8899b8;
+    --b:  rgba(255,255,255,0.05);
+    --b2: rgba(255,255,255,0.09);
+}
+
+/* ================================================================
+   LOBBY / TWORZENIE GRY (strona /game) — fc-card, fc-lobby
+   ================================================================ */
+html.pb-dark .fc-card {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,.5) !important;
+}
+html.pb-dark .fc-card h2,
+html.pb-dark .fc-lobby-title { color: #fff !important; }
+html.pb-dark .fc-lobby-map   { color: #7a8499 !important; }
+html.pb-dark .fc-lobby {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .fc-invite-bar {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(56,189,248,.2) !important;
+}
+html.pb-dark .fc-invite-code strong { color: #38bdf8 !important; }
+html.pb-dark .fc-invite-label { color: #7a8499 !important; }
+html.pb-dark .fc-btn-ghost {
+    background: #141828 !important;
+    color: #e8edf5 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+html.pb-dark .fc-live { color: #7a8499 !important; }
+html.pb-dark .fc-server-box { border-top-color: rgba(255,255,255,.07) !important; }
+
+/* ================================================================
+   MINI PANEL / FIND PLAYERS / CTA (strona /game i index)
+   ================================================================ */
+html.pb-dark .lp-mini-panel {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lp-mini-panel h3 { color: #fff !important; }
+
+html.pb-dark .lp-find-players-card {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.09) !important;
+    box-shadow: none !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .lp-find-players-card:hover { border-color: rgba(56,189,248,.25) !important; }
+html.pb-dark .lp-find-players-text strong { color: #fff !important; }
+html.pb-dark .lp-find-players-text span   { color: #7a8499 !important; }
+
+html.pb-dark .cta-section  { background: #09090f !important; }
+html.pb-dark .cta-inner    { background: #0e1120 !important; border-color: rgba(255,255,255,.07) !important; box-shadow: none !important; }
+
+/* ================================================================
+   HOME-PAGE — live-widget, ranking-wrap, feat-card, section-title
+   (home-page.css używa --glass-bg / --t / --tm — nadpisane wyżej,
+    ale elementy z hardcoded rgba białe wymagają jawnych reguł)
+   ================================================================ */
+html.pb-dark .live-widget {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,.55) !important;
+}
+html.pb-dark .lw-title  { color: #a855f7 !important; }
+html.pb-dark .lw-sub    { color: #7a8499 !important; }
+html.pb-dark .lw-row {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .lw-rank   { background: rgba(255,255,255,.07) !important; color: #7a8499 !important; }
+html.pb-dark .lw-elo    { color: #e8edf5 !important; }
+html.pb-dark .lw-empty  { color: #7a8499 !important; }
+
+html.pb-dark .ranking-wrap {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .feat-card {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .feat-card h3 { color: #fff !important; }
+html.pb-dark .feat-card p  { color: #7a8499 !important; }
+
+html.pb-dark .section-title { color: #fff !important; }
+html.pb-dark .section-sub   { color: #8899b8 !important; }
+html.pb-dark body.home-page { background: #09090f !important; color: #e8edf5 !important; }
+html.pb-dark body.home-page h1,
+html.pb-dark body.home-page h2,
+html.pb-dark body.home-page h3 { color: #fff !important; }
+
+/* ================================================================
+   BOARD HUD — topbar ciemniejszy + override light.css board rules
+   ================================================================ */
+
+/* Topbar — ciemniejszy tylko w dark mode (nie wpływa na light mode) */
+html.pb-dark .bt-topbar-float {
+    background: rgba(5,6,12,.94) !important;
+    border-bottom-color: rgba(255,255,255,.06) !important;
+}
+html.pb-dark body .board-topbar-brand { color: #38bdf8 !important; }
+html.pb-dark body .board-topbar-room  { color: #e8edf5 !important; }
+
+/* Hand popup + properties popup — ciemne w dark mode */
+html.pb-dark body .bt-hand-popup {
+    background: #0e1120 !important;
+    border-color: rgba(168,85,247,.22) !important;
+}
+html.pb-dark body .bt-properties-popup {
+    background: rgba(9,9,15,.98) !important;
+    border-color: rgba(245,158,11,.2) !important;
+    width: min(300px, calc(100vw - 24px)) !important;
+    max-height: 52vh !important;
+    overflow: auto !important;
+}
+html.pb-dark body .bt-hand-popup-header { color: #8899b8 !important; }
+html.pb-dark body .bt-transfer-popup    { background: #0e1120 !important; border-color: rgba(56,189,248,.18) !important; }
+
+/* Pasek graczy */
+html.pb-dark body .bt-players-strip {
+    background: linear-gradient(to bottom, rgba(5,6,12,.7), transparent) !important;
+}
+html.pb-dark body .bt-player-card {
+    background: rgba(14,17,32,.95) !important;
+    border-color: rgba(255,255,255,.08) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark body .bt-player-card.active {
+    box-shadow: 0 0 0 2px #38bdf8, 0 0 18px rgba(56,189,248,.25) !important;
+    border-color: rgba(56,189,248,.4) !important;
+}
+html.pb-dark body .bt-player-meta span { color: #38bdf8 !important; }
+
+/* Kostka */
+html.pb-dark body .bt-dice-badge {
+    background: rgba(9,9,15,.97) !important;
+    border-color: rgba(56,189,248,.3) !important;
+    box-shadow: 0 4px 18px rgba(56,189,248,.15) !important;
+}
+html.pb-dark body .bt-dice-badge-d { color: #e8edf5 !important; background: rgba(255,255,255,.05) !important; border-color: rgba(255,255,255,.1) !important; }
+html.pb-dark body .bt-dice-badge-plus,
+html.pb-dark body .bt-dice-badge-eq { color: #7a8499 !important; }
+
+/* Floating action panel */
+html.pb-dark body .bt-action-float {
+    background: rgba(9,9,15,.97) !important;
+    border-color: rgba(56,189,248,.18) !important;
+    box-shadow: 0 14px 50px rgba(0,0,0,.7) !important;
+}
+html.pb-dark body .bt-action-header { color: #fff !important; }
+html.pb-dark body .bt-action-tile   { color: #38bdf8 !important; }
+html.pb-dark body .bt-action-price  { color: var(--brand-gold) !important; }
+
+/* Toast */
+html.pb-dark body .bt-toast {
+    background: rgba(14,17,32,.97) !important;
+    border-color: rgba(255,255,255,.08) !important;
+    color: #e8edf5 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5) !important;
+}
+
+/* Tile info float */
+html.pb-dark body .bt-tile-info-float {
+    background: rgba(5,6,12,.88) !important;
+    border-color: rgba(255,255,255,.07) !important;
+    color: #8899b8 !important;
+}
+html.pb-dark body .bt-tile-info-float .log-box,
+html.pb-dark body .bt-tile-info-float .bt-log {
+    background: transparent !important;
+    border: none !important;
+    margin-top: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    color: #8899b8 !important;
+}
+
+/* Bottom HUD */
+html.pb-dark body .bt-bottom-hud {
+    background: linear-gradient(to top, rgba(5,6,12,.85) 0%, transparent 100%) !important;
+}
+html.pb-dark body .bt-turn-h2 { color: #fff !important; }
+
+/* Inputs w hand popup (pole docelowe kart) */
+html.pb-dark body .bt-hand-popup input,
+html.pb-dark body .bt-hand-popup select {
+    background: #141828 !important;
+    color: #e8edf5 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+
+/* ================================================================
+   HAND CARDS rozwijane (.hand-card-expand) — bez prefiksu w light.css
+   BT-PROPERTY-ITEM — bez prefiksu w light.css → białe w dark mode
+   FC-SLOT — bez prefiksu w light.css → białe w dark mode
+   ================================================================ */
+
+/* Lista posesji — tekst w dark mode */
+html.pb-dark body .bt-properties-list { color: #e8edf5 !important; }
+
+/* Posesja-item (light.css ma hardcoded białe tło bez body.light-page) */
+html.pb-dark .bt-property-item {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+html.pb-dark .bt-property-item summary { color: #e8edf5 !important; }
+
+/* Karta w ręce — rozwijana wersja (light.css bez prefiksu) */
+html.pb-dark .hand-card-expand {
+    background: rgba(14,17,32,.97) !important;
+    border-color: rgba(168,85,247,.2) !important;
+}
+html.pb-dark .hand-card-expand summary.hand-card { color: #e8edf5 !important; }
+html.pb-dark .hand-card-detail { border-top-color: rgba(255,255,255,.07) !important; }
+html.pb-dark .hand-card-detail p { color: #8899b8 !important; }
+html.pb-dark .hand-card-chevron { color: #7a8499 !important; }
+
+/* Sloty graczy w lobby (light.css bez body.light-page) */
+html.pb-dark .fc-slot {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(255,255,255,.08) !important;
+}
+html.pb-dark .fc-slot-ready  { border-color: rgba(0,166,81,.4)   !important; background: rgba(0,166,81,.07)   !important; }
+html.pb-dark .fc-slot-wait   { border-color: rgba(245,158,11,.3) !important; }
+html.pb-dark .fc-slot-bot    { border-color: rgba(100,116,139,.2) !important; }
+html.pb-dark .fc-slot-av.empty { background: rgba(255,255,255,.05) !important; }
+html.pb-dark .fc-slot-name   { color: #e8edf5 !important; }
+html.pb-dark .fc-slot-status { color: #7a8499 !important; }
+html.pb-dark .fc-slot-ready .fc-slot-status { color: #10b981 !important; }
+html.pb-dark .fc-slots-label { color: #7a8499 !important; }
+html.pb-dark .fc-hint        { color: #7a8499 !important; }
+
+/* lp-btn-play — wymuś biały tekst w dark mode */
+html.pb-dark .lp-btn-play,
+html.pb-dark .lp-btn-play span,
+html.pb-dark .lp-btn-play i { color: #fff !important; }
+
+/* .btn — w dark mode identycznie jak w light mode: zielono-fioletowy gradient, biały tekst */
+html.pb-dark .btn {
+    background: linear-gradient(135deg, #00A651, #6A1B9A) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(0,166,81,.22) !important;
+}
+html.pb-dark .btn:not(.btn-secondary):hover { filter: brightness(1.08) !important; color: #fff !important; }
+html.pb-dark .btn-danger {
+    background: linear-gradient(135deg, #e11d48, #be123c) !important;
+    color: #fff !important;
+}
+
+/* btn-secondary — białe tło w dark mode (spójne z light mode) */
+html.pb-dark .btn-secondary {
+    background: rgba(255,255,255,.10) !important;
+    color: #e8edf5 !important;
+    border: 1px solid rgba(255,255,255,.18) !important;
+    box-shadow: none !important;
+}
+html.pb-dark .btn-secondary:hover {
+    background: rgba(255,255,255,.18) !important;
+    color: #fff !important;
+    border-color: rgba(255,255,255,.3) !important;
+}
+
+/* hero-overline — home-page.css bez prefiksu → białe tło w dark mode */
+html.pb-dark .hero-overline {
+    background: rgba(255,255,255,.06) !important;
+    border-color: rgba(255,255,255,.1) !important;
+    color: #e8edf5 !important;
+}
+
+/* cta-box — home-page.css bez prefiksu → białe tło w dark mode */
+html.pb-dark .cta-box {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.07) !important;
+}
+html.pb-dark .cta-box h3   { color: #e8edf5 !important; }
+html.pb-dark .cta-box > p  { color: #7a8499 !important; }
+
+/* Quick actions na dashboardzie (lp-quick-col) — tło hardcoded w light.css i inline */
+html.pb-dark .lp-q-item {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .lp-q-item:hover {
+    background: #1e2640 !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4) !important;
+}
+html.pb-dark .lp-q-icon { opacity: .9; }
+html.pb-dark .lp-q-text strong { color: #e8edf5 !important; }
+html.pb-dark .lp-q-text span   { color: #7a8499 !important; }
+
+/* fc-bot-preset (w fc-modal-section) — bez prefiksu w light.css → białe tło w dark mode */
+html.pb-dark .fc-bot-preset {
+    background: #141828 !important;
+    border-color: rgba(255,255,255,.08) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .fc-bot-preset:hover {
+    border-color: rgba(0,166,81,.4) !important;
+    background: rgba(0,166,81,.08) !important;
+}
+
+/* fc-invite-toast — bez prefiksu w light.css → białe tło w dark mode */
+html.pb-dark .fc-invite-toast {
+    background: #0e1120 !important;
+    border-color: rgba(0,166,81,.3) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .fc-invite-toast-body p { color: #aab2c8 !important; }
+
+/* fc-modal-panel — bez prefiksu w light.css → białe tło w dark mode */
+html.pb-dark .fc-modal-panel {
+    background: #0e1120 !important;
+    box-shadow: 0 24px 48px rgba(0,0,0,.65) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .fc-modal-panel h2 { color: #e8edf5 !important; }
+html.pb-dark .fc-modal-close    { color: #7a8499 !important; }
+html.pb-dark .fc-modal-section h3 { color: #7a8499 !important; }
+html.pb-dark .fc-modal-lead     { color: #aab2c8 !important; }
+html.pb-dark .fc-invite-friend-btn {
+    background: rgba(255,255,255,.04) !important;
+    border-color: rgba(255,255,255,.08) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .fc-invite-friend-btn:hover:not(:disabled) {
+    background: rgba(0,166,81,.1) !important;
+    border-color: rgba(0,166,81,.35) !important;
+}
+
+/* bt-prop-name i wszystkie spany w bt-properties-popup — hardcoded ciemne kolory bez prefiksu */
+html.pb-dark .bt-prop-name                    { color: #e8edf5 !important; }
+html.pb-dark .bt-property-item summary        { color: #e8edf5 !important; }
+html.pb-dark .bt-property-meta                { color: #aab2c8 !important; }
+html.pb-dark .bt-property-body                { border-top-color: rgba(255,255,255,.07) !important; }
+html.pb-dark .bt-prop-stat                    { color: #e8edf5 !important; }
+html.pb-dark .bt-prop-stat span,
+html.pb-dark .bt-prop-stat strong            { color: #e8edf5 !important; }
+html.pb-dark .bt-prop-stat .lbl              { color: #7a8499 !important; }
+html.pb-dark .bt-prop-stat .rent-highlight   { color: #10b981 !important; }
+html.pb-dark .bt-prop-stat em                { color: #7a8499 !important; }
+html.pb-dark .bt-prop-hint                   { color: #aab2c8 !important; }
+html.pb-dark .bt-prop-alert                  { background: rgba(16,185,129,.12) !important; color: #10b981 !important; }

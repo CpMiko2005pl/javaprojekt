@@ -115,6 +115,10 @@
         ctx.fillRect(x, y, w, h);
     }
 
+    function isDarkMode() {
+        return document.documentElement.classList.contains('pb-dark');
+    }
+
     function drawTile3D(col, row, pos) {
         const depth = tileDepth(pos);
         const x = col * CELL + PAD;
@@ -123,7 +127,8 @@
         const h = CELL - PAD * 2;
         const faces = outwardFaces(col, row);
 
-        const base = CORNERS[pos] ? "#243049" : (STRIPE[pos] ? "#eef2fb" : "#dce4f5");
+        const dark = isDarkMode();
+        const base = CORNERS[pos] ? "#243049" : (STRIPE[pos] ? (dark ? "#1c2438" : "#eef2fb") : (dark ? "#151c2e" : "#dce4f5"));
         const sideDark = shade(base, -0.45);
         const sideMid = shade(base, -0.25);
 
@@ -174,18 +179,23 @@
             drawMiniBuilding(x + w / 2, y + h / 2 + 4, stripe);
         }
 
-        ctx.fillStyle = "#1a2233";
+        const textMain  = dark ? "#c8d8f0" : "#1a2233";
+        const textMuted = dark ? "#8899b8" : "#5a6478";
+        const textSpec  = dark ? "#8899b8" : "#3d4660";
+        const textStripe = dark ? "#aabbd4" : "#2a3348";
+
+        ctx.fillStyle = textMain;
         ctx.textAlign = "center";
         if (CORNERS[pos]) {
             ctx.font = "24px Segoe UI Emoji, sans-serif";
             ctx.fillText(CORNERS[pos], x + w / 2, y + h / 2 + 2);
-            ctx.fillStyle = "#5a6478";
+            ctx.fillStyle = textMuted;
             ctx.font = "700 7px Segoe UI, sans-serif";
             ctx.fillText(TILES[pos].toUpperCase().slice(0, 12), x + w / 2, y + h - 8);
         } else if (SPECIAL[pos]) {
             ctx.font = "20px Segoe UI Emoji, sans-serif";
             ctx.fillText(SPECIAL[pos], x + w / 2, y + h / 2 - 2);
-            ctx.fillStyle = "#3d4660";
+            ctx.fillStyle = textSpec;
             ctx.font = "600 7.5px Segoe UI, sans-serif";
             const lines = wrapText(TILES[pos], 12);
             let ty = y + h / 2 + 14;
@@ -197,7 +207,7 @@
             for (const ln of lines) { ctx.fillText(ln, x + w / 2, ty); ty += 10; }
         } else {
             ctx.font = "600 7.5px Segoe UI, sans-serif";
-            ctx.fillStyle = "#2a3348";
+            ctx.fillStyle = textStripe;
             const lines = wrapText(TILES[pos], 10);
             let ty = y + h - 10 - (lines.length - 1) * 8;
             for (const ln of lines) { ctx.fillText(ln, x + w / 2, ty); ty += 8; }
@@ -293,18 +303,25 @@
     function drawBoard() {
         ctx.clearRect(0, 0, SIZE, SIZE);
 
+        const dark = isDarkMode();
         const sky = ctx.createLinearGradient(0, 0, 0, SIZE);
-        sky.addColorStop(0, "#87c8ff");
-        sky.addColorStop(0.55, "#5ba8ef");
-        sky.addColorStop(1, "#3d7fc7");
+        if (dark) {
+            sky.addColorStop(0, "#060a12");
+            sky.addColorStop(0.55, "#0a1020");
+            sky.addColorStop(1, "#0d1628");
+        } else {
+            sky.addColorStop(0, "#87c8ff");
+            sky.addColorStop(0.55, "#5ba8ef");
+            sky.addColorStop(1, "#3d7fc7");
+        }
         ctx.fillStyle = sky;
         ctx.fillRect(0, 0, SIZE, SIZE);
 
         drawBoardShadow();
 
-        ctx.fillStyle = "#2d8a4e";
+        ctx.fillStyle = dark ? "#0f1c14" : "#2d8a4e";
         ctx.fillRect(PAD, SIZE - 42, SIZE - PAD * 2, 34);
-        ctx.fillStyle = "#256e3f";
+        ctx.fillStyle = dark ? "#0a1510" : "#256e3f";
         for (let i = 0; i < 14; i++) {
             ctx.beginPath();
             ctx.arc(PAD + 30 + i * 56, SIZE - 34, 16, 0, Math.PI * 2);
@@ -484,4 +501,8 @@
 
     drawBoard();
     loadState();
+
+    // Przerysuj planszę po zmianie motywu
+    const _themeObserver = new MutationObserver(() => drawBoard());
+    _themeObserver.observe(document.documentElement, { attributeFilter: ['class'] });
 })();

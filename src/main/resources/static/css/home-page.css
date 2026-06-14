@@ -51,20 +51,6 @@ body.home-page h1, body.home-page h2, body.home-page h3 { color: var(--t); }
     backdrop-filter: blur(10px);
 }
 .home-page .footer p { margin: 0; }
-
-/* Override dark lp-footer to match light home page */
-.home-page .lp-footer {
-    background: rgba(15,23,42,0.88);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255,255,255,0.08);
-    padding: 56px 5% 28px;
-}
-.home-page .lp-footer-brand h3 { color:#fff; }
-.home-page .lp-footer-brand p  { color:#94a3b8; }
-.home-page .lp-footer-col h4   { color:#fff; }
-.home-page .lp-footer-col a    { color:#94a3b8; }
-.home-page .lp-footer-col a:hover { color:#20C96B; }
-.home-page .lp-footer-bottom { color:#64748b; border-top-color:rgba(255,255,255,0.07); }
 .home-page .lp-social a { color:#64748b; }
 .home-page .lp-social a:hover { color:#fff; }
 
