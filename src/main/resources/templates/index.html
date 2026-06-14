@@ -66,7 +66,7 @@
                         </div>
                         <span class="lw-elo" th:text="${r.eloPoints()} + ' ELO'">1000 ELO</span>
                     </div>
-                    <div class="lw-empty" th:if="${ranking.isEmpty()}">
+                    <div class="lw-empty" th:if="${ranking == null or ranking.isEmpty()}">
                         Brak graczy — bądź pierwszy!
                     </div>
                 </div>

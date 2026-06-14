@@ -935,11 +935,15 @@ public class GameService {
         }
         me.setCash(me.getCash() - price);
         me.getOwnedPositions().add(pos);
+        /* Zakup zawiera pierwszy dom — level 1 od razu na planszy */
+        if (GameEconomy.upgradeCost(pos) > 0) {
+            me.getPropertyLevels().put(pos, 1);
+        }
         session.clearPendingPurchase();
         endTurnOrExtraRoll(session, me);
         sessionRepository.save(session);
 
-        String msg = me.getDisplayName() + " kupuje " + TILES[pos] + " za " + price + " PLN.";
+        String msg = me.getDisplayName() + " kupuje " + TILES[pos] + " za " + price + " PLN (z 1 domem).";
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionId);
@@ -1339,9 +1343,9 @@ public class GameService {
 
     private static String upgradeOfferLabel(int currentLevel) {
         return switch (currentLevel) {
-            case 0 -> "Lvl 1";
-            case 1 -> "Lvl 2";
-            case 2 -> "Lvl 3";
+            case 0 -> "1 dom";
+            case 1 -> "2 domy";
+            case 2 -> "3 domy";
             case 3 -> "Biurowiec";
             default -> "ulepszenie";
         };
@@ -1356,9 +1360,9 @@ public class GameService {
 
     private static String upgradeBuiltLabel(int newLevel) {
         return switch (newLevel) {
-            case 1 -> "Lvl 1";
-            case 2 -> "Lvl 2";
-            case 3 -> "Lvl 3";
+            case 1 -> "1 dom";
+            case 2 -> "2 domy";
+            case 3 -> "3 domy";
             case 4 -> "Biurowiec";
             default -> "ulepszenie";
         };
@@ -1745,12 +1749,14 @@ public class GameService {
         int pos = posObj;
         if (pos < 0 || pos >= TILES.length) return null;
         int price = resolvePurchasePrice(session, pos);
+        int baseRent = GameEconomy.rentForLevel(pos, 0, false);
         return new PendingPurchaseDto(
                 pos,
                 TILES[pos],
                 price,
                 session.getPendingDeciderId(),
-                Math.max(50, price / 2)
+                Math.max(50, price / 2),
+                baseRent
         );
     }
 

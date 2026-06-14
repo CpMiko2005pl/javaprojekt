@@ -9,6 +9,7 @@ public record PendingPurchaseDto(
         String tileName,
         int basePrice,
         Long deciderId,
-        int minBid
+        int minBid,
+        int baseRent
 ) {
 }

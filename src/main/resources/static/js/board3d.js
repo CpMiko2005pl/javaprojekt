@@ -1120,7 +1120,7 @@
             "<br><span class='muted'>" + escapeHtml(effect) + "</span>";
     }
 
-    /* Aktualizuje kolor wskaznika wlasciciela na polu (i tworzy gdy potrzebny). */
+    /* Maly kwadratowy znacznik wlasciciela (nie belka!) — widoczny w rogu pola */
     function updateOwnerMarkers(state) {
         if (!state.ownership) return;
         Object.keys(ownerMarkers).forEach(function (k) {
@@ -1134,18 +1134,17 @@
             if (!owner) return;
             var w = posToWorld(pos);
             var col = new THREE.Color(owner.color || "#e91e63");
+            /* Maly walec zamiast belki — znacznik koloru w rogu pola */
             var marker = new THREE.Mesh(
-                new THREE.BoxGeometry(0.95, 0.05, 0.16),
+                new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8),
                 new THREE.MeshLambertMaterial({ color: col })
             );
-            /* Pasek przy "wewnetrznej" krawedzi pola - po stronie centrum. */
             var dx = 0, dz = 0;
-            if (pos < 10) dz = -0.42;
-            else if (pos < 20) dx = 0.42;
-            else if (pos < 30) dz = 0.42;
-            else dx = -0.42;
-            marker.position.set(w.x + dx, 0.21, w.z + dz);
-            if (pos >= 10 && pos < 20 || pos >= 30) marker.rotation.y = Math.PI / 2;
+            if (pos < 10) { dx = 0.36; dz = -0.36; }
+            else if (pos < 20) { dx = 0.36; dz = 0.36; }
+            else if (pos < 30) { dx = -0.36; dz = 0.36; }
+            else { dx = -0.36; dz = -0.36; }
+            marker.position.set(w.x + dx, 0.22, w.z + dz);
             boardPivot.add(marker);
             ownerMarkers[pos] = { mesh: marker };
         });
@@ -1558,22 +1557,45 @@
         var decider = state.players.find(function (p) { return sameId(p.id, pp.deciderId); }) || {};
         var deciderIsBot = decider.bot === true;
 
-        var html = '<div class="bt-action-header">' +
-            '<i class="fa-solid fa-building" style="color:var(--brand-gold)"></i>' +
-            '<span>Zakup nieruchomosci</span>' +
-            (amDecider ? '<span id="actionTimerLabel" class="action-timer-label">25s</span>'
-                : (deciderIsBot ? '<span class="action-timer-label" style="color:var(--brand-emerald)">BOT...</span>' : '')) +
+        var timerHtml = amDecider
+            ? '<span id="actionTimerLabel" class="action-timer-label">25s</span>'
+            : (deciderIsBot ? '<span class="action-timer-label" style="color:var(--brand-emerald)">BOT...</span>' : '');
+
+        var html = '<div class="hud-panel-head">' +
+            '<h2><i class="fa-solid fa-building" style="color:var(--brand-gold)"></i> Zakup</h2>' +
+            timerHtml + '</div>';
+        if (amDecider) html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
+
+        html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pp.tileName) + '</p>';
+
+        /* Karty postepu: Pole + 1 dom (kupujemy razem) -> 2 domy -> 3 domy -> Biurowiec */
+        var stages = [
+            { label: "Pole + 1 dom", icons: '<i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "2 domy",       icons: '<i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "3 domy",       icons: '<i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "Biurowiec",    icons: '<i class="fa-solid fa-building"></i>' }
+        ];
+        html += '<div class="bt-upgrade-progress">';
+        stages.forEach(function(st, i) {
+            var cls = i === 0 ? "bt-prog-card--active" : "bt-prog-card--locked";
+            html += '<div class="bt-prog-card ' + cls + '">' +
+                '<div class="bt-prog-icon">' + st.icons + '</div>' +
+                '<div class="bt-prog-label">' + st.label + '</div>' +
+                (i === 0 ? '<span class="bt-prog-check">&#10003;</span>' : '') +
+                '</div>';
+        });
+        html += '</div>';
+
+        var baseRent = pp.baseRent || 0;
+        html += '<div class="bt-purchase-meta">' +
+            '<span>Czynsz po zakupie: <span class="rent-val">' + formatCash(baseRent) + ' PLN</span></span>' +
+            '<span class="buyback-val">Odkup: ' + formatCash(pp.basePrice * 2) + ' PLN</span>' +
             '</div>';
+
         if (amDecider) {
-            html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
-        }
-        html += '<p class="bt-action-tile"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pp.tileName) + '</p>' +
-            '<p class="bt-action-price">' + pp.basePrice + ' PLN</p>';
-        if (amDecider) {
-            /* USNIETO LICYTACJE — pole po pominieci wraca do banku */
             html += '<div class="action-buttons">' +
                 '<button class="btn btn-bt-roll" id="btnBuy">' +
-                '<i class="fa-solid fa-bag-shopping"></i> Kupuj za ' + pp.basePrice + ' PLN</button>' +
+                '<i class="fa-solid fa-bag-shopping"></i> Kupuj za ' + formatCash(pp.basePrice) + ' PLN</button>' +
                 '<button class="btn btn-secondary" id="btnSkip">Pomin</button>' +
                 '</div>' +
                 '<p class="muted small" style="text-align:center;">Masz 25s — po czasie pole wraca do banku.</p>';
@@ -1914,7 +1936,12 @@
                         movedPlayerId: state.movedPlayerId != null ? state.movedPlayerId : lastState.movedPlayerId,
                         fromPosition: state.fromPosition != null ? state.fromPosition : lastState.fromPosition,
                         toPosition: state.toPosition != null ? state.toPosition : lastState.toPosition,
-                        message: lastState.message || state.message
+                        message: lastState.message || state.message,
+                        /* Pola prywatne (tylko dla zalogowanego gracza) — zawsze z nowego state */
+                        myPropertyCards: state.myPropertyCards || lastState.myPropertyCards,
+                        myHandCards: state.myHandCards || lastState.myHandCards,
+                        myTurn: state.myTurn,
+                        canRollAgain: state.canRollAgain
                     });
                     finalState = fixIsMe(finalState);
                 }
@@ -2315,39 +2342,71 @@
     // ============================================================
     // PANEL ULEPSZENIA NIERUCHOMOSCI
     // ============================================================
+    /* Generuje karty postepu ulepszenia w stylu Business Tour.
+       currentLevel = aktualny poziom PRZED ulepszeniem (0=pole, 1=1dom, 2=2domy, 3=3domy).
+       Podswietlona karta = currentLevel+1 (co budujemy). */
+    function buildProgressCards(currentLevel) {
+        var stages = [
+            { label: "Pole",      icons: '<i class="fa-solid fa-square-full" style="font-size:.5rem;opacity:.55"></i>' },
+            { label: "1 dom",     icons: '<i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "2 domy",    icons: '<i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "3 domy",    icons: '<i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i><i class="fa-solid fa-house-chimney-window"></i>' },
+            { label: "Biurowiec", icons: '<i class="fa-solid fa-building"></i>' }
+        ];
+        var nextLevel = currentLevel + 1; /* poziom ktory budujemy */
+        var html = '<div class="bt-upgrade-progress">';
+        stages.slice(0, 4).forEach(function(st, i) {
+            /* Gdy budujemy Biurowiec (nextLevel=4), ostatnia karta (i=3) staje sie "Biurowiec" i jest aktywna */
+            var isBiurowiecCard = (nextLevel >= 4 && i === 3);
+            var isActive = (i === nextLevel) || isBiurowiecCard;
+            var isDone   = (i < nextLevel) && !isBiurowiecCard;
+            var cls   = isDone ? "bt-prog-card--done" : (isActive ? "bt-prog-card--active" : "bt-prog-card--locked");
+            var check = isDone ? '<span class="bt-prog-check">&#10003;</span>' : '';
+            var label = isBiurowiecCard ? stages[4].label : st.label;
+            var icons = isBiurowiecCard ? stages[4].icons : st.icons;
+            html += '<div class="bt-prog-card ' + cls + '">' +
+                '<div class="bt-prog-icon">' + icons + '</div>' +
+                '<div class="bt-prog-label">' + label + '</div>' +
+                check + '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
     function renderUpgradePanel(state, ap) {
         var pu = state.pendingUpgrade;
         if (!pu) { ap.style.display = "none"; ap.innerHTML = ""; return; }
 
         var amDecider = state.players.some(function(p) { return p.isMe && p.id === pu.deciderId; });
         var decider   = state.players.find(function(p) { return p.id === pu.deciderId; }) || {};
-        var levelLabels = ["Lvl 1", "Lvl 2", "Lvl 3", "Biurowiec"];
-        var levelName = levelLabels[pu.currentLevel] || "Ulepszenie";
-        var icons = ["fa-house", "fa-house", "fa-building", "fa-city"];
-        var icon = icons[pu.currentLevel] || "fa-house";
+
+        /* currentLevel: 0=grunt, 1=1dom, 2=2domy, 3=3domy; budujemy currentLevel+1 */
+        var nextLevelLabels = ["1 dom", "2 domy", "3 domy", "Biurowiec"];
+        var nextLabel = nextLevelLabels[pu.currentLevel] || "ulepszenie";
+        var nextIcon  = pu.currentLevel >= 3 ? "fa-building" : "fa-house-chimney-window";
 
         var html = '<div class="hud-panel-head">' +
-            '<h2><i class="fa-solid ' + icon + '"></i> Ulepszenie</h2>';
+            '<h2><i class="fa-solid ' + nextIcon + '"></i> Ulepszenie</h2>';
         if (amDecider) html += '<span id="actionTimerLabel" class="action-timer-label">15s</span>';
         html += '</div>';
         if (amDecider) html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
         html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pu.tileName) + '</p>';
 
+        html += buildProgressCards(pu.currentLevel);
+
         if (amDecider) {
-            html += '<div class="bt-upgrade-offer">' +
-                '<p><span class="lbl">Budujesz</span> <strong>' + levelName + '</strong></p>' +
-                '<p><span class="lbl">Koszt</span> <strong>' + formatCash(pu.cost) + ' PLN</strong></p>' +
-                '<p><span class="lbl">Nowy czynsz</span> <strong class="rent-highlight">' + formatCash(pu.newRent) + ' PLN</strong></p>' +
-                '<p class="muted small">Brakuje siana? Sprzedaj inna posesje w panelu <strong>Moje posesje</strong> (70% ceny gruntu).</p>' +
+            html += '<div class="bt-purchase-meta">' +
+                '<span>Nowy czynsz: <span class="rent-val">' + formatCash(pu.newRent) + ' PLN</span></span>' +
                 '</div>' +
                 '<div class="action-buttons">' +
                 '<button class="btn btn-bt-roll" id="btnUpgrade">' +
-                '<i class="fa-solid ' + icon + '"></i> Ulepsz za ' + formatCash(pu.cost) + ' PLN</button>' +
+                '<i class="fa-solid ' + nextIcon + '"></i> Buduj ' + nextLabel + ' — ' + formatCash(pu.cost) + ' PLN</button>' +
                 '<button class="btn btn-secondary" id="btnSkipUpgrade">Pomin</button>' +
-                '</div>';
+                '</div>' +
+                '<p class="muted small" style="text-align:center;">Brak siana? Sprzedaj posesje w panelu po lewej (70%).</p>';
         } else {
-            html += '<p class="muted">Decyduje: <strong>' + escapeHtml(decider.name || "Gracz") +
-                '</strong> — moze zbudowac ' + levelName + '.</p>';
+            html += '<p class="muted" style="text-align:center;">Decyduje: <strong>' +
+                escapeHtml(decider.name || "Gracz") + '</strong> — buduje ' + nextLabel + '.</p>';
         }
         html += '<p class="error" id="actionErr" style="display:none;"></p>';
         ap.style.display = "block";
@@ -2358,13 +2417,9 @@
         else clearActionTimer();
 
         var btnUpgrade = document.getElementById("btnUpgrade");
-        if (btnUpgrade) btnUpgrade.addEventListener("click", function() {
-            postAction("/upgrade");
-        });
+        if (btnUpgrade) btnUpgrade.addEventListener("click", function() { postAction("/upgrade"); });
         var btnSkipUpgrade = document.getElementById("btnSkipUpgrade");
-        if (btnSkipUpgrade) btnSkipUpgrade.addEventListener("click", function() {
-            postAction("/skip-upgrade");
-        });
+        if (btnSkipUpgrade) btnSkipUpgrade.addEventListener("click", function() { postAction("/skip-upgrade"); });
     }
 
     function renderBuybackPanel(state, ap) {
@@ -2411,9 +2466,9 @@
 
     function propertyLevelLabel(level) {
         if (level >= 4) return "Biurowiec";
-        if (level === 3) return "Lvl 3";
-        if (level === 2) return "Lvl 2";
-        if (level === 1) return "Lvl 1";
+        if (level === 3) return "3 domy";
+        if (level === 2) return "2 domy";
+        if (level === 1) return "1 dom";
         return "Sam grunt";
     }
 
@@ -2467,51 +2522,58 @@
 
     // ============================================================
     // RENDEROWANIE DOMKOW / HOTELI NA PLANSZY 3D
-    // Model: /models/Buildings.glb — PublicBuilding_3 (domek), PublicBuilding_1 (hotel/biurowiec)
+    // Model: /models/Buildings.glb — 4 unikalne budynki (1 per poziom upgradu)
+    //   levelTemplates[1] = PublicBuilding_6  (vol 37,  h 3.23) — 1 dom (maly domek)
+    //   levelTemplates[2] = PublicBuilding_9  (vol 174, h 7.21) — 2 domy (sredni budynek)
+    //   levelTemplates[3] = PublicBuilding_8  (vol 211, h 6.72) — 3 domy (willa/blok)
+    //   levelTemplates[4] = PublicBuilding_1  (vol 465, h 10.1) — Biurowiec
     // ============================================================
     var upgradeMarkers = {};
+    var levelTemplates = [null, null, null, null, null]; /* indeks = poziom 1-4 */
+    var buildingsLoadFailed = false;
+    /* aliasy dla starszych ref */
     var houseTemplate = null;
     var hotelTemplate = null;
-    var buildingsLoadFailed = false;
-    var HOUSE_HEIGHT = 0.36;
-    var HOTEL_HEIGHT = 0.52;
+    var tinyTemplate  = null;
+    var smallTemplate = null;
+    var largeTemplate = null;
     var BUILDING_BASE_Y = 0.2;
 
+    /* Wyciaga konkretny budynek z zaladowanej sceny GLTF.
+       Szuka bezposrednio mesha "_Pack3_0" (np. "PublicBuilding_6_Pack3_0"),
+       klonuje go, skaluje do targetHeight i centruje. */
     function extractBuildingTemplate(scene, namePart, targetHeight) {
-        var root = null;
+        /* Szukamy MESHA o nazwie zawierajacej namePart — np. "PublicBuilding_6_Pack3_0" */
+        var meshNode = null;
         scene.traverse(function (o) {
-            if (!root && o.name && o.name.indexOf(namePart) >= 0 && (o.isMesh || o.children.length)) {
-                root = o;
+            if (!meshNode && o.isMesh && o.name && o.name.indexOf(namePart) >= 0) {
+                meshNode = o;
             }
         });
-        // Fallback: jezeli nie znaleziono po nazwie, sprobuj pierwszy Mesh
-        if (!root) {
-            scene.traverse(function (o) {
-                if (!root && o.isMesh) root = o;
-            });
-        }
-        if (!root) {
-            console.warn("[board3d] Brak wezla budynku:", namePart);
+        if (!meshNode) {
+            console.warn("[board3d] Brak mesha budynku:", namePart);
             return null;
         }
-        var clone = root.clone(true);
-        clone.updateMatrixWorld(true);
-        clone.traverse(function (o) {
-            if (o.isMesh) {
-                o.castShadow = true;
-                o.receiveShadow = true;
-                if (o.material) {
-                    var mats = Array.isArray(o.material) ? o.material : [o.material];
-                    o.material = mats.map(function (m) {
-                        var mat = m.clone();
-                        if (mat.side !== undefined) mat.side = THREE.DoubleSide;
-                        return mat;
-                    });
-                    if (!Array.isArray(o.material) && o.material.length === 1) o.material = o.material[0];
-                }
-            }
-        });
-        var box = new THREE.Box3().setFromObject(clone);
+        /* Klonujemy mesh (geometria jest wspoldzielona, material klonujemy oddzielnie) */
+        var meshClone = meshNode.clone(false);
+        if (meshClone.geometry) meshClone.geometry = meshNode.geometry; /* wspolna geometria jest OK */
+        if (meshNode.material) {
+            var mats = Array.isArray(meshNode.material) ? meshNode.material : [meshNode.material];
+            meshClone.material = mats.map(function (m) {
+                var mc = m.clone();
+                mc.side = THREE.FrontSide;
+                return mc;
+            });
+            if (meshClone.material.length === 1) meshClone.material = meshClone.material[0];
+        }
+        meshClone.castShadow = true;
+        meshClone.receiveShadow = true;
+        /* Wyzeruj pozycje/rotacje — kopia jest w przestrzeni lokalnej */
+        meshClone.position.set(0, 0, 0);
+        meshClone.rotation.set(0, 0, 0);
+        meshClone.scale.set(1, 1, 1);
+        /* Oblicz bounding box surowej geometrii */
+        var box = new THREE.Box3().setFromObject(meshClone);
         var size = new THREE.Vector3();
         box.getSize(size);
         var maxDim = Math.max(size.x, size.y, size.z);
@@ -2519,17 +2581,20 @@
             console.warn("[board3d] Budynek zerowego rozmiaru:", namePart);
             return null;
         }
-        var scaleAxis = size.y > 0.01 ? size.y : maxDim;
-        clone.scale.setScalar(targetHeight / scaleAxis);
-        clone.updateMatrixWorld(true);
-        box.setFromObject(clone);
+        /* Skaluj tak zeby wysokosc = targetHeight */
+        var scaleVal = targetHeight / (size.y > 0.01 ? size.y : maxDim);
+        meshClone.scale.setScalar(scaleVal);
+        /* Po skalowaniu przelicz BB i wypozycjonuj (dol = y 0) */
+        box.setFromObject(meshClone);
         var center = new THREE.Vector3();
         box.getCenter(center);
-        clone.position.x -= center.x;
-        clone.position.z -= center.z;
-        clone.position.y -= box.min.y;
+        meshClone.position.x -= center.x;
+        meshClone.position.z -= center.z;
+        meshClone.position.y -= box.min.y;
+        /* Obrot -90 deg wokol X bo GLTF z FBX czesto ma Y-up vs Z-up */
         var grp = new THREE.Group();
-        grp.add(clone);
+        grp.add(meshClone);
+        console.log("[board3d] Template " + namePart + " OK, scale=" + scaleVal.toFixed(4) + ", targetH=" + targetHeight);
         return grp;
     }
 
@@ -2542,11 +2607,19 @@
         }
         var loader = new THREE.GLTFLoader();
         loader.load("/models/Buildings.glb", function (gltf) {
-            houseTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_3", HOUSE_HEIGHT);
-            hotelTemplate = extractBuildingTemplate(gltf.scene, "PublicBuilding_1", HOTEL_HEIGHT);
-            if (!houseTemplate || !hotelTemplate) {
-                console.warn("[board3d] Buildings.glb zaladowany, ale brak szablonow domku/hotelu");
-            }
+            /* 4 unikalne budynki - jeden per poziom upgradu, od najmniejszego do największego */
+            levelTemplates[1] = extractBuildingTemplate(gltf.scene, "PublicBuilding_6", 0.45); /* maly domek — 1 dom */
+            levelTemplates[2] = extractBuildingTemplate(gltf.scene, "PublicBuilding_9", 0.60); /* sredni budynek — 2 domy */
+            levelTemplates[3] = extractBuildingTemplate(gltf.scene, "PublicBuilding_8", 0.72); /* willa — 3 domy */
+            levelTemplates[4] = extractBuildingTemplate(gltf.scene, "PublicBuilding_1", 0.90); /* biurowiec */
+            /* aliasy */
+            houseTemplate = levelTemplates[1];
+            hotelTemplate = levelTemplates[4];
+            tinyTemplate  = levelTemplates[1];
+            smallTemplate = levelTemplates[2];
+            largeTemplate = levelTemplates[4];
+            var loaded = levelTemplates.filter(Boolean).length;
+            console.log("[board3d] Buildings.glb: zaladowano " + loaded + "/4 szablonow budynkow");
             if (lastState) updateUpgradeMarkers(lastState);
         }, undefined, function (err) {
             console.warn("[board3d] Blad ladowania Buildings.glb:", err);
@@ -2630,43 +2703,31 @@
                 if (!level || level <= 0) return;
                 var pos = parseInt(posStr, 10);
                 var w = posToWorld(pos);
-                var col = new THREE.Color(p.color || "#ffd700");
+                var col = p.color || "#ffd700";
+
+                /* Kierunek od krawedzi pola do centrum planszy */
                 var dx = 0, dz = 0;
                 if (pos < 10) dz = -0.42;
                 else if (pos < 20) dx = 0.42;
                 else if (pos < 30) dz = 0.42;
                 else dx = -0.42;
-                var bx = w.x + dx * 0.5;
-                var bz = w.z + dz * 0.5;
 
-                if (level >= 3) {
-                    if (hotelTemplate) {
-                        placeBuildingMarker(
-                            posStr + "_hotel",
-                            hotelTemplate,
-                            bx, BUILDING_BASE_Y, bz,
-                            p.color,
-                            level >= 4 ? 1.12 : 1
-                        );
-                    } else {
-                        addFallbackHotel(posStr, bx, bz, col);
-                    }
+                /* Srodek budynku: nieznacznie przesunieta w strone centrum */
+                var bx = w.x + dx * 0.55;
+                var bz = w.z + dz * 0.55;
+
+                /* 1 unikalny model per poziom upgradu (nie wielokrotnosci tego samego) */
+                var clampedLevel = Math.min(level, 4);
+                var tmpl = levelTemplates[clampedLevel] || levelTemplates[3] || levelTemplates[2] || levelTemplates[1];
+
+                if (tmpl) {
+                    placeBuildingMarker(posStr + "_bld", tmpl, bx, BUILDING_BASE_Y, bz, col, 1.0);
                 } else {
-                    var count = level >= 2 ? 2 : 1;
-                    for (var hi = 0; hi < count; hi++) {
-                        var offX = (hi === 0 ? -0.1 : 0.1);
-                        var offZ = (hi === 0 ? -0.1 : 0.1);
-                        if (houseTemplate) {
-                            placeBuildingMarker(
-                                posStr + "_h" + hi,
-                                houseTemplate,
-                                bx + offX, BUILDING_BASE_Y, bz + offZ,
-                                p.color,
-                                1
-                            );
-                        } else {
-                            addFallbackHouse(posStr, hi, bx, bz, col, offX, offZ);
-                        }
+                    /* Fallback box jezeli GLB jeszcze sie laduje */
+                    if (level >= 3) {
+                        addFallbackHotel(posStr, bx, bz, new THREE.Color(col));
+                    } else {
+                        addFallbackHouse(posStr, 0, bx, bz, new THREE.Color(col), 0, 0);
                     }
                 }
             });

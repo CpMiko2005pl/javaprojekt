@@ -77,7 +77,8 @@ public class HomeController {
 
     @GetMapping("/")
     public String home(Model model) {
-        model.addAttribute("ranking", userService.topPlayers());
+        var ranking = userService.topPlayers();
+        model.addAttribute("ranking", ranking != null ? ranking : List.of());
         return "index";
     }
 

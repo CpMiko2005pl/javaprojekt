@@ -1850,3 +1850,89 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; }
     font-size: .65rem; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
 }
+
+/* ===== BUSINESS TOUR — KARTY POSTĘPU BUDYNKÓW ===== */
+.bt-upgrade-progress {
+    display: flex;
+    gap: .35rem;
+    margin: .65rem 0 .8rem;
+}
+.bt-prog-card {
+    flex: 1;
+    background: rgba(255,255,255,.04);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    padding: .45rem .25rem .35rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .15s, background .15s;
+}
+.bt-prog-card--done {
+    border-color: rgba(16,185,129,.28);
+    background: rgba(16,185,129,.06);
+}
+.bt-prog-card--active {
+    border-color: var(--brand-gold);
+    background: rgba(245,158,11,.11);
+    box-shadow: 0 0 14px rgba(245,158,11,.22);
+}
+.bt-prog-card--locked {
+    opacity: .4;
+}
+.bt-prog-icon {
+    font-size: .8rem;
+    height: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .06rem;
+    margin-bottom: .15rem;
+    color: var(--slate-300);
+}
+.bt-prog-card--done .bt-prog-icon  { color: var(--brand-emerald); }
+.bt-prog-card--active .bt-prog-icon { color: var(--brand-gold); }
+.bt-prog-label {
+    font-size: .6rem;
+    font-weight: 700;
+    color: var(--slate-400);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    line-height: 1.1;
+}
+.bt-prog-card--done   .bt-prog-label { color: var(--brand-emerald); }
+.bt-prog-card--active .bt-prog-label { color: var(--brand-gold); }
+.bt-prog-check {
+    position: absolute;
+    top: 2px; right: 4px;
+    font-size: .6rem;
+    color: var(--brand-emerald);
+    font-weight: 800;
+}
+.bt-prog-stamp {
+    position: absolute;
+    top: 2px; left: 3px;
+    font-size: .52rem;
+    color: var(--brand-rose);
+    font-weight: 700;
+    opacity: .8;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+.bt-purchase-meta {
+    display: flex;
+    flex-direction: column;
+    gap: .18rem;
+    margin: .3rem 0 .7rem;
+    font-size: .82rem;
+    color: var(--slate-300);
+}
+.bt-purchase-meta .rent-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brand-emerald);
+}
+.bt-purchase-meta .buyback-val {
+    font-size: .78rem;
+    color: var(--slate-400);
+}
