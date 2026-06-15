@@ -2205,7 +2205,7 @@ html.pb-dark body .panel {
 html.pb-dark body .field label { color: #7a8499 !important; }
 html.pb-dark body .field input,
 html.pb-dark body .field select {
-    background: #0e1120 !important; color: #e8edf5 !important; border-color: rgba(255,255,255,.1) !important;
+    background: #05070f !important; color: #e8edf5 !important; border-color: rgba(255,255,255,.1) !important;
 }
 
 /* KARTY / TABELE */
@@ -2802,3 +2802,63 @@ html.pb-dark .bt-prop-stat .rent-highlight   { color: #10b981 !important; }
 html.pb-dark .bt-prop-stat em                { color: #7a8499 !important; }
 html.pb-dark .bt-prop-hint                   { color: #aab2c8 !important; }
 html.pb-dark .bt-prop-alert                  { background: rgba(16,185,129,.12) !important; color: #10b981 !important; }
+
+/* USTAWIENIA — upload awatara / banera — dark mode */
+html.pb-dark .lp-media-upload {
+    background: rgba(14,17,32,0.97) !important;
+    border-color: rgba(0,166,81,.18) !important;
+}
+html.pb-dark .lp-media-preview {
+    background: #0e1120 !important;
+    border-color: rgba(0,166,81,.22) !important;
+}
+html.pb-dark .lp-media-placeholder {
+    color: #7a8499 !important;
+}
+html.pb-dark .lp-file-btn {
+    background: linear-gradient(135deg, rgba(0,166,81,.15), rgba(106,27,154,.1)) !important;
+    border-color: rgba(0,166,81,.3) !important;
+    color: #10b981 !important;
+}
+html.pb-dark .lp-file-btn:hover {
+    border-color: rgba(0,166,81,.5) !important;
+    box-shadow: 0 6px 18px rgba(0,166,81,.15) !important;
+}
+html.pb-dark .lp-file-name {
+    color: #7a8499 !important;
+}
+html.pb-dark .lp-media-url-input {
+    background: #05070f !important;
+    color: #e8edf5 !important;
+    border-color: rgba(0,166,81,.18) !important;
+}
+html.pb-dark .lp-media-url-input:focus {
+    border-color: #00A651 !important;
+    box-shadow: 0 0 0 3px rgba(0,166,81,.12) !important;
+}
+
+/* TEXTAREA (bio itp.) — dark mode */
+html.pb-dark textarea,
+html.pb-dark body textarea {
+    background: #05070f !important;
+    color: #e8edf5 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+html.pb-dark textarea:focus,
+html.pb-dark body textarea:focus {
+    border-color: #00A651 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0,166,81,.1) !important;
+}
+
+/* SELECT globalny — dark mode (panel admina, moderatora itp.) */
+html.pb-dark select,
+html.pb-dark body select {
+    background: #05070f !important;
+    color: #e8edf5 !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+html.pb-dark select option {
+    background: #0e1120;
+    color: #e8edf5;
+}
