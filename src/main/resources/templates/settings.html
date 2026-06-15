@@ -88,6 +88,37 @@
                 </div>
             </div>
 
+            <!-- Tlo calego profilu (styl Steam) -->
+            <div class="field">
+                <label>Tło profilu <span style="color:#94a3b8;font-size:.78rem;">(całe tło strony profilu, np. 1920×1080 px)</span></label>
+                <div class="lp-media-upload lp-media-upload-banner">
+                    <div class="lp-media-preview lp-media-preview-banner" id="backgroundPreviewWrap"
+                         th:classappend="${user.profileBgUrl == null or #strings.isEmpty(user.profileBgUrl)} ? ' lp-media-preview-empty' : ''">
+                        <img th:if="${user.profileBgUrl != null and !#strings.isEmpty(user.profileBgUrl)}"
+                             th:src="${user.profileBgUrl}" id="backgroundPreviewImg"
+                             alt="Podgląd tła"
+                             onerror="this.parentElement.classList.add('lp-media-preview-empty');this.style.display='none';">
+                        <span class="lp-media-placeholder"
+                              th:if="${user.profileBgUrl == null or #strings.isEmpty(user.profileBgUrl)}">
+                            <i class="fa-solid fa-mountain-sun"></i> Brak tła
+                        </span>
+                    </div>
+                    <div class="lp-media-actions">
+                        <label class="lp-file-btn" for="backgroundFile">
+                            <i class="fa-solid fa-image"></i> Wybierz plik
+                        </label>
+                        <input type="file" id="backgroundFile" name="backgroundFile"
+                               accept="image/jpeg,image/png,image/webp,image/gif" class="lp-file-input">
+                        <span class="lp-file-name" id="backgroundFileName">Nie wybrano pliku</span>
+                        <input type="url" id="backgroundUrl" name="backgroundUrl"
+                               th:value="${user.profileBgUrl}"
+                               placeholder="https://example.com/tlo.jpg"
+                               class="lp-media-url-input"
+                               aria-label="URL tła profilu">
+                    </div>
+                </div>
+            </div>
+
             <div class="field">
                 <label for="email">Adres e-mail</label>
                 <input type="email" id="email" name="email" th:value="${user.email}"

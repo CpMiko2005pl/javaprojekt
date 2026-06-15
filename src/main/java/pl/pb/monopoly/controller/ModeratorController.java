@@ -1,5 +1,10 @@
 package pl.pb.monopoly.controller;
 
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,8 +20,11 @@ import pl.pb.monopoly.repository.GameSessionRepository;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.ModerationService;
+import pl.pb.monopoly.service.ProfileMediaService;
 import pl.pb.monopoly.service.UserService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,17 +42,43 @@ public class ModeratorController {
     private final UserService userService;
     private final MatchHistoryRepository matchHistoryRepository;
     private final ModerationService moderationService;
+    private final ProfileMediaService profileMediaService;
 
     public ModeratorController(GameSessionRepository gameSessionRepository,
                                UserRepository userRepository,
                                UserService userService,
                                MatchHistoryRepository matchHistoryRepository,
-                               ModerationService moderationService) {
+                               ModerationService moderationService,
+                               ProfileMediaService profileMediaService) {
         this.gameSessionRepository = gameSessionRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.matchHistoryRepository = matchHistoryRepository;
         this.moderationService = moderationService;
+        this.profileMediaService = profileMediaService;
+    }
+
+    /** Podglad przeslanej legitymacji gracza — moderator i admin. */
+    @GetMapping("/users/{id}/legitymacja")
+    public ResponseEntity<Resource> viewLegitymacja(@PathVariable Long id) {
+        User user = userService.getById(id);
+        String rel = user.getVerificationDocUrl();
+        if (rel == null || rel.isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+        Path file = profileMediaService.resolveUpload(rel);
+        Path base = profileMediaService.resolveUpload("verification");
+        if (!file.startsWith(base) || !Files.isReadable(file)) {
+            return ResponseEntity.notFound().build();
+        }
+        MediaType type = rel.endsWith(".pdf") ? MediaType.APPLICATION_PDF
+                : rel.endsWith(".png") ? MediaType.IMAGE_PNG
+                : rel.endsWith(".webp") ? MediaType.parseMediaType("image/webp")
+                : MediaType.IMAGE_JPEG;
+        return ResponseEntity.ok()
+                .contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName() + "\"")
+                .body(new PathResource(file));
     }
 
     @GetMapping

@@ -36,6 +36,15 @@ public class ProfileMediaService {
         return save(username, file, "banners", MAX_BANNER_BYTES, publicBaseUrl);
     }
 
+    /** Tlo calego profilu (styl Steam) — wieksze niz baner. */
+    public String saveBackground(String username, MultipartFile file, String publicBaseUrl) throws IOException {
+        return save(username, file, "backgrounds", MAX_BANNER_BYTES, publicBaseUrl);
+    }
+
+    public void deleteBackground(String username) throws IOException {
+        deleteInDir("backgrounds", username);
+    }
+
     private static final long MAX_DOC_BYTES = 10L * 1024 * 1024;
     private static final Map<String, String> DOC_EXT_BY_TYPE = Map.of(
             "image/jpeg", "jpg",

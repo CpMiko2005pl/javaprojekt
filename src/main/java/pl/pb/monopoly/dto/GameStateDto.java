@@ -35,6 +35,7 @@ public record GameStateDto(
         PendingBuybackDto pendingBuyback,
         Long leaderId,
         boolean canRollAgain,
-        List<PropertyCardDto> myPropertyCards
+        List<PropertyCardDto> myPropertyCards,
+        Long secondsLeft
 ) {
 }

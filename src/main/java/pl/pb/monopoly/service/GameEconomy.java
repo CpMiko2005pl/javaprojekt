@@ -32,6 +32,24 @@ public final class GameEconomy {
     public static final int COINS_WIN_REWARD = 500;
     public static final int COINS_PARTICIPATION = 100;
 
+    /** Limit czasu gry — po 60 minutach wygrywa gracz z najwyzszym majatkiem. */
+    public static final int GAME_DURATION_SECONDS = 60 * 60;
+
+    /**
+     * Poziom gracza wyznaczany z punktow ELO. Skala liniowa zakotwiczona w:
+     * 1000 ELO -> poziom 4, 2000 ELO -> poziom 10 (czyli +6 poziomow na 1000 ELO).
+     * Minimum to poziom 1.
+     */
+    public static int levelForElo(int elo) {
+        return Math.max(1, (elo * 6) / 1000 - 2);
+    }
+
+    /** Calkowity majatek gracza: gotowka + wartosc nieruchomosci (grunty + ulepszenia). */
+    public static int netWorth(GamePlayer p) {
+        if (p == null) return 0;
+        return p.getCash() + computePropertyNetWorth(p.getOwnedPositions(), p.getPropertyLevels());
+    }
+
     /** Czynsz resortów wg liczby posiadanych: 1→50k, 2→100k, 3→200k, 4→400k. */
     public static final int[] RESORT_RENT = {0, 50_000, 100_000, 200_000, 400_000};
 

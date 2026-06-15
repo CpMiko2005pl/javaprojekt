@@ -97,7 +97,8 @@
             <td>
                 <span th:if="${u.suspended}" class="badge badge-no">zawieszony</span>
                 <span th:if="${!u.suspended and u.verified}" class="badge badge-ok">zweryfikowany</span>
-                <span th:if="${!u.suspended and !u.verified}" class="badge badge-no">niezweryfikowany</span>
+                <span th:if="${!u.suspended and !u.verified and u.verificationDocUrl != null}" class="badge badge-no">oczekuje</span>
+                <span th:if="${!u.suspended and !u.verified and u.verificationDocUrl == null}" class="badge badge-no">niezweryfikowany</span>
             </td>
             <td>
                 <a th:href="@{/moderator/users/{id}/warnings(id=${u.id})}"
@@ -106,6 +107,11 @@
             <td th:text="${u.statistics != null} ? ${u.statistics.eloPoints} : '—'">1000</td>
             <td>
                 <div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:flex-start;">
+                <a th:if="${u.verificationDocUrl != null}"
+                   th:href="@{/moderator/users/{id}/legitymacja(id=${u.id})}" target="_blank"
+                   class="btn btn-secondary btn-small" title="Podejrzyj legitymację">
+                    <i class="fa-solid fa-id-card"></i> Legitymacja
+                </a>
                 <form th:action="@{/moderator/users/{id}/verify(id=${u.id})}" method="post" class="inline-form">
                     <input type="hidden" name="verified" th:value="${!u.verified}">
                     <button type="submit" class="btn btn-secondary btn-small"

@@ -882,6 +882,9 @@ public class GameService {
         }
         current.setRollsThisTurn(current.getRollsThisTurn() + 1);
         checkGameEnd(session, msg);
+        if (session.getStatus() != GameStatus.FINISHED) {
+            appendWinAlerts(session.getPlayers(), msg);
+        }
         sessionRepository.save(session);
 
         Long movedId = current.getId();
@@ -952,8 +955,10 @@ public class GameService {
         if (GameEconomy.hasColorMonopoly(me, pos)) {
             msg.append("[MONOPOL] ").append(me.getDisplayName()).append(" zdobywa monopol na grupie! ");
         }
-        appendWinAlerts(session.getPlayers(), msg);
         checkGameEnd(session, msg);
+        if (session.getStatus() != GameStatus.FINISHED) {
+            appendWinAlerts(session.getPlayers(), msg);
+        }
         sessionRepository.save(session);
 
         Long sessionId = session.getId();
@@ -1525,12 +1530,48 @@ public class GameService {
         msg.append(player.getDisplayName()).append(" BANKRUCTWO! ");
     }
 
+    /**
+     * Co 30 s wymusza koniec gier, ktore przekroczyly limit czasu (60 min),
+     * nawet gdy nikt nie wykonuje ruchu. Zwyciezca = najwyzszy majatek.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 30_000L)
+    @Transactional
+    public void enforceTimeLimits() {
+        for (GameSession s : sessionRepository.findAllActive()) {
+            if (s.getCreatedAt() == null) continue;
+            long elapsed = ChronoUnit.SECONDS.between(s.getCreatedAt(), LocalDateTime.now());
+            if (elapsed < GameEconomy.GAME_DURATION_SECONDS) continue;
+            StringBuilder msg = new StringBuilder();
+            checkGameEnd(s, msg);
+            if (s.getStatus() == GameStatus.FINISHED) {
+                sessionRepository.save(s);
+                publishPublic(s.getId(), null, null, msg.toString(), null, null, null, null);
+            }
+        }
+    }
+
     private void checkGameEnd(GameSession session, StringBuilder msg) {
         if (session.getStatus() == GameStatus.FINISHED) return;
         if (session.getStatus() == GameStatus.WAITING) return;
         List<GamePlayer> active = session.getPlayers().stream()
                 .filter(p -> !p.isBankrupt())
                 .toList();
+
+        // Limit czasu: po 60 min wygrywa gracz z najwyzszym majatkiem (gotowka + nieruchomosci)
+        if (session.getCreatedAt() != null && !active.isEmpty()) {
+            long elapsed = ChronoUnit.SECONDS.between(session.getCreatedAt(), LocalDateTime.now());
+            if (elapsed >= GameEconomy.GAME_DURATION_SECONDS) {
+                GamePlayer richest = active.stream()
+                        .max(java.util.Comparator.comparingInt(GameEconomy::netWorth))
+                        .orElse(active.get(0));
+                session.setStatus(GameStatus.FINISHED);
+                msg.append("Czas minal (60 min)! ").append(richest.getDisplayName())
+                        .append(" WYGRYWA z najwyzszym majatkiem (").append(GameEconomy.netWorth(richest))
+                        .append(" PLN)! ");
+                persistGameResults(session, richest);
+                return;
+            }
+        }
 
         // Wygrana przez 3 kompletne grupy kolorow
         for (GamePlayer p : active) {
@@ -1595,16 +1636,26 @@ public class GameService {
         return count;
     }
 
+    /**
+     * Komunikaty "blisko wygranej" — broadcast do WSZYSTKICH (lacznie z zagrozonym graczem).
+     * Monopole: wygrana = 3 grupy (alert przy 1 i 2). Kurorty: wygrana = 4 (alert przy 2 i 3).
+     */
     private void appendWinAlerts(List<GamePlayer> players, StringBuilder msg) {
         for (GamePlayer p : players) {
             if (p.isBankrupt()) continue;
             int monopoles = countColorMonopolies(p);
-            if (monopoles == 2) {
-                msg.append("UWAGA! ").append(p.getDisplayName()).append(" jest blisko wygranej przez monopole! ");
+            if (monopoles == 1 || monopoles == 2) {
+                int left = 3 - monopoles;
+                msg.append("UWAGA! ").append(p.getDisplayName())
+                        .append(" jest blisko wygranej przez monopole — zostalo ").append(left)
+                        .append(left == 1 ? " grupa! " : " grupy! ");
             }
             int kurorty = countKurortyOwned(p);
-            if (kurorty == 3) {
-                msg.append("UWAGA! ").append(p.getDisplayName()).append(" jest blisko wygranej przez kurorty! ");
+            if (kurorty == 2 || kurorty == 3) {
+                int left = 4 - kurorty;
+                msg.append("UWAGA! ").append(p.getDisplayName())
+                        .append(" jest blisko wygranej przez kurorty — zostal").append(left == 1 ? " " : "y ")
+                        .append(left).append(left == 1 ? " kurort! " : " kurorty! ");
             }
         }
     }
@@ -1665,7 +1716,7 @@ public class GameService {
                 }
                 int newElo = Math.max(0, stats.getEloPoints() + eloChange);
                 stats.setEloPoints(newElo);
-                stats.setLevel(Math.max(1, 1 + newElo / 500));
+                stats.setLevel(GameEconomy.levelForElo(newElo));
             }
         }
     }
@@ -1943,6 +1994,13 @@ public class GameService {
                     if (kurortWinner != null) {
                         winnerId = kurortWinner.getId();
                         winnerName = kurortWinner.getDisplayName();
+                    } else {
+                        // Wygrana po limicie czasu — najwyzszy majatek
+                        GamePlayer richest = active.stream()
+                                .max(java.util.Comparator.comparingInt(GameEconomy::netWorth))
+                                .orElse(active.get(0));
+                        winnerId = richest.getId();
+                        winnerName = richest.getDisplayName();
                     }
                 }
             }
@@ -2011,12 +2069,19 @@ public class GameService {
 
         List<PropertyCardDto> myPropertyCards = buildMyPropertyCards(session, username);
 
+        // Pozostaly czas gry (sekundy) — tylko dla trwajacej rozgrywki
+        Long secondsLeft = null;
+        if (session.getStatus() == GameStatus.ACTIVE && session.getCreatedAt() != null) {
+            long elapsed = ChronoUnit.SECONDS.between(session.getCreatedAt(), LocalDateTime.now());
+            secondsLeft = Math.max(0, GameEconomy.GAME_DURATION_SECONDS - elapsed);
+        }
+
         return new GameStateDto(session.getId(), session.getCode(), session.getName(),
                 session.getStatus().name(), dtos, currentId, d1, d2, message,
                 movedId, fromPos, toPos, myTurn, tileNamesList(), tileEffectsList(),
                 pending, pendingPayment, ownership, prices, card, winnerId, winnerName,
                 myHandCards, pendingUpgrade, pendingBuyback, effectiveLeaderId, canRollAgain,
-                myPropertyCards);
+                myPropertyCards, secondsLeft);
     }
 
     private List<PropertyCardDto> buildMyPropertyCards(GameSession session, String username) {

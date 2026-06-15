@@ -47,9 +47,12 @@ public class UserService {
         user.setAge(form.getAge());
         user.setPassword(passwordEncoder.encode(form.getPassword()));
         user.setRole(Role.USER);
+        user.setCoins(1000); // startowy banknot monet dla nowego konta
 
         // Kompozycja: kazdy nowy gracz dostaje wlasny rekord statystyk.
-        user.attachStatistics(new PlayerStatistics());
+        PlayerStatistics stats = new PlayerStatistics();
+        stats.setLevel(GameEconomy.levelForElo(stats.getEloPoints())); // poziom spojny z ELO (1000 -> 4)
+        user.attachStatistics(stats);
 
         return userRepository.save(user);
     }
@@ -85,7 +88,7 @@ public class UserService {
     /** Aktualizacja danych profilu (email, bio, banner, awatar). */
     @Transactional
     public void updateProfile(String username, String newEmail, String bio,
-                              String bannerUrl, String avatarUrl) {
+                              String bannerUrl, String avatarUrl, String profileBgUrl) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Nie znaleziono użytkownika"));
         if (!user.getEmail().equalsIgnoreCase(newEmail)
@@ -98,6 +101,7 @@ public class UserService {
         user.setBio(bio != null ? bio.strip() : null);
         user.setBannerUrl(bannerUrl != null && !bannerUrl.isBlank() ? bannerUrl.strip() : null);
         user.setAvatarUrl(avatarUrl != null && !avatarUrl.isBlank() ? avatarUrl.strip() : null);
+        user.setProfileBgUrl(profileBgUrl != null && !profileBgUrl.isBlank() ? profileBgUrl.strip() : null);
     }
 
     /** Zmiana hasla po weryfikacji biezacego. */

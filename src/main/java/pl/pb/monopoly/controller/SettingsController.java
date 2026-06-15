@@ -59,13 +59,16 @@ public class SettingsController {
                                 @RequestParam(required = false) String bio,
                                 @RequestParam(required = false) String avatarUrl,
                                 @RequestParam(required = false) String bannerUrl,
+                                @RequestParam(required = false) String backgroundUrl,
                                 @RequestParam(required = false) MultipartFile avatarFile,
                                 @RequestParam(required = false) MultipartFile bannerFile,
+                                @RequestParam(required = false) MultipartFile backgroundFile,
                                 RedirectAttributes ra) {
         try {
             User user = userRepository.findByUsername(auth.getName()).orElseThrow();
             String resolvedAvatarUrl;
             String resolvedBannerUrl;
+            String resolvedBackgroundUrl;
             String publicBase = resolvePublicBaseUrl(request);
 
             if (avatarFile != null && !avatarFile.isEmpty()) {
@@ -80,7 +83,13 @@ public class SettingsController {
                 resolvedBannerUrl = blankToNull(bannerUrl);
             }
 
-            userService.updateProfile(auth.getName(), email, bio, resolvedBannerUrl, resolvedAvatarUrl);
+            if (backgroundFile != null && !backgroundFile.isEmpty()) {
+                resolvedBackgroundUrl = profileMediaService.saveBackground(user.getUsername(), backgroundFile, publicBase);
+            } else {
+                resolvedBackgroundUrl = blankToNull(backgroundUrl);
+            }
+
+            userService.updateProfile(auth.getName(), email, bio, resolvedBannerUrl, resolvedAvatarUrl, resolvedBackgroundUrl);
             ra.addFlashAttribute("message", "Profil został zaktualizowany.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());

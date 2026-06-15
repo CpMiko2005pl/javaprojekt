@@ -2,6 +2,7 @@ package pl.pb.monopoly;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Punkt wejscia aplikacji "Gra o Przetrwanie" (satyryczne Monopoly PB).
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * powstanie w kolejnych etapach.
  */
 @SpringBootApplication
+@EnableScheduling
 public class MonopolyApplication {
 
     public static void main(String[] args) {

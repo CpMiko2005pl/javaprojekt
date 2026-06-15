@@ -91,6 +91,10 @@ public class User {
     @Column(name = "banner_url", length = 512)
     private String bannerUrl;
 
+    /** Adres URL tla calego profilu (styl Steam) — opcjonalne. */
+    @Column(name = "profile_bg_url", length = 512)
+    private String profileBgUrl;
+
     /** Krotki opis gracza widoczny na profilu publicznym. */
     @Column(name = "bio", length = 200)
     private String bio;
@@ -267,6 +271,14 @@ public class User {
 
     public void setBannerUrl(String bannerUrl) {
         this.bannerUrl = bannerUrl;
+    }
+
+    public String getProfileBgUrl() {
+        return profileBgUrl;
+    }
+
+    public void setProfileBgUrl(String profileBgUrl) {
+        this.profileBgUrl = profileBgUrl;
     }
 
     public String getBio() {

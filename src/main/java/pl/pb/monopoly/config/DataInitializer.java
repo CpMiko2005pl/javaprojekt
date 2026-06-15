@@ -147,8 +147,9 @@ public class DataInitializer {
         u.setPassword(encoder.encode(username + "123"));
 
         PlayerStatistics s = new PlayerStatistics();
-        s.setLevel(level);
-        s.setEloPoints(800 + level * 90 + wins * 5);
+        int elo = 800 + level * 90 + wins * 5;
+        s.setEloPoints(elo);
+        s.setLevel(GameEconomy.levelForElo(elo)); // poziom spojny z ELO
         s.setGamesPlayed(games);
         s.setGamesWon(wins);
         s.setWinStreak(ThreadLocalRandom.current().nextInt(0, 5));

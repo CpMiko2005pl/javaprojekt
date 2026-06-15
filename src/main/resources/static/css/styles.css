@@ -840,6 +840,9 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; margin-top: 
 }
 .btn-bt:active { transform: translateY(2px); box-shadow: 0 1px 0 #0d47a1; }
 .bt-live { color: #1565c0 !important; background: rgba(21,101,192,.12) !important; border-color: rgba(21,101,192,.25) !important; }
+.bt-clock { color: #b45309 !important; background: rgba(245,158,11,.14) !important; border-color: rgba(245,158,11,.3) !important; font-variant-numeric: tabular-nums; }
+.bt-clock.clock-low { color: #dc2626 !important; background: rgba(239,68,68,.16) !important; border-color: rgba(239,68,68,.35) !important; animation: clockPulse 1s ease-in-out infinite; }
+@keyframes clockPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
 
 .game-hud-bt .bt-panel {
     background: rgba(22, 31, 48, 0.85);

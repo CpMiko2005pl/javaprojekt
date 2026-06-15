@@ -1257,11 +1257,16 @@
             || !!state.pendingPayment || !!state.pendingUpgrade || !!state.pendingBuyback || state.status === "FINISHED";
         updateCenterDicePanel(state);
         updateWinnerBanner(state);
+        updateGameClock(state);
+        /* Czy to JA wylosowalem te karte — wtedy widze modal, a nie dubluje toastem. */
+        var iAmDrawer = state.movedPlayerId != null && sameId(state.movedPlayerId, myPlayerId);
         if (state.message) {
             var logEl = document.getElementById("log");
             if (logEl) logEl.textContent = state.message;
             if (!animating && animationQueue.length === 0) {
-                pushToastFromMessage(state.message, state);
+                if (!(state.chanceCard && iAmDrawer)) {
+                    pushToastFromMessage(state.message, state);
+                }
             }
         }
         updateTileInfo(state);
@@ -1271,11 +1276,40 @@
         renderActionPanel(state);
         renderHandCards(state);
         renderMyProperties(state);
-        if (state.chanceCard) showChanceCard(state, state.chanceCard);
+        /* Modal wylosowanej karty pokazujemy WYLACZNIE losujacemu. */
+        if (state.chanceCard && iAmDrawer) showChanceCard(state, state.chanceCard);
         /* Gdy nic nie animujemy i nie ma decyzji — zwolnij kamere do widoku planszy,
            by przed wlasnym rzutem kamera nie wisiala w zoomie na innym graczu. */
         resetCameraIfIdle();
     }
+
+    /* === ZEGAR GRY: odliczanie do limitu 60 min (po nim wygrywa najbogatszy) === */
+    var __clockSeconds = null;
+    var __clockSyncAt = 0;
+    function updateGameClock(state) {
+        var el = document.getElementById("gameClock");
+        if (!el) return;
+        if (state.status === "FINISHED") {
+            __clockSeconds = null;
+            el.textContent = "⏱ koniec";
+            el.classList.remove("clock-low");
+            return;
+        }
+        if (typeof state.secondsLeft === "number") {
+            __clockSeconds = state.secondsLeft;
+            __clockSyncAt = Date.now();
+        }
+        renderClock();
+    }
+    function renderClock() {
+        var el = document.getElementById("gameClock");
+        if (!el || __clockSeconds == null) return;
+        var rem = Math.max(0, Math.round(__clockSeconds - (Date.now() - __clockSyncAt) / 1000));
+        var m = Math.floor(rem / 60), s = rem % 60;
+        el.textContent = "⏱ " + m + ":" + (s < 10 ? "0" + s : s);
+        if (rem <= 300) el.classList.add("clock-low"); else el.classList.remove("clock-low");
+    }
+    setInterval(renderClock, 1000);
 
     /* === PANEL RZUTU: aktualizacja etykiety tury i stanu przycisku (nowy floating layout) === */
     function updateCenterDicePanel(state) {
