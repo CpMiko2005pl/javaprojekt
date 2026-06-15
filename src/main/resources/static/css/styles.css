@@ -2485,6 +2485,9 @@ html.pb-dark .fc-btn-ghost {
     color: #e8edf5 !important;
     border-color: rgba(255,255,255,.1) !important;
 }
+html.pb-dark .fc-btn-start {
+    color: #fff !important;
+}
 html.pb-dark .fc-live { color: #7a8499 !important; }
 html.pb-dark .fc-server-box { border-top-color: rgba(255,255,255,.07) !important; }
 
