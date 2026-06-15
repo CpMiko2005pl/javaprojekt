@@ -694,7 +694,10 @@ body.game-lobby-page { background: var(--lp-bg); }
     background: var(--lp-glass); backdrop-filter: blur(24px);
     border: 1px solid var(--lp-glass-b); border-radius: 18px;
     padding: 1.4rem; box-shadow: var(--lp-shadow);
+    display: flex; flex-direction: column;
 }
+.fc-card .fc-form { display: flex; flex-direction: column; flex: 1; }
+.fc-card .fc-form .fc-btn-join { margin-top: auto; }
 .fc-card-icon {
     width: 48px; height: 48px; border-radius: 14px;
     display: grid; place-items: center; font-size: 1.2rem;
