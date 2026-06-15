@@ -41,6 +41,14 @@ public class ProfileComment {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Odpowiedz wlasciciela profilu na komentarz (opcjonalna). */
+    @Size(max = 500)
+    @Column(name = "reply", length = 500)
+    private String reply;
+
+    @Column(name = "reply_at")
+    private LocalDateTime replyAt;
+
     public ProfileComment() {
     }
 
@@ -97,5 +105,21 @@ public class ProfileComment {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getReply() {
+        return reply;
+    }
+
+    public void setReply(String reply) {
+        this.reply = reply;
+    }
+
+    public LocalDateTime getReplyAt() {
+        return replyAt;
+    }
+
+    public void setReplyAt(LocalDateTime replyAt) {
+        this.replyAt = replyAt;
     }
 }

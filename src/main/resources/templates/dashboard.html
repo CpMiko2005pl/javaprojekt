@@ -3,8 +3,23 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Profil')}"></head>
-<body class="light-page">
+<body class="light-page"
+      th:classappend="${user.profileBgUrl != null and !#strings.isEmpty(user.profileBgUrl)} ? ' has-profile-bg' : ''">
 <header th:replace="~{fragments/layout :: navbar}"></header>
+
+<style>
+/* Tlo calego profilu (styl Steam) — body musi byc przezroczyste, by tlo bylo widoczne */
+body.has-profile-bg.light-page, body.has-profile-bg { background: transparent !important; }
+.profile-bg { position:fixed; inset:0; z-index:-2; background-size:cover; background-position:center center; }
+.profile-bg-overlay { position:fixed; inset:0; z-index:-1;
+    background:linear-gradient(180deg, rgba(238,245,242,.72), rgba(238,245,242,.90)); }
+html.pb-dark .profile-bg-overlay { background:linear-gradient(180deg, rgba(8,12,20,.78), rgba(8,12,20,.92)); }
+</style>
+
+<div th:if="${user.profileBgUrl != null and !#strings.isEmpty(user.profileBgUrl)}"
+     class="profile-bg" th:style="'background-image:url(\'' + ${user.profileBgUrl} + '\')'"></div>
+<div th:if="${user.profileBgUrl != null and !#strings.isEmpty(user.profileBgUrl)}"
+     class="profile-bg-overlay"></div>
 
 <div class="lp-faceit" id="main">
 
@@ -338,6 +353,9 @@
                 </div>
                 <div th:replace="~{fragments/match-carousel :: matchCarousel(${matches})}"></div>
             </div>
+
+            <!-- Komentarze pod moim profilem (zarządzanie: odpowiedz / lajk / usuń) -->
+            <div th:replace="~{fragments/comments :: commentsSection(${comments}, false, ${user.username}, ${commentFrom}, true, true)}"></div>
 
             <!-- Znajdź graczy -->
             <div class="lp-sc">

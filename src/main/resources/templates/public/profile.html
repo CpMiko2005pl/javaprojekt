@@ -1,36 +1,17 @@
 <!DOCTYPE html>
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Profil gracza')}"></head>
-<body class="light-page">
+<body class="light-page"
+      th:classappend="${profileUser != null and profileUser.profileBgUrl != null and !#strings.isEmpty(profileUser.profileBgUrl)} ? ' has-profile-bg' : ''">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
 <style>
-/* Tlo calego profilu (styl Steam) */
+/* Tlo calego profilu (styl Steam) — body musi byc przezroczyste, by tlo bylo widoczne */
+body.has-profile-bg.light-page, body.has-profile-bg { background: transparent !important; }
 .profile-bg { position:fixed; inset:0; z-index:-2; background-size:cover; background-position:center center; }
 .profile-bg-overlay { position:fixed; inset:0; z-index:-1;
-    background:linear-gradient(180deg, rgba(238,245,242,.74), rgba(238,245,242,.92)); }
-html.pb-dark .profile-bg-overlay { background:linear-gradient(180deg, rgba(8,12,20,.80), rgba(8,12,20,.94)); }
-
-/* Komentarze pod profilem */
-.pc-section { margin-top:24px; }
-.pc-form textarea, .pc-edit-form textarea { width:100%; padding:.7rem .85rem; border-radius:12px;
-    border:1px solid rgba(0,166,81,.28); background:rgba(255,255,255,.9); color:#0f172a; font:inherit;
-    resize:vertical; min-height:70px; }
-html.pb-dark .pc-form textarea, html.pb-dark .pc-edit-form textarea {
-    background:rgba(255,255,255,.06); color:#e2e8f0; border-color:rgba(255,255,255,.18); }
-.pc-list { display:flex; flex-direction:column; gap:.6rem; margin-top:1rem; }
-.pc-item { display:flex; gap:.7rem; padding:.7rem .85rem; border-radius:12px;
-    border:1px solid rgba(148,163,184,.25); background:rgba(255,255,255,.6); }
-html.pb-dark .pc-item { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.12); }
-.pc-avatar { width:38px; height:38px; border-radius:50%; object-fit:cover; flex-shrink:0; }
-.pc-body { flex:1; min-width:0; }
-.pc-head { display:flex; gap:.5rem; align-items:baseline; flex-wrap:wrap; }
-.pc-author { font-weight:700; text-decoration:none; }
-.pc-date { font-size:.72rem; color:#94a3b8; }
-.pc-text { margin:.25rem 0 0; white-space:pre-wrap; word-break:break-word; }
-.pc-actions { display:flex; gap:.4rem; margin-top:.4rem; }
-.pc-msg { margin:.5rem 0; font-size:.88rem; }
-.pc-msg.ok { color:#059669; } .pc-msg.err { color:#dc2626; }
+    background:linear-gradient(180deg, rgba(238,245,242,.72), rgba(238,245,242,.90)); }
+html.pb-dark .profile-bg-overlay { background:linear-gradient(180deg, rgba(8,12,20,.78), rgba(8,12,20,.92)); }
 </style>
 
 <div th:if="${profileUser != null and profileUser.profileBgUrl != null and !#strings.isEmpty(profileUser.profileBgUrl)}"
@@ -148,72 +129,7 @@ html.pb-dark .pc-item { background:rgba(255,255,255,.05); border-color:rgba(255,
                 </div>
 
                 <!-- KOMENTARZE POD PROFILEM -->
-                <div class="lp-sc pc-section">
-                    <div class="lp-sc-head">
-                        <h3><i class="fa-solid fa-comments" style="margin-right:.4rem;color:#6A1B9A;"></i> Komentarze</h3>
-                        <span th:text="${comments != null ? comments.size() : 0} + ' komentarzy'">0 komentarzy</span>
-                    </div>
-
-                    <p th:if="${commentMessage}" class="pc-msg ok" th:text="${commentMessage}"></p>
-                    <p th:if="${commentError}" class="pc-msg err" th:text="${commentError}"></p>
-
-                    <form th:if="${canComment}" class="pc-form"
-                          th:action="@{/u/{u}/comment(u=${profileUser.username})}" method="post">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <textarea name="content" maxlength="500" required
-                                  placeholder="Napisz komentarz pod tym profilem (1 na osobę)…"></textarea>
-                        <button type="submit" class="lp-btn-play"
-                                style="animation:none;font-size:13px;padding:8px 18px;margin-top:.5rem;">
-                            <i class="fa-solid fa-paper-plane"></i> Dodaj komentarz
-                        </button>
-                    </form>
-                    <p th:if="${loggedIn and ownProfile}" class="muted" style="font-size:.85rem;margin:0;">
-                        To Twój profil — nie możesz komentować samego siebie.
-                    </p>
-                    <p th:if="${loggedIn and !ownProfile and !canComment}" class="muted" style="font-size:.85rem;margin:0;">
-                        Masz już komentarz pod tym profilem — możesz go edytować lub usunąć poniżej.
-                    </p>
-                    <p th:if="${!loggedIn}" class="muted" style="font-size:.85rem;margin:0;">
-                        <a th:href="@{/login}">Zaloguj się</a>, aby dodać komentarz.
-                    </p>
-
-                    <div class="pc-list">
-                        <div class="pc-item" th:each="c : ${comments}">
-                            <img class="pc-avatar" th:src="@{/api/avatar/{u}(u=${c.authorUsername})}" alt="">
-                            <div class="pc-body">
-                                <div class="pc-head">
-                                    <a class="pc-author" th:href="@{/u/{u}(u=${c.authorUsername})}"
-                                       th:text="${c.authorLabel}">Autor</a>
-                                    <span class="pc-date"
-                                          th:text="${#temporals.format(c.createdAt,'dd.MM.yyyy HH:mm')} + (${c.updatedAt != null} ? ' (edytowano)' : '')">data</span>
-                                </div>
-                                <p class="pc-text" th:text="${c.content}">treść</p>
-
-                                <div class="pc-actions" th:if="${c.canDelete}">
-                                    <button type="button" class="btn btn-small pc-edit-btn"
-                                            th:if="${c.mine}" th:data-id="${c.id}">Edytuj</button>
-                                    <form th:action="@{/comments/{id}/delete(id=${c.id})}" method="post"
-                                          class="inline-form" onsubmit="return confirm('Usunąć komentarz?');">
-                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                        <button type="submit" class="btn btn-small btn-danger">Usuń</button>
-                                    </form>
-                                </div>
-
-                                <form th:if="${c.mine}" class="pc-edit-form" th:id="'pc-edit-' + ${c.id}"
-                                      style="display:none;margin-top:.5rem;"
-                                      th:action="@{/comments/{id}/edit(id=${c.id})}" method="post">
-                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                    <textarea name="content" maxlength="500" required th:text="${c.content}"></textarea>
-                                    <button type="submit" class="btn btn-small"
-                                            style="margin-top:.4rem;">Zapisz zmiany</button>
-                                </form>
-                            </div>
-                        </div>
-                        <p th:if="${comments == null or comments.isEmpty()}" class="muted" style="margin:0;">
-                            Brak komentarzy. Bądź pierwszy!
-                        </p>
-                    </div>
-                </div>
+                <div th:replace="~{fragments/comments :: commentsSection(${comments}, ${canComment}, ${commentTargetUsername}, ${commentFrom}, ${loggedIn}, ${ownProfile})}"></div>
             </div>
         </div>
 

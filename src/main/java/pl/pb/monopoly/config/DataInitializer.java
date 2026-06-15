@@ -30,6 +30,7 @@ public class DataInitializer {
                                MonopolyCardRepository cards,
                                MatchHistoryRepository matches,
                                FriendshipRepository friendships,
+                               ProfileCommentRepository comments,
                                PasswordEncoder encoder) {
         return args -> {
             if (users.count() == 0) {
@@ -60,6 +61,11 @@ public class DataInitializer {
                 friendships.save(new Friendship(kuba, gracz, FriendStatus.ACCEPTED));
                 friendships.save(new Friendship(admin, gracz, FriendStatus.PENDING));
                 friendships.save(new Friendship(ola, gracz, FriendStatus.PENDING));
+
+                // Komentarze pod profilem "gracz" (do testowania zarzadzania na dashboardzie)
+                comments.save(new ProfileComment(ola, gracz, "Super profil, zapraszam do wspolnej gry!"));
+                comments.save(new ProfileComment(kuba, gracz, "Jak tam ELO? Lecimy dzisiaj jakiegos rankeda?"));
+                comments.save(new ProfileComment(moderator, gracz, "Pamietaj o zasadach kultury na czacie!"));
             }
 
             if (cards.count() == 0) {

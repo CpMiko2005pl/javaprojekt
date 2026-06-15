@@ -12,7 +12,13 @@ public record ProfileCommentDto(
         String content,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
+        String reply,
+        LocalDateTime replyAt,
+        long likeCount,
+        boolean likedByMe,
         boolean mine,
-        boolean canDelete
+        boolean canEdit,
+        boolean canDelete,
+        boolean canReply
 ) {
 }

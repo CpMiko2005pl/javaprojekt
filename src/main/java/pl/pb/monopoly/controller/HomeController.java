@@ -19,6 +19,7 @@ import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.FriendService;
 import pl.pb.monopoly.service.GameService;
 import pl.pb.monopoly.service.ModerationService;
+import pl.pb.monopoly.service.ProfileCommentService;
 import pl.pb.monopoly.service.LootboxService;
 import pl.pb.monopoly.service.LootboxService.LootboxItem;
 import pl.pb.monopoly.service.UserService;
@@ -43,6 +44,7 @@ public class HomeController {
     private final OwnedItemRepository ownedItemRepository;
     private final Environment environment;
     private final ModerationService moderationService;
+    private final ProfileCommentService profileCommentService;
 
     @Value("${app.public-base-url:}")
     private String configuredPublicBaseUrl;
@@ -62,7 +64,8 @@ public class HomeController {
                           LootboxService lootboxService,
                           OwnedItemRepository ownedItemRepository,
                           Environment environment,
-                          ModerationService moderationService) {
+                          ModerationService moderationService,
+                          ProfileCommentService profileCommentService) {
         this.userRepository = userRepository;
         this.matchHistoryRepository = matchHistoryRepository;
         this.gameService = gameService;
@@ -73,6 +76,7 @@ public class HomeController {
         this.ownedItemRepository = ownedItemRepository;
         this.environment = environment;
         this.moderationService = moderationService;
+        this.profileCommentService = profileCommentService;
     }
 
     @GetMapping("/")
@@ -112,6 +116,9 @@ public class HomeController {
         model.addAttribute("coins", user.getCoins());
         model.addAttribute("shopBoxes", LootboxService.shopBoxes());
         model.addAttribute("inventory", buildInventory(user));
+        // Komentarze pod wlasnym profilem (gracz zarzadza: usuwa, odpowiada, lajkuje)
+        model.addAttribute("comments", profileCommentService.commentsFor(user, user));
+        model.addAttribute("commentFrom", "/dashboard");
         model.addAttribute("wheelSegments", WheelService.rewardLabels());
         String publicBaseUrl = PublicUrlHelper.publicBaseUrl(request);
         if (publicBaseUrl.isBlank()) {

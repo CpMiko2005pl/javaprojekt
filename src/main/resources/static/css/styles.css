@@ -844,6 +844,38 @@ caption { text-align: left; font-weight: 700; margin-bottom: .6rem; margin-top: 
 .bt-clock.clock-low { color: #dc2626 !important; background: rgba(239,68,68,.16) !important; border-color: rgba(239,68,68,.35) !important; animation: clockPulse 1s ease-in-out infinite; }
 @keyframes clockPulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
 
+/* === Komentarze pod profilem (dashboard + profil publiczny, light/dark) === */
+.pc-section { margin-top: 24px; }
+.pc-form textarea, .pc-edit-form textarea, .pc-reply-form textarea {
+    width:100%; padding:.7rem .85rem; border-radius:12px;
+    border:1px solid rgba(0,166,81,.28); background:rgba(255,255,255,.9); color:#0f172a;
+    font:inherit; resize:vertical; min-height:64px; }
+html.pb-dark .pc-form textarea, html.pb-dark .pc-edit-form textarea, html.pb-dark .pc-reply-form textarea {
+    background:rgba(255,255,255,.06); color:#e2e8f0; border-color:rgba(255,255,255,.18); }
+.pc-list { display:flex; flex-direction:column; gap:.6rem; margin-top:1rem; }
+.pc-item { display:flex; gap:.7rem; padding:.7rem .85rem; border-radius:12px;
+    border:1px solid rgba(148,163,184,.25); background:rgba(255,255,255,.6); }
+html.pb-dark .pc-item { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.12); }
+.pc-avatar { width:38px; height:38px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+.pc-body { flex:1; min-width:0; }
+.pc-head { display:flex; gap:.5rem; align-items:baseline; flex-wrap:wrap; }
+.pc-author { font-weight:700; text-decoration:none; color:inherit; }
+.pc-date { font-size:.72rem; color:#94a3b8; }
+.pc-text { margin:.25rem 0 0; white-space:pre-wrap; word-break:break-word; }
+.pc-reply { margin:.45rem 0 0; padding:.45rem .6rem; border-left:3px solid rgba(106,27,154,.5);
+    background:rgba(106,27,154,.07); border-radius:8px; font-size:.9rem; }
+html.pb-dark .pc-reply { background:rgba(168,85,247,.12); }
+.pc-reply-text { white-space:pre-wrap; word-break:break-word; }
+.pc-actions { display:flex; gap:.4rem; margin-top:.45rem; align-items:center; flex-wrap:wrap; }
+.pc-like-btn, .pc-like-static { display:inline-flex; align-items:center; gap:.3rem; cursor:pointer;
+    border:1px solid rgba(148,163,184,.3); background:transparent; color:#64748b;
+    border-radius:999px; padding:3px 10px; font-size:.78rem; font-weight:700; }
+.pc-like-static { cursor:default; }
+.pc-like-btn:hover { border-color:#ef4444; color:#ef4444; }
+.pc-like-btn.liked { color:#ef4444; border-color:rgba(239,68,68,.45); background:rgba(239,68,68,.1); }
+.pc-msg { margin:.5rem 0; font-size:.88rem; }
+.pc-msg.ok { color:#059669; } .pc-msg.err { color:#dc2626; }
+
 .game-hud-bt .bt-panel {
     background: rgba(22, 31, 48, 0.85);
     border: 1px solid var(--border);
