@@ -169,6 +169,88 @@ public class LootboxService {
     }
 
     /**
+     * "Slot" wyposazenia dla danej kategorii. Itemy z tego samego slotu wykluczaja
+     * sie wzajemnie (mozna miec zalozony tylko jeden). Pionek 3D i Kolor pionka
+     * dziela jeden slot "pawn" — nie da sie zalozyc kilku pionkow naraz.
+     */
+    public static String equipSlot(String category) {
+        if (category == null) return "";
+        return switch (category) {
+            case "Pionek 3D", "Kolor pionka" -> "pawn";
+            default -> category;
+        };
+    }
+
+    // ===================== SKLEP (skrzynki za monety) =====================
+
+    /** Skrzynka kupowana za monety — losuje przedmiot z przypisanych kategorii. */
+    public record ShopBox(String key, String name, String description, String iconClass,
+                          int price, Set<String> categories) {}
+
+    /** 3 skrzynki sklepowe: pionki, tytuly, ramki. */
+    public static final List<ShopBox> SHOP_BOXES = List.of(
+            new ShopBox("pawns", "Skrzynka Pionkow", "Pionki 3D i kolory pionka.",
+                    "fa-solid fa-chess-pawn", 300, Set.of("Pionek 3D", "Kolor pionka")),
+            new ShopBox("titles", "Skrzynka Tytulow", "Tytuly wyswietlane na profilu.",
+                    "fa-solid fa-ranking-star", 250, Set.of("Tytul")),
+            new ShopBox("frames", "Skrzynka Ramek", "Ramki awatara.",
+                    "fa-solid fa-image", 350, Set.of("Ramka"))
+    );
+
+    public static List<ShopBox> shopBoxes() {
+        return SHOP_BOXES;
+    }
+
+    public static ShopBox findBox(String key) {
+        return SHOP_BOXES.stream().filter(b -> b.key().equals(key)).findFirst().orElse(null);
+    }
+
+    /** Wynik zakupu skrzynki — zawiera tez pozostala liczbe monet. */
+    public record BuyResult(LootboxItem item, boolean addedToInventory, String inventoryNote, int coinsLeft) {}
+
+    /**
+     * Kupuje i otwiera skrzynke kategorii {@code boxKey} za monety gracza.
+     * Losuje przedmiot z kategorii skrzynki (priorytet: jeszcze nieposiadane).
+     */
+    @Transactional
+    public BuyResult buyBox(String username, String boxKey) {
+        ShopBox box = findBox(boxKey);
+        if (box == null) {
+            throw new IllegalArgumentException("Nieznana skrzynka.");
+        }
+        User user = userRepository.findByUsername(username).orElseThrow();
+        if (user.getCoins() < box.price()) {
+            throw new IllegalArgumentException("Za malo monet — potrzebujesz " + box.price() + ".");
+        }
+        user.setCoins(user.getCoins() - box.price());
+
+        Set<String> ownedSlugs = ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
+                .map(OwnedItem::getItemSlug)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<LootboxItem> pool = LOOTBOX_ITEMS.stream()
+                .filter(i -> box.categories().contains(i.category()))
+                .collect(Collectors.toList());
+        List<LootboxItem> unowned = pool.stream()
+                .filter(i -> !ownedSlugs.contains(i.slug()))
+                .collect(Collectors.toList());
+        LootboxItem rolled = rollItemFromPool(unowned.isEmpty() ? pool : unowned);
+
+        userRepository.save(user);
+
+        if (ownedSlugs.contains(rolled.slug())) {
+            return new BuyResult(rolled, false,
+                    "Masz juz ten przedmiot — monety zwracane nie sa, ale duplikatu nie dodano.",
+                    user.getCoins());
+        }
+        OwnedItem owned = ownedItemRepository.save(new OwnedItem(user, rolled.slug()));
+        if (PawnModelCatalog.isPawn3dItem(rolled)) {
+            equipPawn3d(user, owned);
+        }
+        return new BuyResult(rolled, true, null, user.getCoins());
+    }
+
+    /**
      * Doliczenie darmowej skrzynki, jezeli gracz nie odebral dzis i ma < 5.
      * Wywoluje sie automatycznie z {@code grantDailyIfNeeded()} przy wejsciu na profil.
      */
@@ -243,11 +325,14 @@ public class LootboxService {
         }
     }
 
-    /** Auto-zalozenie pionka 3D po wylosowaniu ze skrzynki. */
+    /** Auto-zalozenie pionka 3D po wylosowaniu ze skrzynki (zdejmuje inne pionki — ten sam slot). */
     private void equipPawn3d(User user, OwnedItem item) {
         ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
                 .filter(o -> !o.getId().equals(item.getId()))
-                .filter(o -> PawnModelCatalog.isPawn3dItem(findBySlug(o.getItemSlug())))
+                .filter(o -> {
+                    LootboxItem c = findBySlug(o.getItemSlug());
+                    return c != null && "pawn".equals(equipSlot(c.category()));
+                })
                 .forEach(o -> {
                     o.setEquipped(false);
                     ownedItemRepository.save(o);
@@ -310,15 +395,33 @@ public class LootboxService {
      * zwykle itemy + kilka rzadszych).
      */
     public List<LootboxItem> rollVisualStrip(LootboxItem winner) {
+        return rollVisualStrip(winner, LOOTBOX_ITEMS);
+    }
+
+    /**
+     * Wariant z wlasna pula "szumu" — dzieki temu tasma skrzynki kategorialnej
+     * (np. tylko ramki) pokazuje wylacznie itemy z tej kategorii.
+     */
+    public List<LootboxItem> rollVisualStrip(LootboxItem winner, List<LootboxItem> pool) {
+        List<LootboxItem> noisePool = (pool == null || pool.isEmpty()) ? LOOTBOX_ITEMS : pool;
         List<LootboxItem> strip = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
             if (i == 40) {
                 strip.add(winner);
             } else {
-                strip.add(LOOTBOX_ITEMS.get(ThreadLocalRandom.current().nextInt(LOOTBOX_ITEMS.size())));
+                strip.add(noisePool.get(ThreadLocalRandom.current().nextInt(noisePool.size())));
             }
         }
         return strip;
+    }
+
+    /** Pula itemow nalezacych do skrzynki danej kategorii (do taśmy animacji). */
+    public List<LootboxItem> poolForBox(String boxKey) {
+        ShopBox box = findBox(boxKey);
+        if (box == null) return LOOTBOX_ITEMS;
+        return LOOTBOX_ITEMS.stream()
+                .filter(i -> box.categories().contains(i.category()))
+                .collect(Collectors.toList());
     }
 
     /** Zwraca slownik slug -> item dla wszystkich katalogowanych. */

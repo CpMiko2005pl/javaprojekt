@@ -1648,6 +1648,10 @@ public class GameService {
             mh.setEloChange(eloChange);
             matchHistoryRepository.save(mh);
 
+            // Monety za mecz: solidna nagroda za wygrana, drobny udzial za uczestnictwo.
+            int coinReward = won ? GameEconomy.COINS_WIN_REWARD : GameEconomy.COINS_PARTICIPATION;
+            user.addCoins(coinReward);
+
             PlayerStatistics stats = user.getStatistics();
             if (stats != null) {
                 stats.setGamesPlayed(stats.getGamesPlayed() + 1);

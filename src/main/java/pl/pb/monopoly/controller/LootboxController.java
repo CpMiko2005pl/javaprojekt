@@ -37,6 +37,27 @@ public class LootboxController {
         this.ownedItemRepository = ownedItemRepository;
     }
 
+    @PostMapping("/shop/buy/{box}")
+    public ResponseEntity<?> buyBox(@PathVariable String box, Authentication auth) {
+        try {
+            LootboxService.BuyResult result = lootboxService.buyBox(auth.getName(), box);
+            LootboxItem winner = result.item();
+            List<LootboxItem> strip = lootboxService.rollVisualStrip(winner, lootboxService.poolForBox(box));
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("winner", toMap(winner));
+            response.put("strip", strip.stream().map(this::toMap).toList());
+            response.put("addedToInventory", result.addedToInventory());
+            if (result.inventoryNote() != null) {
+                response.put("inventoryNote", result.inventoryNote());
+            }
+            response.put("coins", result.coinsLeft());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/lootbox/open")
     public ResponseEntity<?> open(Authentication auth) {
         try {
@@ -76,14 +97,15 @@ public class LootboxController {
         }
         LootboxItem catalog = LootboxService.findBySlug(item.getItemSlug());
         String category = catalog != null ? catalog.category() : "";
+        String slot = LootboxService.equipSlot(category);
         boolean willEquip = !item.isEquipped();
         if (willEquip) {
-            // zdejmij inne itemy tej samej kategorii
+            // zdejmij inne itemy z tego samego slotu (np. wszystkie pionki)
             ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
                     .filter(o -> !o.getId().equals(id))
                     .filter(o -> {
                         LootboxItem c = LootboxService.findBySlug(o.getItemSlug());
-                        return c != null && c.category().equals(category);
+                        return c != null && LootboxService.equipSlot(c.category()).equals(slot);
                     })
                     .forEach(o -> { o.setEquipped(false); ownedItemRepository.save(o); });
         }

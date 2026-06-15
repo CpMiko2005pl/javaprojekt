@@ -109,6 +109,8 @@ public class HomeController {
         model.addAttribute("results", friendService.search(query, user.getUsername()));
         model.addAttribute("availableBoxes", user.getStatistics() != null
                 ? user.getStatistics().getAvailableLootboxes() : 0);
+        model.addAttribute("coins", user.getCoins());
+        model.addAttribute("shopBoxes", LootboxService.shopBoxes());
         model.addAttribute("inventory", buildInventory(user));
         model.addAttribute("wheelSegments", WheelService.rewardLabels());
         String publicBaseUrl = PublicUrlHelper.publicBaseUrl(request);

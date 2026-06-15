@@ -28,6 +28,10 @@ public final class GameEconomy {
     public static final int RESORT_BUY_PRICE = 200_000;
     public static final int UTILITY_BUY_PRICE = 150_000;
 
+    /** Monety metagry: nagroda za wygrana i drobny udzial za rozegrany mecz. */
+    public static final int COINS_WIN_REWARD = 500;
+    public static final int COINS_PARTICIPATION = 100;
+
     /** Czynsz resortów wg liczby posiadanych: 1→50k, 2→100k, 3→200k, 4→400k. */
     public static final int[] RESORT_RENT = {0, 50_000, 100_000, 200_000, 400_000};
 
@@ -198,6 +202,45 @@ public final class GameEconomy {
     public static int sellPrice(int position) {
         int price = TILE_PRICE[position];
         return price > 0 ? (int) Math.round(price * BANK_SELL_RATE) : 0;
+    }
+
+    /** Pola losowania kart (Szansa / kolokwium). */
+    private static final boolean[] CHANCE_TILES = new boolean[40];
+    /** Pola Kasy Studenckiej (community chest). */
+    private static final boolean[] COMMUNITY_TILES = new boolean[40];
+    /** Pola podatkowe. */
+    private static final boolean[] TAX_TILES = new boolean[40];
+    /** Pola wolnego postoju (free parking). */
+    private static final boolean[] FREE_PARKING_TILES = new boolean[40];
+
+    static {
+        CHANCE_TILES[7] = CHANCE_TILES[22] = CHANCE_TILES[36] = true;
+        COMMUNITY_TILES[2] = COMMUNITY_TILES[17] = COMMUNITY_TILES[33] = true;
+        TAX_TILES[4] = TAX_TILES[38] = true;
+        FREE_PARKING_TILES[20] = true;
+    }
+
+    /**
+     * Typ pola wg pozycji 0–39. Wartosci zgodne z kolumna board_tiles.tile_type.
+     */
+    public static String tileType(int pos) {
+        if (pos == POS_START) return "START";
+        if (pos == POS_JAIL) return "JAIL";
+        if (pos == POS_GO_TO_JAIL) return "GO_TO_JAIL";
+        if (RESORT_TILES[pos]) return "RESORT";
+        if (UTILITY_TILES[pos]) return "UTILITY";
+        if (CHANCE_TILES[pos]) return "CHANCE";
+        if (COMMUNITY_TILES[pos]) return "COMMUNITY";
+        if (TAX_TILES[pos]) return "TAX";
+        if (FREE_PARKING_TILES[pos]) return "FREE_PARKING";
+        return "PROPERTY";
+    }
+
+    /** Bazowy czynsz pola (poziom 0, bez monopolu); null gdy pole nie ma czynszu. */
+    public static Integer baseRent(int pos) {
+        if (pos < 0 || pos >= 40) return null;
+        int[] r = TILE_RENT_TABLE[pos];
+        return r != null ? r[0] : null;
     }
 
 }

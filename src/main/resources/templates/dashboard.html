@@ -231,26 +231,37 @@
                 </div>
             </div>
 
-            <!-- Skrzynki -->
-            <div class="lp-sc">
+            <!-- Sklep -->
+            <div class="lp-sc" id="shopSection">
                 <div class="lp-sc-head">
-                    <h3><i class="fa-solid fa-box-open" style="color:#F59E0B;margin-right:.4rem;"></i> Skrzynki PB</h3>
-                    <span>Dostępne: <strong style="color:#0f172a;" id="availableBoxesBadge" th:text="${availableBoxes}">0</strong></span>
+                    <h3><i class="fa-solid fa-store" style="color:#F59E0B;margin-right:.4rem;"></i> Sklep PB</h3>
+                    <span style="display:inline-flex;align-items:center;gap:.35rem;">Monety:
+                        <strong style="color:#B45309;" id="coinsBadge" th:text="${coins}">0</strong>
+                        <i class="fa-solid fa-coins" style="color:#F59E0B;"></i>
+                    </span>
                 </div>
-                <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                    <div class="lootbox-chest-icon" id="chestIconMain">
-                        <i class="fa-solid fa-box" style="font-size:1.6rem;color:#fff;"></i>
-                        <span class="lootbox-chest-count" id="boxCountLabel" th:text="${availableBoxes}">0</span>
+                <p class="muted" style="margin:.2rem 0 1rem;font-size:.82rem;">
+                    Monety zdobywasz za wygrane mecze. Wydaj je na skrzynki z kosmetykami.
+                </p>
+                <div class="shop-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;">
+                    <div th:each="b : ${shopBoxes}" class="shop-box"
+                         style="border:1px solid rgba(148,163,184,.25);border-radius:14px;padding:1rem;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.5rem;background:rgba(255,255,255,.55);">
+                        <div class="shop-box-icon"
+                             style="width:54px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#F59E0B,#B45309);color:#fff;font-size:1.5rem;">
+                            <i th:class="${b.iconClass}"></i>
+                        </div>
+                        <h3 style="margin:.1rem 0 0;font-size:.92rem;" th:text="${b.name}">Skrzynka</h3>
+                        <p class="muted" style="margin:0;font-size:.78rem;min-height:2.2em;" th:text="${b.description}">Opis</p>
+                        <div style="display:inline-flex;align-items:center;gap:.3rem;font-weight:700;color:#B45309;">
+                            <i class="fa-solid fa-coins"></i><span th:text="${b.price}">0</span>
+                        </div>
+                        <button type="button" class="lp-btn-play shop-buy-btn"
+                                style="animation:none;font-size:13px;padding:9px 18px;width:100%;"
+                                th:data-box="${b.key}" th:data-price="${b.price}"
+                                th:disabled="${coins lt b.price}">
+                            <i class="fa-solid fa-box-open"></i> Kup i otwórz
+                        </button>
                     </div>
-                    <div style="flex:1;">
-                        <h3 style="margin:0 0 .25rem;font-size:.95rem;">Skrzynka Studencka</h3>
-                        <p class="muted" style="margin:0;font-size:.82rem;">Nagroda za wygraną grę.</p>
-                    </div>
-                    <button id="lootboxOpenBtn" class="lp-btn-play" type="button"
-                            style="animation:none;font-size:13px;padding:10px 20px;"
-                            th:disabled="${availableBoxes lt 1}">
-                        <i class="fa-solid fa-box-open"></i> Otwórz
-                    </button>
                 </div>
                 <div class="lootbox-carousel" id="lootboxCarousel" style="display:none;margin-top:1rem;">
                     <div class="lootbox-pointer" aria-hidden="true"></div>
@@ -375,7 +386,7 @@
 <script th:src="@{/js/app.js}"></script>
 <script th:src="@{/js/match-carousel.js}"></script>
 <script th:src="@{/js/inventory-panel.js}"></script>
-<script th:src="@{/js/lootbox.js(v='20250613-dedup')}"></script>
+<script th:src="@{/js/shop.js(v='20260615-shop')}"></script>
 <script th:inline="javascript">
 /*<![CDATA[*/
 var WHEEL_SEGMENTS = /*[[${wheelSegments}]]*/ [];
@@ -511,6 +522,27 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
         if(equipped){ var slug=itemEl.getAttribute("data-slug"); if(slug) frame.classList.add("pf-"+slug); }
     }
 
+    /* Slot wyposazenia: pionek 3D i kolor pionka dziela jeden slot "pawn". */
+    function equipSlotOf(cat){ return (cat==="Pionek 3D"||cat==="Kolor pionka") ? "pawn" : cat; }
+
+    /* Natychmiastowa aktualizacja plakietki tytulu na profilu (bez przeladowania). */
+    function refreshProfileTitle(equipped, itemEl){
+        var existing=document.querySelector(".equipped-title-badge");
+        if(!equipped){ if(existing) existing.remove(); return; }
+        var strong=itemEl.querySelector("strong");
+        var name=strong?strong.textContent:"Tytuł";
+        if(existing){ var s=existing.querySelector("span"); if(s) s.textContent=name; return; }
+        var anchor=document.querySelector(".lp-ph-details .elo-pill")
+                || document.querySelector(".lp-ph-details .level-badge");
+        var container=anchor?anchor.parentElement:null;
+        if(!container) return;
+        var badge=document.createElement("span");
+        badge.className="equipped-title-badge";
+        badge.innerHTML='<i class="fa-solid fa-award"></i> <span></span>';
+        badge.querySelector("span").textContent=name;
+        container.appendChild(badge);
+    }
+
     document.querySelectorAll('.btn-equip').forEach(function(btn){
         btn.addEventListener('click', function(e){
             e.stopPropagation();
@@ -526,13 +558,14 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
                     item.classList.add('item-equipped');
                     if(!badge){ var b=document.createElement('span'); b.className='badge badge-ok'; b.style.fontSize='.7rem'; b.innerHTML='<i class="fa-solid fa-check"></i> Założony'; btn.before(b); }
                     document.querySelectorAll('.inventory-item').forEach(function(o){
-                        if(o===item||o.getAttribute('data-category')!==cat) return;
+                        if(o===item||equipSlotOf(o.getAttribute('data-category'))!==equipSlotOf(cat)) return;
                         o.classList.remove('item-equipped');
                         var ob=o.querySelector('.badge-ok'); if(ob) ob.remove();
                         var ob2=o.querySelector('.btn-equip'); if(ob2) ob2.textContent='Załóż';
                     });
                 } else { item.classList.remove('item-equipped'); if(badge) badge.remove(); }
                 if(cat==="Awatar"){ var img=document.getElementById("profileAvatarImg"); if(img) img.src="/api/avatar/"+encodeURIComponent(PROFILE_USERNAME)+"?t="+Date.now(); }
+                if(cat==="Tytul"){ refreshProfileTitle(equipped,item); }
                 refreshProfileFrame(item,equipped);
                 showInventoryToast(res.data.message||(equipped?"Założono.":"Zdjęto."),false);
             }).catch(function(){ showInventoryToast("Błąd połączenia.",true); });

@@ -3,7 +3,6 @@ package pl.pb.monopoly.domain;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +56,13 @@ public class User {
     @Column(nullable = false)
     private int age;
 
-    /** Saldo gracza w PLN. Domyslnie 1500 PLN (startowy budzet jak w Monopoly). */
-    @NotNull
-    @DecimalMin(value = "0.0", message = "Saldo nie moze byc ujemne")
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal balance = new BigDecimal("1500.00");
+    /**
+     * Monety (coiny) gracza - waluta metagry. Zdobywane za wygrane mecze,
+     * wydawane w sklepie na skrzynki. Zastapily dawne saldo PLN (balance).
+     */
+    @Min(value = 0, message = "Liczba monet nie moze byc ujemna")
+    @Column(nullable = false)
+    private int coins = 1000;
 
     /** Czy konto zweryfikowano (po przeslaniu skanu legitymacji PB). */
     @Column(nullable = false)
@@ -176,12 +177,17 @@ public class User {
         this.age = age;
     }
 
-    public BigDecimal getBalance() {
-        return balance;
+    public int getCoins() {
+        return coins;
     }
 
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
+    public void setCoins(int coins) {
+        this.coins = Math.max(0, coins);
+    }
+
+    /** Dolicza monety (np. nagroda za wygrana). */
+    public void addCoins(int amount) {
+        this.coins = Math.max(0, this.coins + amount);
     }
 
     public boolean isVerified() {
