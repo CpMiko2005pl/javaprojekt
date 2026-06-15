@@ -2840,6 +2840,17 @@ html.pb-dark .lp-media-url-input:focus {
     box-shadow: 0 0 0 3px rgba(0,166,81,.12) !important;
 }
 
+/* SHOP-BOX — dark mode */
+.shop-box {
+    background: rgba(255,255,255,.55);
+}
+html.pb-dark .shop-box {
+    background: #0e1120 !important;
+    border-color: rgba(255,255,255,.07) !important;
+    color: #e8edf5 !important;
+}
+html.pb-dark .shop-box h3 { color: #e8edf5 !important; }
+
 /* TEXTAREA (bio itp.) — dark mode */
 html.pb-dark textarea,
 html.pb-dark body textarea {
