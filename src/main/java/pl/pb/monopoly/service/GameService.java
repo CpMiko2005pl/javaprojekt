@@ -184,6 +184,12 @@ public class GameService {
     private final FriendService friendService;
     private BotAutoplayService botAutoplayService;
     private final ModerationService moderationService;
+    /** Magazyn aktywnych gier w RAM — rozgrywka ACTIVE zyje tu, nie w DB (Faza 2). */
+    private final ActiveGameStore activeGameStore;
+
+    /** EntityManager — do detach (RAM) i merge (zapis koncowy) sesji. */
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager em;
 
     public GameService(GameSessionRepository sessionRepository,
                        UserRepository userRepository,
@@ -193,7 +199,8 @@ public class GameService {
                        GameInviteRepository gameInviteRepository,
                        UserNotificationService userNotificationService,
                        FriendService friendService,
-                       ModerationService moderationService) {
+                       ModerationService moderationService,
+                       ActiveGameStore activeGameStore) {
         this.sessionRepository = sessionRepository;
         this.userRepository = userRepository;
         this.gameSyncService = gameSyncService;
@@ -203,6 +210,7 @@ public class GameService {
         this.userNotificationService = userNotificationService;
         this.friendService = friendService;
         this.moderationService = moderationService;
+        this.activeGameStore = activeGameStore;
     }
 
     /** Setter dla autoplay - lazy by uniknac cyklicznej zaleznosci konstruktorow. */
@@ -304,7 +312,7 @@ public class GameService {
             dealHandCards(gp);
         }
 
-        GameSession saved = sessionRepository.save(session);
+        GameSession saved = persist(session);
         publishPublic(saved.getId(), null, null, null, null, null, null, null);
         return saved;
     }
@@ -377,7 +385,7 @@ public class GameService {
             GamePlayer gp = new GamePlayer(u.getUsername(), uniqueColor(u, session));
             gp.setUser(u);
             session.addPlayer(gp);
-            sessionRepository.save(session);
+            persist(session);
             publishPublic(session.getId(), null, null, u.getUsername() + " dolaczyl do gry!", null, null, null, null);
         }
         return session;
@@ -404,7 +412,7 @@ public class GameService {
                 ? COLORS[session.getPlayers().size() % COLORS.length]
                 : botColor.trim();
         session.addPlayer(new GamePlayer(name, color));
-        sessionRepository.save(session);
+        persist(session);
         String msg = name + " dolaczyl do pokoju (bot).";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         return toState(session, username, null, null, msg, null, null, null, null);
@@ -430,7 +438,7 @@ public class GameService {
         }
         String name = bot.getDisplayName();
         session.removePlayer(bot);
-        sessionRepository.save(session);
+        persist(session);
         String msg = name + " zostal usuniety z pokoju.";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         return toState(session, username, null, null, msg, null, null, null, null);
@@ -545,13 +553,104 @@ public class GameService {
 
     @Transactional(readOnly = true)
     public GameSession getSession(Long id) {
+        // Aktywna rozgrywka zyje w RAM — zwroc obiekt z pamieci bez zapytania SQL.
+        GameSession ram = activeGameStore.get(id);
+        if (ram != null) return ram;
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Nie ma sesji o id " + id));
+    }
+
+    /**
+     * Zapisuje stan sesji we wlasciwym miejscu:
+     * <ul>
+     *   <li>ACTIVE w RAM — <b>brak zapisu</b> (stan juz zmutowany w obiekcie w pamieci),</li>
+     *   <li>ACTIVE w RAM + FINISHED — zapis koncowy raz (merge) i usuniecie z RAM,</li>
+     *   <li>lobby WAITING (poza RAM) — zwykly zapis do DB.</li>
+     * </ul>
+     * Zwraca obiekt sesji aktualny dla dalszego uzycia w metodzie wolajacej.
+     */
+    private GameSession persist(GameSession session) {
+        if (session == null) return null;
+        Long id = session.getId();
+        if (id != null && activeGameStore.contains(id)) {
+            if (session.getStatus() == GameStatus.FINISHED) {
+                finalizeFinished(session);
+            }
+            return session; // RAM — zero SQL na ruch
+        }
+        return sessionRepository.save(session); // lobby / sesja poza RAM
+    }
+
+    /**
+     * Wykonuje operacje pod lockiem danej sesji. REST (ruchy gracza), boty i
+     * harmonogram moga trafic na te sama gre w RAM rownolegle — bez serializacji
+     * wspoldzielony obiekt uleglby uszkodzeniu (np. ConcurrentModificationException).
+     */
+    private <T> T withLock(Long sessionId, java.util.function.Supplier<T> body) {
+        if (sessionId == null) return body.get();
+        java.util.concurrent.locks.ReentrantLock lock = activeGameStore.lockFor(sessionId);
+        lock.lock();
+        try {
+            return body.get();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void withLock(Long sessionId, Runnable body) {
+        withLock(sessionId, () -> { body.run(); return null; });
+    }
+
+    /** Zapis koncowego stanu zakonczonej gry do DB (raz) i usuniecie z RAM. */
+    private void finalizeFinished(GameSession session) {
+        Long id = session.getId();
+        em.merge(session);          // jednorazowy zapis pelnego stanu sesji + graczy
+        activeGameStore.remove(id);
+    }
+
+    /**
+     * Przenosi swiezo wystartowana sesje do RAM. Najpierw inicjalizuje leniwe
+     * powiazania {@code user} (po detach dostep do nich rzucilby
+     * LazyInitializationException), wymusza flush biezacego stanu i odlacza graf
+     * od kontekstu JPA. Od tej chwili wszystkie ruchy operuja na obiekcie w pamieci.
+     */
+    private void loadIntoRam(GameSession session) {
+        for (GamePlayer p : session.getPlayers()) {
+            User u = p.getUser();
+            if (u != null) {
+                u.getId();
+                u.getUsername(); // wymusza inicjalizacje leniwego proxy przed detach
+            }
+        }
+        em.flush();           // utrwal stan startowy zanim odlaczymy graf
+        em.detach(session);   // cascade=ALL -> detach kaskaduje na graczy
+        activeGameStore.put(session);
     }
 
     @Transactional(readOnly = true)
     public GameStateDto getState(Long sessionId, String username) {
         return toState(getSession(sessionId), username, null, null, null, null, null, null, null);
+    }
+
+    /**
+     * Awaryjne zakonczenie sesji przez admina/moderatora. Dziala dla gry w RAM
+     * (ACTIVE) i dla sesji poza RAM (np. WAITING). Nie nalicza ELO/monet.
+     */
+    @Transactional
+    public void endSessionByAdmin(Long sessionId) {
+        withLock(sessionId, () -> {
+            GameSession ram = activeGameStore.get(sessionId);
+            GameSession s = ram != null ? ram : sessionRepository.findById(sessionId).orElse(null);
+            if (s == null || s.getStatus() == GameStatus.FINISHED) return;
+            s.setStatus(GameStatus.FINISHED);
+            if (activeGameStore.contains(sessionId)) {
+                finalizeFinished(s);          // zapis koncowy raz + usuniecie z RAM
+            } else {
+                sessionRepository.save(s);    // sesja poza RAM (lobby)
+            }
+            publishPublic(sessionId, null, null,
+                    "Sesja zostala zakonczona przez administracje.", null, null, null, null);
+        });
     }
 
     /** Gracz zglosza gotowosc (lub cofa) w fazie lobby (WAITING). */
@@ -565,7 +664,7 @@ public class GameService {
         requireParticipant(session, username);
         GamePlayer me = findPlayerByUsername(session, username);
         me.setReady(!me.isReady());
-        sessionRepository.save(session);
+        persist(session);
         String msg = me.getDisplayName() + (me.isReady() ? " jest gotowy!" : " cofnal gotowosc.");
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         return toState(session, username, null, null, msg, null, null, null, null);
@@ -594,7 +693,8 @@ public class GameService {
         }
         session.setStatus(GameStatus.ACTIVE);
         beginActivePlay(session);
-        sessionRepository.save(session);
+        persist(session); // ostatni zapis lobby (przejscie WAITING -> ACTIVE)
+        loadIntoRam(session);            // od teraz rozgrywka zyje w RAM
         String msg = "Gra rozpoczeta! Niech zaczyna sie rozgrywka.";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionId);
@@ -604,6 +704,10 @@ public class GameService {
     /** Gracz opuszcza gre — w lobby usuwa go z pokoju, w trwajacej grze bankrutuje. */
     @Transactional
     public void leaveGame(Long sessionId, String username) {
+        withLock(sessionId, () -> leaveGameInternal(sessionId, username));
+    }
+
+    private void leaveGameInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         GamePlayer me = findPlayerByUsername(session, username);
 
@@ -624,7 +728,7 @@ public class GameService {
         }
         StringBuilder msg = new StringBuilder(me.getDisplayName() + " opuszcza gre.");
         checkGameEnd(session, msg);
-        sessionRepository.save(session);
+        persist(session);
         Long sid = session.getId();
         publishPublic(sid, null, null, msg.toString(), null, null, null, null);
         if (session.getStatus() != GameStatus.FINISHED) scheduleBotUpdate(sid);
@@ -646,7 +750,7 @@ public class GameService {
         if (humansLeft == 0) {
             session.setStatus(GameStatus.FINISHED);
         }
-        sessionRepository.save(session);
+        persist(session);
         String msg = me.getDisplayName() + " opuscil lobby.";
         publishPublic(session.getId(), null, null, msg, null, null, null, null);
     }
@@ -654,6 +758,10 @@ public class GameService {
     /** Rzut kostka — tylko gracz z aktualna tura, bez aktywnej decyzji o kupnie. */
     @Transactional
     public GameStateDto roll(Long sessionId, String username) {
+        return withLock(sessionId, () -> rollInternal(sessionId, username));
+    }
+
+    private GameStateDto rollInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         requireActiveGame(session);
@@ -694,6 +802,10 @@ public class GameService {
     /** Rzut kostka wykonany przez bota (uzywany przez BotAutoplayService). */
     @Transactional
     public GameStateDto rollAsBot(Long sessionId, Long botPlayerId) {
+        return withLock(sessionId, () -> rollAsBotInternal(sessionId, botPlayerId));
+    }
+
+    private GameStateDto rollAsBotInternal(Long sessionId, Long botPlayerId) {
         GameSession session = getSession(sessionId);
         if (session.getStatus() == GameStatus.FINISHED) return null;
         if (session.getPendingPurchasePos() != null) {
@@ -885,7 +997,7 @@ public class GameService {
         if (session.getStatus() != GameStatus.FINISHED) {
             appendWinAlerts(session.getPlayers(), msg);
         }
-        sessionRepository.save(session);
+        persist(session);
 
         Long movedId = current.getId();
         ChanceCardDto cardDto = drawnCard != null
@@ -902,6 +1014,10 @@ public class GameService {
     /** Aktywny gracz kupuje pole, na ktorym sie znajduje. */
     @Transactional
     public GameStateDto buy(Long sessionId, String username) {
+        return withLock(sessionId, () -> buyInternal(sessionId, username));
+    }
+
+    private GameStateDto buyInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         requireActiveGame(session);
@@ -918,6 +1034,10 @@ public class GameService {
     /** Bot kupuje pole - bez sprawdzania username. */
     @Transactional
     public GameStateDto buyAsBot(Long sessionId, Long botPlayerId) {
+        return withLock(sessionId, () -> buyAsBotInternal(sessionId, botPlayerId));
+    }
+
+    private GameStateDto buyAsBotInternal(Long sessionId, Long botPlayerId) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPurchasePos() == null) return null;
         if (!botPlayerId.equals(session.getPendingDeciderId())) return null;
@@ -959,7 +1079,7 @@ public class GameService {
         if (session.getStatus() != GameStatus.FINISHED) {
             appendWinAlerts(session.getPlayers(), msg);
         }
-        sessionRepository.save(session);
+        persist(session);
 
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
@@ -970,6 +1090,10 @@ public class GameService {
     /** Aktywny gracz pomija kupno - inni mogli wczesniej zalicytowac, ale w tej wersji pole zostaje wolne. */
     @Transactional
     public GameStateDto skipPurchase(Long sessionId, String username) {
+        return withLock(sessionId, () -> skipPurchaseInternal(sessionId, username));
+    }
+
+    private GameStateDto skipPurchaseInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         requireActiveGame(session);
@@ -986,6 +1110,10 @@ public class GameService {
     /** Bot pomija pole. */
     @Transactional
     public GameStateDto skipAsBot(Long sessionId, Long botPlayerId) {
+        return withLock(sessionId, () -> skipAsBotInternal(sessionId, botPlayerId));
+    }
+
+    private GameStateDto skipAsBotInternal(Long sessionId, Long botPlayerId) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPurchasePos() == null) return null;
         if (!botPlayerId.equals(session.getPendingDeciderId())) return null;
@@ -1002,6 +1130,10 @@ public class GameService {
      */
     @Transactional
     public GameStateDto botDecide(Long sessionId, Long botPlayerId, int snapPos) {
+        return withLock(sessionId, () -> botDecideInternal(sessionId, botPlayerId, snapPos));
+    }
+
+    private GameStateDto botDecideInternal(Long sessionId, Long botPlayerId, int snapPos) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPurchasePos() == null) {
             scheduleBotUpdate(sessionId);
@@ -1032,6 +1164,10 @@ public class GameService {
     /** Bot decyduje o ulepszeniu wlasnego pola (kup gdy cash >= 2x koszt, inaczej skip). */
     @Transactional
     public GameStateDto botUpgradeDecide(Long sessionId, Long botPlayerId, int snapPos) {
+        return withLock(sessionId, () -> botUpgradeDecideInternal(sessionId, botPlayerId, snapPos));
+    }
+
+    private GameStateDto botUpgradeDecideInternal(Long sessionId, Long botPlayerId, int snapPos) {
         GameSession session = getSession(sessionId);
         if (session.getPendingUpgradePos() == null) {
             scheduleBotUpdate(sessionId);
@@ -1062,6 +1198,10 @@ public class GameService {
     /** Auto-skip wywolany przez timeout (10s). Wymusza pominiecie dla obecnego decydera. */
     @Transactional
     public GameStateDto autoSkipTimeout(Long sessionId, int snapPosition) {
+        return withLock(sessionId, () -> autoSkipTimeoutInternal(sessionId, snapPosition));
+    }
+
+    private GameStateDto autoSkipTimeoutInternal(Long sessionId, int snapPosition) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPurchasePos() == null) {
             scheduleBotUpdate(sessionId);
@@ -1090,7 +1230,7 @@ public class GameService {
         int pos = session.getPendingPurchasePos();
         session.clearPendingPurchase();
         endTurnOrExtraRoll(session, me);
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = timeout
                 ? me.getDisplayName() + " nie zdecydowal sie w czasie - pole " + TILES[pos] + " zostaje wolne."
@@ -1107,6 +1247,10 @@ public class GameService {
      */
     @Transactional
     public GameStateDto bid(Long sessionId, String username, int amount) {
+        return withLock(sessionId, () -> bidInternal(sessionId, username, amount));
+    }
+
+    private GameStateDto bidInternal(Long sessionId, String username, int amount) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         if (session.getPendingPurchasePos() == null) {
@@ -1130,7 +1274,7 @@ public class GameService {
         // Licytacje wygral inny gracz — decydent traci ewentualny dodatkowy rzut
         session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = me.getDisplayName() + " wygrywa licytacje na " + TILES[pos] + " za " + amount + " PLN!";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
@@ -1140,6 +1284,10 @@ public class GameService {
 
     @Transactional
     public GameStateDto transfer(Long sessionId, String username, Long toPlayerId, int amount) {
+        return withLock(sessionId, () -> transferInternal(sessionId, username, toPlayerId, amount));
+    }
+
+    private GameStateDto transferInternal(Long sessionId, String username, Long toPlayerId, int amount) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         if (amount <= 0) {
@@ -1164,7 +1312,7 @@ public class GameService {
         }
         from.setCash(from.getCash() - amount);
         to.setCash(to.getCash() + amount);
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = from.getDisplayName() + " przelal " + amount + " PLN do " + to.getDisplayName() + ".";
         if (session.getPendingPaymentDebtorId() != null
@@ -1178,6 +1326,10 @@ public class GameService {
     /** Sprzedaz nieruchomosci do banku (70% ceny gruntu). */
     @Transactional
     public GameStateDto sellProperty(Long sessionId, String username, int position) {
+        return withLock(sessionId, () -> sellPropertyInternal(sessionId, username, position));
+    }
+
+    private GameStateDto sellPropertyInternal(Long sessionId, String username, int position) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         GamePlayer me = findPlayerByUsername(session, username);
@@ -1185,7 +1337,7 @@ public class GameService {
             throw new IllegalArgumentException("Nie posiadasz tego pola.");
         }
         String msg = doSellProperty(session, me, position);
-        sessionRepository.save(session);
+        persist(session);
         Long sessionIdVal = session.getId();
         publishPublic(sessionIdVal, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionIdVal);
@@ -1195,6 +1347,10 @@ public class GameService {
     /** Zadluzony gracz oplaca zaleglosc po zebraniu wystarczajacej kwoty. */
     @Transactional
     public GameStateDto payDebt(Long sessionId, String username) {
+        return withLock(sessionId, () -> payDebtInternal(sessionId, username));
+    }
+
+    private GameStateDto payDebtInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         if (session.getPendingPaymentDebtorId() == null) {
@@ -1210,6 +1366,10 @@ public class GameService {
     /** Zadluzony gracz rezygnuje — bankructwo. */
     @Transactional
     public GameStateDto declareBankruptcy(Long sessionId, String username) {
+        return withLock(sessionId, () -> declareBankruptcyInternal(sessionId, username));
+    }
+
+    private GameStateDto declareBankruptcyInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         if (session.getPendingPaymentDebtorId() == null) {
@@ -1225,6 +1385,10 @@ public class GameService {
     /** Bot/automat: sprzedaje pola i splaca lub bankrutuje. */
     @Transactional
     public GameStateDto resolvePaymentAsBot(Long sessionId, Long debtorId, int snapAmount) {
+        return withLock(sessionId, () -> resolvePaymentAsBotInternal(sessionId, debtorId, snapAmount));
+    }
+
+    private GameStateDto resolvePaymentAsBotInternal(Long sessionId, Long debtorId, int snapAmount) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPaymentDebtorId() == null) {
             scheduleBotUpdate(sessionId);
@@ -1262,6 +1426,10 @@ public class GameService {
     /** Timeout dla czlowieka w fazie splaty — auto jak bot. */
     @Transactional
     public GameStateDto autoPaymentTimeout(Long sessionId, int snapAmount) {
+        return withLock(sessionId, () -> autoPaymentTimeoutInternal(sessionId, snapAmount));
+    }
+
+    private GameStateDto autoPaymentTimeoutInternal(Long sessionId, int snapAmount) {
         GameSession session = getSession(sessionId);
         if (session.getPendingPaymentDebtorId() == null) return null;
         if (session.getPendingPaymentAmount() == null || session.getPendingPaymentAmount() != snapAmount) return null;
@@ -1494,14 +1662,14 @@ public class GameService {
         session.clearPendingPayment();
         if (upgradeAfterPay) {
             StringBuilder msg = new StringBuilder(debtor.getDisplayName() + " oplaca " + amount + " PLN (" + reason + "). ");
-            sessionRepository.save(session);
+            persist(session);
             publishPublic(session.getId(), null, null, msg.toString(), null, null, null, null);
             return doUpgrade(session, debtor, username);
         }
         StringBuilder msg = new StringBuilder(debtor.getDisplayName() + " oplaca " + amount + " PLN (" + reason + "). ");
         endTurnOrExtraRoll(session, debtor);
         checkGameEnd(session, msg);
-        sessionRepository.save(session);
+        persist(session);
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
         scheduleBotUpdate(sessionId);
@@ -1516,7 +1684,7 @@ public class GameService {
         session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
         checkGameEnd(session, msg);
-        sessionRepository.save(session);
+        persist(session);
         Long sessionId = session.getId();
         publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
         scheduleBotUpdate(sessionId);
@@ -1537,16 +1705,21 @@ public class GameService {
     @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 30_000L)
     @Transactional
     public void enforceTimeLimits() {
-        for (GameSession s : sessionRepository.findAllActive()) {
-            if (s.getCreatedAt() == null) continue;
-            long elapsed = ChronoUnit.SECONDS.between(s.getCreatedAt(), LocalDateTime.now());
-            if (elapsed < GameEconomy.GAME_DURATION_SECONDS) continue;
-            StringBuilder msg = new StringBuilder();
-            checkGameEnd(s, msg);
-            if (s.getStatus() == GameStatus.FINISHED) {
-                sessionRepository.save(s);
-                publishPublic(s.getId(), null, null, msg.toString(), null, null, null, null);
-            }
+        // Aktywne gry zyja w RAM — iterujemy magazyn, nie DB. Kazda sesja pod swoim lockiem.
+        for (GameSession ref : new ArrayList<>(activeGameStore.activeSessions())) {
+            Long id = ref.getId();
+            withLock(id, () -> {
+                GameSession s = activeGameStore.get(id);
+                if (s == null || s.getStatus() != GameStatus.ACTIVE || s.getCreatedAt() == null) return;
+                long elapsed = ChronoUnit.SECONDS.between(s.getCreatedAt(), LocalDateTime.now());
+                if (elapsed < GameEconomy.GAME_DURATION_SECONDS) return;
+                StringBuilder msg = new StringBuilder();
+                checkGameEnd(s, msg);
+                if (s.getStatus() == GameStatus.FINISHED) {
+                    finalizeFinished(s); // zapis koncowy raz + usuniecie z RAM
+                    publishPublic(id, null, null, msg.toString(), null, null, null, null);
+                }
+            });
         }
     }
 
@@ -2125,6 +2298,10 @@ public class GameService {
 
     @Transactional
     public GameStateDto buybackProperty(Long sessionId, String username) {
+        return withLock(sessionId, () -> buybackPropertyInternal(sessionId, username));
+    }
+
+    private GameStateDto buybackPropertyInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         if (session.getPendingBuybackVictimId() == null) {
@@ -2150,7 +2327,7 @@ public class GameService {
         me.getOwnedPositions().add(pos);
         clearPropertyDevelopment(me, pos);
         session.clearPendingBuyback();
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = me.getDisplayName() + " odkupuje " + TILES[pos] + " za " + price + " PLN od "
                 + holder.getDisplayName() + "!";
@@ -2161,6 +2338,10 @@ public class GameService {
 
     @Transactional
     public GameStateDto skipBuyback(Long sessionId, String username) {
+        return withLock(sessionId, () -> skipBuybackInternal(sessionId, username));
+    }
+
+    private GameStateDto skipBuybackInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         if (session.getPendingBuybackVictimId() == null) {
@@ -2175,7 +2356,7 @@ public class GameService {
                 .filter(p -> p.getId().equals(session.getPendingBuybackHolderId()))
                 .findFirst().orElse(null);
         session.clearPendingBuyback();
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = me.getDisplayName() + " rezygnuje z odkupu "
                 + (posObj != null ? TILES[posObj] : "pola")
@@ -2187,6 +2368,10 @@ public class GameService {
 
     @Transactional
     public GameStateDto autoBuybackTimeout(Long sessionId, int snapPos, Long snapVictimId) {
+        return withLock(sessionId, () -> autoBuybackTimeoutInternal(sessionId, snapPos, snapVictimId));
+    }
+
+    private GameStateDto autoBuybackTimeoutInternal(Long sessionId, int snapPos, Long snapVictimId) {
         GameSession session = getSession(sessionId);
         if (session.getPendingBuybackVictimId() == null) {
             scheduleBotUpdate(sessionId);
@@ -2217,6 +2402,10 @@ public class GameService {
 
     @Transactional
     public GameStateDto resolveBuybackAsBot(Long sessionId, Long victimId, int snapPos, int snapPrice) {
+        return withLock(sessionId, () -> resolveBuybackAsBotInternal(sessionId, victimId, snapPos, snapPrice));
+    }
+
+    private GameStateDto resolveBuybackAsBotInternal(Long sessionId, Long victimId, int snapPos, int snapPrice) {
         GameSession session = getSession(sessionId);
         if (session.getPendingBuybackVictimId() == null) {
             scheduleBotUpdate(sessionId);
@@ -2264,6 +2453,10 @@ public class GameService {
      */
     @Transactional
     public GameStateDto playCard(Long sessionId, Long botPlayerId, String cardType) {
+        return withLock(sessionId, () -> playCardBotInternal(sessionId, botPlayerId, cardType));
+    }
+
+    private GameStateDto playCardBotInternal(Long sessionId, Long botPlayerId, String cardType) {
         GameSession session = getSession(sessionId);
         requireActiveGame(session);
         GamePlayer me = session.getPlayers().stream()
@@ -2315,7 +2508,7 @@ public class GameService {
             }
             default -> {}
         }
-        sessionRepository.save(session);
+        persist(session);
         publishPublic(session.getId(), null, null, msg.toString(), null, null, null, null);
         scheduleBotUpdate(session.getId());
         return buildPublicState(session.getId(), null, null, msg.toString(), null, null, null, null);
@@ -2327,6 +2520,10 @@ public class GameService {
      */
     @Transactional
     public GameStateDto playCard(Long sessionId, String username, String cardType, Integer targetPos) {
+        return withLock(sessionId, () -> playCardInternal(sessionId, username, cardType, targetPos));
+    }
+
+    private GameStateDto playCardInternal(Long sessionId, String username, String cardType, Integer targetPos) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         requireActiveGame(session);
@@ -2453,7 +2650,7 @@ public class GameService {
         }
 
         me.getHandCards().remove(cardType);
-        sessionRepository.save(session);
+        persist(session);
 
         publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
         scheduleBotUpdate(sessionId);
@@ -2465,6 +2662,10 @@ public class GameService {
     /** Wlasciciel ulepsza pole (Domek lub Hotel). */
     @Transactional
     public GameStateDto upgrade(Long sessionId, String username) {
+        return withLock(sessionId, () -> upgradeInternal(sessionId, username));
+    }
+
+    private GameStateDto upgradeInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         requireActiveGame(session);
@@ -2483,7 +2684,7 @@ public class GameService {
             session.setPendingPaymentAmount(cost);
             session.setPendingPaymentCreditorId(null);
             session.setPendingPaymentReason("Ulepszenie: " + TILES[session.getPendingUpgradePos()]);
-            sessionRepository.save(session);
+            persist(session);
             String msg = me.getDisplayName() + " — za malo siana na ulepszenie (" + cost
                     + " PLN). Sprzedaj nieruchomosc z panelu po lewej.";
             publishPublic(sessionId, null, null, msg, null, null, null, null);
@@ -2502,7 +2703,7 @@ public class GameService {
         me.getPropertyLevels().put(pos, newLevel);
         session.clearPendingUpgrade();
         endTurnOrExtraRoll(session, me);
-        sessionRepository.save(session);
+        persist(session);
 
         String levelName = upgradeBuiltLabel(newLevel);
         int newRent = computeRentForLevel(pos, newLevel, me);
@@ -2521,6 +2722,10 @@ public class GameService {
      */
     @Transactional
     public GameStateDto autoUpgradeTimeout(Long sessionId, int snapPos, Long snapPlayerId) {
+        return withLock(sessionId, () -> autoUpgradeTimeoutInternal(sessionId, snapPos, snapPlayerId));
+    }
+
+    private GameStateDto autoUpgradeTimeoutInternal(Long sessionId, int snapPos, Long snapPlayerId) {
         GameSession session = getSession(sessionId);
         if (session.getPendingUpgradePos() == null) {
             scheduleBotUpdate(sessionId);
@@ -2549,6 +2754,10 @@ public class GameService {
     /** Wlasciciel pomija ulepszenie pola. */
     @Transactional
     public GameStateDto skipUpgrade(Long sessionId, String username) {
+        return withLock(sessionId, () -> skipUpgradeInternal(sessionId, username));
+    }
+
+    private GameStateDto skipUpgradeInternal(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
         requireParticipant(session, username);
         if (session.getPendingUpgradePos() == null) {
@@ -2565,7 +2774,7 @@ public class GameService {
         session.clearPendingUpgrade();
         endTurnOrExtraRoll(session, me);
         checkGameEnd(session, new StringBuilder());
-        sessionRepository.save(session);
+        persist(session);
 
         String msg = timeout
                 ? me.getDisplayName() + " pomija ulepszenie (czas minal)."

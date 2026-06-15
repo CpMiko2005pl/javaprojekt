@@ -43,6 +43,7 @@ public class AdminController {
     private final GameSessionRepository gameSessionRepository;
     private final MatchHistoryRepository matchHistoryRepository;
     private final ProfileMediaService profileMediaService;
+    private final pl.pb.monopoly.service.GameService gameService;
 
     public AdminController(UserService userService,
                            OwnedItemRepository ownedItemRepository,
@@ -50,7 +51,8 @@ public class AdminController {
                            LootboxService lootboxService,
                            GameSessionRepository gameSessionRepository,
                            MatchHistoryRepository matchHistoryRepository,
-                           ProfileMediaService profileMediaService) {
+                           ProfileMediaService profileMediaService,
+                           pl.pb.monopoly.service.GameService gameService) {
         this.userService = userService;
         this.ownedItemRepository = ownedItemRepository;
         this.userRepository = userRepository;
@@ -58,6 +60,7 @@ public class AdminController {
         this.gameSessionRepository = gameSessionRepository;
         this.matchHistoryRepository = matchHistoryRepository;
         this.profileMediaService = profileMediaService;
+        this.gameService = gameService;
     }
 
     @GetMapping("/users")
@@ -72,10 +75,8 @@ public class AdminController {
     /** Funkcja moderatora: admin moze zakonczyc dowolna aktywna sesje gry. */
     @PostMapping("/sessions/{id}/end")
     public String endSession(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        gameSessionRepository.findById(id).ifPresent(s -> {
-            s.setStatus(GameStatus.FINISHED);
-            gameSessionRepository.save(s);
-        });
+        // Aktywna gra zyje w RAM — konczymy przez serwis (zapis koncowy + broadcast + usuniecie z RAM).
+        gameService.endSessionByAdmin(id);
         redirectAttributes.addFlashAttribute("message", "Sesja zakonczona przez administratora.");
         return "redirect:/admin/users";
     }

@@ -43,19 +43,22 @@ public class ModeratorController {
     private final MatchHistoryRepository matchHistoryRepository;
     private final ModerationService moderationService;
     private final ProfileMediaService profileMediaService;
+    private final pl.pb.monopoly.service.GameService gameService;
 
     public ModeratorController(GameSessionRepository gameSessionRepository,
                                UserRepository userRepository,
                                UserService userService,
                                MatchHistoryRepository matchHistoryRepository,
                                ModerationService moderationService,
-                               ProfileMediaService profileMediaService) {
+                               ProfileMediaService profileMediaService,
+                               pl.pb.monopoly.service.GameService gameService) {
         this.gameSessionRepository = gameSessionRepository;
         this.userRepository = userRepository;
         this.userService = userService;
         this.matchHistoryRepository = matchHistoryRepository;
         this.moderationService = moderationService;
         this.profileMediaService = profileMediaService;
+        this.gameService = gameService;
     }
 
     /** Podglad przeslanej legitymacji gracza — moderator i admin. */
@@ -156,10 +159,8 @@ public class ModeratorController {
 
     @PostMapping("/sessions/{id}/end")
     public String endSession(@PathVariable Long id, RedirectAttributes ra) {
-        gameSessionRepository.findById(id).ifPresent(s -> {
-            s.setStatus(GameStatus.FINISHED);
-            gameSessionRepository.save(s);
-        });
+        // Aktywna gra zyje w RAM — konczymy przez serwis (zapis koncowy + broadcast + usuniecie z RAM).
+        gameService.endSessionByAdmin(id);
         ra.addFlashAttribute("message", "Sesja zakonczona przez moderatora.");
         return "redirect:/moderator";
     }

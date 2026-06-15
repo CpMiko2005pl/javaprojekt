@@ -55,6 +55,8 @@ public class BotAutoplayService {
 
     private final GameSessionRepository sessionRepository;
     private final GameService gameService;
+    /** Aktywne gry zyja w RAM — bot czyta stan stad, nie z DB. */
+    private final ActiveGameStore activeGameStore;
     /** Self-proxy — by watchdog/recovery wolaly onTurnUpdate przez proxy (z @Transactional). */
     private final ObjectProvider<BotAutoplayService> selfProvider;
     private final ScheduledExecutorService scheduler;
@@ -67,9 +69,11 @@ public class BotAutoplayService {
 
     public BotAutoplayService(GameSessionRepository sessionRepository,
                               @Lazy GameService gameService,
+                              ActiveGameStore activeGameStore,
                               ObjectProvider<BotAutoplayService> selfProvider) {
         this.sessionRepository = sessionRepository;
         this.gameService = gameService;
+        this.activeGameStore = activeGameStore;
         this.selfProvider = selfProvider;
         this.scheduler = Executors.newScheduledThreadPool(2, r -> {
             Thread t = new Thread(r, "bot-autoplay");
@@ -119,8 +123,9 @@ public class BotAutoplayService {
     public void onTurnUpdate(Long sessionId) {
         if (sessionId == null) return;
         try {
-            GameSession s = sessionRepository.findById(sessionId).orElse(null);
-            if (s == null) return;
+            // Gra ACTIVE jest w RAM — odczyt bez SQL. Brak w RAM = nieaktywna.
+            GameSession s = activeGameStore.get(sessionId);
+            if (s == null) { clearTracking(sessionId); return; }
             if (s.getPlayers().isEmpty()) return;
             if (s.getStatus() == pl.pb.monopoly.domain.GameStatus.FINISHED) { clearTracking(sessionId); return; }
             if (s.getStatus() == pl.pb.monopoly.domain.GameStatus.WAITING) { clearTracking(sessionId); return; }
