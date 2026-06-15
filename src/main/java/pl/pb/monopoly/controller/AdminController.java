@@ -1,5 +1,10 @@
 package pl.pb.monopoly.controller;
 
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +18,11 @@ import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.OwnedItemRepository;
 import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.LootboxService;
+import pl.pb.monopoly.service.ProfileMediaService;
 import pl.pb.monopoly.service.UserService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,19 +42,22 @@ public class AdminController {
     private final LootboxService lootboxService;
     private final GameSessionRepository gameSessionRepository;
     private final MatchHistoryRepository matchHistoryRepository;
+    private final ProfileMediaService profileMediaService;
 
     public AdminController(UserService userService,
                            OwnedItemRepository ownedItemRepository,
                            UserRepository userRepository,
                            LootboxService lootboxService,
                            GameSessionRepository gameSessionRepository,
-                           MatchHistoryRepository matchHistoryRepository) {
+                           MatchHistoryRepository matchHistoryRepository,
+                           ProfileMediaService profileMediaService) {
         this.userService = userService;
         this.ownedItemRepository = ownedItemRepository;
         this.userRepository = userRepository;
         this.lootboxService = lootboxService;
         this.gameSessionRepository = gameSessionRepository;
         this.matchHistoryRepository = matchHistoryRepository;
+        this.profileMediaService = profileMediaService;
     }
 
     @GetMapping("/users")
@@ -173,5 +184,43 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("message", "Dodano skrzynke graczowi " + user.getUsername());
         }
         return "redirect:/admin/users";
+    }
+
+    /** Admin dolicza (lub odejmuje, gdy ujemne) monety graczowi. */
+    @PostMapping("/users/{id}/add-coins")
+    public String addCoins(@PathVariable Long id,
+                           @RequestParam int amount,
+                           RedirectAttributes redirectAttributes) {
+        User user = userService.getById(id);
+        user.addCoins(amount);
+        userRepository.save(user);
+        redirectAttributes.addFlashAttribute("message",
+                (amount >= 0 ? "Dodano " + amount : "Odjeto " + (-amount))
+                        + " monet graczowi " + user.getUsername() + " (stan: " + user.getCoins() + ").");
+        return "redirect:/admin/users";
+    }
+
+    /** Podglad przeslanej legitymacji gracza — tylko admin. */
+    @GetMapping("/users/{id}/legitymacja")
+    public ResponseEntity<Resource> viewLegitymacja(@PathVariable Long id) {
+        User user = userService.getById(id);
+        String rel = user.getVerificationDocUrl();
+        if (rel == null || rel.isBlank()) {
+            return ResponseEntity.notFound().build();
+        }
+        Path file = profileMediaService.resolveUpload(rel);
+        // ochrona przed wyjsciem poza katalog uploads
+        Path base = profileMediaService.resolveUpload("verification");
+        if (!file.startsWith(base) || !Files.isReadable(file)) {
+            return ResponseEntity.notFound().build();
+        }
+        MediaType type = rel.endsWith(".pdf") ? MediaType.APPLICATION_PDF
+                : rel.endsWith(".png") ? MediaType.IMAGE_PNG
+                : rel.endsWith(".webp") ? MediaType.parseMediaType("image/webp")
+                : MediaType.IMAGE_JPEG;
+        return ResponseEntity.ok()
+                .contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFileName() + "\"")
+                .body(new PathResource(file));
     }
 }

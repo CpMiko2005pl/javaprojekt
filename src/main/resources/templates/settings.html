@@ -136,6 +136,40 @@
         </form>
     </div>
 
+    <!-- Weryfikacja konta -->
+    <div class="lp-sc" style="margin-top:18px;">
+        <div class="lp-sc-head">
+            <h3><i class="fa-solid fa-id-card" style="color:#2563eb;margin-right:.4rem;"></i> Weryfikacja konta</h3>
+        </div>
+
+        <div th:if="${user.verified}">
+            <span class="badge badge-ok"><i class="fa-solid fa-check"></i> Konto zweryfikowane</span>
+            <p class="muted" style="margin:.5rem 0 0;font-size:.85rem;">Twoja legitymacja została zaakceptowana.</p>
+        </div>
+
+        <div th:unless="${user.verified}">
+            <p th:if="${user.verificationDocUrl != null}" class="muted" style="margin:0 0 .8rem;font-size:.88rem;">
+                <span class="badge badge-no">oczekuje</span>
+                Legitymacja przesłana — czeka na akceptację administratora. Możesz przesłać ją ponownie poniżej.
+            </p>
+            <p th:if="${user.verificationDocUrl == null}" class="muted" style="margin:0 0 .8rem;font-size:.88rem;">
+                Prześlij zdjęcie lub skan legitymacji studenckiej, aby zweryfikować konto.
+                Dokument zobaczy wyłącznie administrator.
+            </p>
+            <form th:action="@{/settings/verify}" method="post" enctype="multipart/form-data">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="field">
+                    <label for="legitymacjaFile">Legitymacja <span style="color:#94a3b8;font-size:.78rem;">(JPG, PNG, WEBP, PDF — maks. 10 MB)</span></label>
+                    <input type="file" id="legitymacjaFile" name="legitymacjaFile"
+                           accept="image/png,image/jpeg,image/webp,application/pdf" required>
+                </div>
+                <button type="submit" class="lp-btn-play" style="animation:none;font-size:14px;padding:10px 24px;">
+                    <i class="fa-solid fa-paper-plane"></i> Wyślij do weryfikacji
+                </button>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <footer th:replace="~{fragments/layout :: lp-footer}"></footer>

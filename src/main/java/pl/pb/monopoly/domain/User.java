@@ -68,6 +68,13 @@ public class User {
     @Column(nullable = false)
     private boolean verified = false;
 
+    /**
+     * Wzgledna sciezka przeslanej legitymacji w katalogu uploads (np. "verification/kuba.jpg").
+     * null = gracz nie przeslal jeszcze dokumentu. Podglada ja wylacznie admin.
+     */
+    @Column(name = "verification_doc_url", length = 255)
+    private String verificationDocUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
@@ -196,6 +203,14 @@ public class User {
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public String getVerificationDocUrl() {
+        return verificationDocUrl;
+    }
+
+    public void setVerificationDocUrl(String verificationDocUrl) {
+        this.verificationDocUrl = verificationDocUrl;
     }
 
     public Role getRole() {

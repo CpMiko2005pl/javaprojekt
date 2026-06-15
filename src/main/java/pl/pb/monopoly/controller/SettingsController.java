@@ -88,6 +88,29 @@ public class SettingsController {
         return "redirect:/settings";
     }
 
+    @PostMapping("/verify")
+    public String requestVerification(Authentication auth,
+                                      @RequestParam(required = false) MultipartFile legitymacjaFile,
+                                      RedirectAttributes ra) {
+        try {
+            User user = userRepository.findByUsername(auth.getName()).orElseThrow();
+            if (user.isVerified()) {
+                ra.addFlashAttribute("message", "Twoje konto jest już zweryfikowane.");
+                return "redirect:/settings";
+            }
+            if (legitymacjaFile == null || legitymacjaFile.isEmpty()) {
+                throw new IllegalArgumentException("Nie wybrano pliku legitymacji.");
+            }
+            String path = profileMediaService.saveVerificationDoc(user.getUsername(), legitymacjaFile);
+            user.setVerificationDocUrl(path);
+            userRepository.save(user);
+            ra.addFlashAttribute("message", "Legitymacja przesłana. Czeka na akceptację administratora.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/settings";
+    }
+
     private static String blankToNull(String value) {
         return value != null && !value.isBlank() ? value.strip() : null;
     }

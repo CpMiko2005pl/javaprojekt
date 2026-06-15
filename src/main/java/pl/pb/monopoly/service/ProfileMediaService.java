@@ -14,6 +14,8 @@ import java.util.Set;
 public class ProfileMediaService {
 
     private static final Path UPLOADS = Path.of("./data/uploads");
+    /** Katalog prywatny POZA /media — dokumenty weryfikacyjne nie sa publicznie dostepne. */
+    private static final Path PRIVATE = Path.of("./data/private");
     private static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
     private static final long MAX_BANNER_BYTES = 10L * 1024 * 1024;
 
@@ -32,6 +34,61 @@ public class ProfileMediaService {
 
     public String saveBanner(String username, MultipartFile file, String publicBaseUrl) throws IOException {
         return save(username, file, "banners", MAX_BANNER_BYTES, publicBaseUrl);
+    }
+
+    private static final long MAX_DOC_BYTES = 10L * 1024 * 1024;
+    private static final Map<String, String> DOC_EXT_BY_TYPE = Map.of(
+            "image/jpeg", "jpg",
+            "image/png", "png",
+            "image/webp", "webp",
+            "application/pdf", "pdf"
+    );
+
+    /**
+     * Zapisuje dokument weryfikacyjny (legitymacja) do prywatnego {@code data/private/verification/}.
+     * Zwraca wzgledna sciezke (np. "verification/kuba.jpg") — NIE publiczny URL;
+     * dokument udostepnia wylacznie chroniony endpoint admina.
+     */
+    public String saveVerificationDoc(String username, MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Nie wybrano pliku.");
+        }
+        if (file.getSize() > MAX_DOC_BYTES) {
+            throw new IllegalArgumentException("Plik jest za duży (maks. 10 MB).");
+        }
+        String contentType = file.getContentType();
+        String ext = contentType == null ? null : DOC_EXT_BY_TYPE.get(contentType.toLowerCase(Locale.ROOT));
+        if (ext == null) {
+            throw new IllegalArgumentException("Dozwolone formaty: JPG, PNG, WEBP, PDF.");
+        }
+        Path dir = PRIVATE.resolve("verification");
+        Files.createDirectories(dir);
+        deletePrivateVerification(username);
+        Path target = dir.resolve(safeFilename(username, ext));
+        file.transferTo(target.toAbsolutePath());
+        return "verification/" + safeFilename(username, ext);
+    }
+
+    private void deletePrivateVerification(String username) throws IOException {
+        Path dir = PRIVATE.resolve("verification");
+        if (!Files.isDirectory(dir)) {
+            return;
+        }
+        String prefix = safeBasename(username) + ".";
+        try (var stream = Files.list(dir)) {
+            stream.filter(p -> p.getFileName().toString().startsWith(prefix))
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
+        }
+    }
+
+    /** Bezwzgledna, znormalizowana sciezka pliku spod wzglednej sciezki w katalogu prywatnym. */
+    public Path resolveUpload(String relativePath) {
+        return PRIVATE.resolve(relativePath).toAbsolutePath().normalize();
     }
 
     public void deleteAvatar(String username) throws IOException {

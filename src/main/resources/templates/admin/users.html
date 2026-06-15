@@ -45,6 +45,7 @@
             <th scope="col">E-mail</th>
             <th scope="col">Rola</th>
             <th scope="col">Status</th>
+            <th scope="col">Monety</th>
             <th scope="col">Akcje</th>
         </tr>
         </thead>
@@ -72,11 +73,33 @@
             <!-- Weryfikacja -->
             <td>
                 <span th:if="${u.verified}" class="badge badge-ok">zweryfikowany</span>
-                <span th:unless="${u.verified}" class="badge badge-no">nie</span>
+                <span th:if="${!u.verified and u.verificationDocUrl != null}" class="badge badge-no">oczekuje</span>
+                <span th:if="${!u.verified and u.verificationDocUrl == null}" class="badge badge-no">nie</span>
+                <a th:if="${u.verificationDocUrl != null}"
+                   th:href="@{/admin/users/{id}/legitymacja(id=${u.id})}" target="_blank"
+                   class="btn btn-secondary btn-small" title="Podejrzyj legitymację">
+                    <i class="fa-solid fa-id-card"></i> Legitymacja
+                </a>
                 <form th:action="@{/admin/users/{id}/verify(id=${u.id})}" method="post" class="inline-form">
                     <input type="hidden" name="verified" th:value="${!u.verified}">
                     <button type="submit" class="btn btn-secondary btn-small"
                             th:text="${u.verified} ? 'Cofnij' : 'Zweryfikuj'">Zweryfikuj</button>
+                </form>
+            </td>
+
+            <!-- Monety -->
+            <td>
+                <div style="font-weight:600;color:#B45309;margin-bottom:.3rem;">
+                    <i class="fa-solid fa-coins"></i> <span th:text="${u.coins}">0</span>
+                </div>
+                <form th:action="@{/admin/users/{id}/add-coins(id=${u.id})}" method="post" class="inline-form"
+                      style="display:flex;gap:.25rem;align-items:center;">
+                    <label class="sr-only" th:for="'coins-' + ${u.id}">Liczba monet</label>
+                    <input th:id="'coins-' + ${u.id}" type="number" name="amount" value="100" step="50"
+                           style="width:80px;padding:4px 6px;" title="Liczba monet (ujemna = odejmij)">
+                    <button type="submit" class="btn btn-small" title="Dodaj monety">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
                 </form>
             </td>
 
