@@ -1,0 +1,238 @@
+// Politechnika Monopoly — schemat bazy (schemat PostgreSQL: monopoly)
+// DrawDB: wklej caly plik lub File → Import → DBML
+// Docs: https://dbml.dbdiagram.io/docs
+
+// ========== UZYTKOWNICY I PROFIL ==========
+
+Table users {
+  id bigint [primary key, increment]
+  username varchar(20) [not null, unique]
+  email varchar(255) [not null, unique]
+  password varchar(255) [not null]
+  first_name varchar(20)
+  last_name varchar(50)
+  age integer [not null]
+  coins integer [not null, default: 1000]
+  verified boolean [not null]
+  role varchar(20) [not null, note: 'USER | MODERATOR | ADMIN']
+  created_at timestamp [not null]
+  avatar_url varchar(512)
+  banner_url varchar(512)
+  profile_bg_url varchar(512)
+  bio varchar(200)
+  verification_doc_url varchar(255)
+  suspended boolean [not null, default: false]
+  suspended_until timestamp
+  suspension_reason varchar(500)
+}
+
+Table player_statistics {
+  id bigint [primary key, increment]
+  user_id bigint [not null, unique, ref: - users.id, note: '1:1 ze users']
+  games_played integer [not null]
+  games_won integer [not null]
+  level integer [not null]
+  elo_points integer [not null]
+  win_streak integer [not null]
+  daily_streak integer [not null]
+  last_spin_date date
+  last_reward varchar(120)
+  available_lootboxes integer [not null]
+  last_lootbox_grant_date date
+  pending_wheel_card varchar(40)
+  pending_start_cash_bonus integer [not null, default: 0]
+}
+
+Table player_achievements {
+  id bigint [primary key, increment]
+  user_id bigint [not null, ref: > users.id]
+  code varchar(30) [not null, note: 'FIRST_GAME | FIRST_WIN | GAMES_10 | WINS_5 | STREAK_3']
+  coin_reward integer [not null]
+  unlocked_at timestamp [not null]
+
+  indexes {
+    (user_id, code) [unique, name: 'uk_achievement_user_code']
+  }
+}
+
+Table owned_items {
+  id bigint [primary key, increment]
+  user_id bigint [not null, ref: > users.id]
+  item_slug varchar(60) [not null]
+  obtained_at timestamp [not null]
+  equipped boolean [not null]
+}
+
+Table friendships {
+  id bigint [primary key, increment]
+  requester_id bigint [not null, ref: > users.id]
+  addressee_id bigint [not null, ref: > users.id]
+  status varchar(20) [not null, note: 'PENDING | ACCEPTED | REJECTED']
+  created_at timestamp [not null]
+
+  indexes {
+    (requester_id, addressee_id) [unique, name: 'uk_friendship_pair']
+  }
+}
+
+Table profile_comments {
+  id bigint [primary key, increment]
+  author_id bigint [not null, ref: > users.id]
+  target_id bigint [not null, ref: > users.id]
+  content varchar(500) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp
+  reply varchar(500)
+  reply_at timestamp
+
+  indexes {
+    (author_id, target_id) [unique, name: 'uk_profile_comment_author_target']
+  }
+}
+
+Table profile_comment_likes {
+  id bigint [primary key, increment]
+  comment_id bigint [not null, ref: > profile_comments.id]
+  user_id bigint [not null, ref: > users.id]
+  created_at timestamp [not null]
+
+  indexes {
+    (comment_id, user_id) [unique, name: 'uk_pc_like_comment_user']
+  }
+}
+
+Table user_warnings {
+  id bigint [primary key, increment]
+  user_id bigint [not null, ref: > users.id]
+  moderator_id bigint [not null, ref: > users.id]
+  message varchar(500) [not null]
+  created_at timestamp [not null]
+}
+
+// ========== GRA (lobby + sesja; aktywna rozgrywka tez w RAM) ==========
+
+Table game_sessions {
+  id bigint [primary key, increment]
+  code varchar(8) [not null, unique]
+  name varchar(60) [not null]
+  status varchar(20) [not null, note: 'WAITING | ACTIVE | FINISHED']
+  created_at timestamp [not null]
+  current_turn integer [not null]
+  leader_id bigint [note: 'FK logiczne do users przez game_players']
+  pending_purchase_pos integer
+  pending_purchase_price integer
+  pending_decider_id bigint
+  pending_payment_debtor_id bigint
+  pending_payment_amount integer
+  pending_payment_creditor_id bigint
+  pending_payment_reason varchar(120)
+  pending_upgrade_pos integer
+  pending_upgrade_player_id bigint
+  pending_upgrade_cost integer
+  pending_buyback_pos integer
+  pending_buyback_victim_id bigint
+  pending_buyback_holder_id bigint
+  pending_buyback_price integer
+  pending_extra_roll_player_id bigint
+  pending_takeover_pos integer
+  pending_takeover_buyer_id bigint
+  pending_takeover_seller_id bigint
+  pending_takeover_price integer
+}
+
+Table game_players {
+  id bigint [primary key, increment]
+  session_id bigint [not null, ref: > game_sessions.id]
+  user_id bigint [ref: > users.id, note: 'null dla bota']
+  display_name varchar(30) [not null]
+  cash integer [not null]
+  position integer [not null]
+  color varchar(7) [not null]
+  bankrupt boolean [not null]
+  turn_order integer [not null]
+  ready boolean [not null, default: false]
+  doubles_count integer [not null, default: 0]
+  rolls_this_turn integer [not null, default: 0]
+  skip_next_rent boolean [not null]
+  shield_active boolean [not null]
+  double_rent_next boolean [not null, default: false]
+  jail_pass_active boolean [not null, default: false]
+}
+
+Table game_player_properties {
+  player_id bigint [not null, ref: > game_players.id]
+  position integer [not null, note: 'indeks pola na planszy 0-39']
+
+  indexes {
+    (player_id, position) [pk]
+  }
+}
+
+Table game_player_property_levels {
+  player_id bigint [not null, ref: > game_players.id]
+  tile_position integer [not null]
+  level integer [not null]
+
+  indexes {
+    (player_id, tile_position) [pk]
+  }
+}
+
+Table game_player_hand_cards {
+  player_id bigint [not null, ref: > game_players.id]
+  card_type varchar(255) [note: 'HandCardType enum jako tekst']
+}
+
+Table game_player_landing_counts {
+  player_id bigint [not null, ref: > game_players.id]
+  tile_position integer [not null]
+  landing_count integer
+
+  indexes {
+    (player_id, tile_position) [pk]
+  }
+}
+
+Table game_invites {
+  id bigint [primary key, increment]
+  session_id bigint [not null, ref: > game_sessions.id]
+  inviter_id bigint [not null, ref: > users.id]
+  invitee_id bigint [not null, ref: > users.id]
+  status varchar(16) [not null, note: 'PENDING | ACCEPTED | DECLINED']
+  created_at timestamp [not null]
+}
+
+// ========== HISTORIA MECZOW (ranking) ==========
+
+Table match_history {
+  id bigint [primary key, increment]
+  user_id bigint [not null, ref: > users.id]
+  played_at timestamp [not null]
+  board_name varchar(60)
+  won boolean [not null]
+  placement integer [not null]
+  players_count integer [not null]
+  final_cash integer [not null]
+  duration_minutes integer [not null]
+  elo_change integer [not null]
+}
+
+// ========== PRZYKLADOWE DANE (opcjonalnie — usun cala sekcje jesli DrawDB nadal krzyczy) ==========
+
+Records users(id, username, email, role, coins, verified) {
+  1, 'admin', 'admin@pb.edu.pl', 'ADMIN', 3050, true
+  2, 'gracz', 'gracz@pb.edu.pl', 'USER', 2150, false
+}
+
+Records player_statistics(user_id, games_played, games_won, level, elo_points, win_streak, daily_streak, available_lootboxes, pending_start_cash_bonus) {
+  1, 60, 41, 22, 2780, 3, 5, 1, 0
+  2, 12, 5, 8, 1880, 2, 3, 1, 0
+}
+
+Records friendships(requester_id, addressee_id, status, created_at) {
+  2, 1, 'PENDING', '2026-01-15 10:00:00'
+}
+
+Records match_history(id, user_id, won, placement, players_count, final_cash, duration_minutes, elo_change, played_at) {
+  1, 2, true, 1, 4, 4500, 42, 24, '2026-06-01 18:30:00'
+}

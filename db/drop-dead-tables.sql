@@ -1,7 +1,8 @@
 -- Usuniecie nieuzywanych tabel (martwy kod usuniety z aplikacji).
--- Encje Property, MonopolyCard, BoardTile, BoardCard, Rank, DailyTask,
--- Achievement, GameLog nie sa juz mapowane ani czytane przez aplikacje.
--- ddl-auto=update nigdy nie usuwa tabel, wiec trzeba zrobic to recznie.
+-- UWAGA: Osiagniecia sa AKTYWNE w tabeli player_achievements (encja Achievement).
+--        Tu usuwamy tylko STARĄ tabele achievements (inny schemat, bez JPA).
+-- Encje Property, MonopolyCard, BoardTile, BoardCard, Rank, DailyTask, GameLog
+-- nie sa juz mapowane. Pelny skrypt: db/cleanup-neon.sql
 --
 -- Uruchom na bazie Neon (schemat monopoly), np.:
 --   psql "postgresql://neondb_owner:***@ep-damp-fire-alzendby-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require" -f db/drop-dead-tables.sql

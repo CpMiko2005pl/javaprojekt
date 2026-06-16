@@ -18,5 +18,8 @@ Thumbs.db
 # Logi
 *.log
 
+# Artefakty testow curl / debug w katalogu projektu
+tmp-*
+
 # Lokalne nadpisania konfiguracji (np. hasla do bazy)
 application-local.properties
