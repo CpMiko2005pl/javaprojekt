@@ -11,10 +11,6 @@ import pl.pb.monopoly.repository.UserRepository;
 
 import java.util.List;
 
-/**
- * Integracja Spring Security z baza danych (wymaganie: Spring Security z baza, 3p).
- * Laduje uzytkownika po loginie i mapuje jego role na autorytet Springa.
- */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 

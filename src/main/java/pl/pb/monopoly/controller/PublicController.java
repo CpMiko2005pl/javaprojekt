@@ -11,10 +11,6 @@ import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.ProfileCommentService;
 import pl.pb.monopoly.service.UserPresenceService;
 
-/**
- * Publiczne profile graczy — dostepne bez logowania (wymaganie: wyswietlenie z linku).
- * URL: /u/{username}
- */
 @Controller
 public class PublicController {
 
@@ -47,7 +43,6 @@ public class PublicController {
         model.addAttribute("matches",
                 matchHistoryRepository.findByUserIdOrderByPlayedAtDesc(user.getId()));
 
-        // --- Komentarze pod profilem ---
         User viewer = currentUser(auth);
         model.addAttribute("comments", profileCommentService.commentsFor(user, viewer));
         model.addAttribute("commentTargetUsername", user.getUsername());

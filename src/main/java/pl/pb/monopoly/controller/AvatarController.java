@@ -12,10 +12,6 @@ import pl.pb.monopoly.service.LootboxService;
 
 import java.util.Map;
 
-/**
- * Proxy do DiceBear API — generowanie awatarow SVG.
- * Uwzglednia zalozony awatar z ekwipunku (inny styl/seed).
- */
 @RestController
 public class AvatarController {
 
@@ -51,7 +47,6 @@ public class AvatarController {
         try {
             var userOpt = userRepository.findByUsername(username);
 
-            // Wlasny awatar — serwuj bezposrednio (img nie zawsze dobrze obsluguje redirect)
             if (userOpt.isPresent()) {
                 String customUrl = userOpt.get().getAvatarUrl();
                 if (customUrl != null && !customUrl.isBlank()) {
@@ -72,7 +67,6 @@ public class AvatarController {
                 }
             }
 
-            // Standardowy awatar z DiceBear (z uwzglednieniem ekwipunku)
             String style = "pixel-art";
             String seed = username;
 

@@ -22,7 +22,6 @@ public class ModerationService {
         this.userWarningRepository = userWarningRepository;
     }
 
-    /** Czy konto jest zawieszone (z uwzglednieniem daty konca). */
     @Transactional
     public boolean isUserSuspended(User user) {
         if (user == null || !user.isSuspended()) {

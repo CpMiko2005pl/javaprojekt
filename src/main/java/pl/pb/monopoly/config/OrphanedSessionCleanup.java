@@ -12,13 +12,6 @@ import pl.pb.monopoly.repository.GameSessionRepository;
 
 import java.util.List;
 
-/**
- * Aktywne rozgrywki zyja w RAM (zob. {@code ActiveGameStore}) i przepadaja przy
- * restarcie JVM. Po starcie aplikacji magazyn RAM jest pusty, wiec kazdy wpis
- * ACTIVE w DB jest osierocony (gra, ktora juz nie zyje). Oznaczamy je jako
- * FINISHED, by nie blokowaly graczy ("jestes w trakcie rozgrywki") i nie
- * wyswietlaly sie jako aktywne w panelach admina/moderatora.
- */
 @Component
 public class OrphanedSessionCleanup {
 

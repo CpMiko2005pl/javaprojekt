@@ -11,15 +11,6 @@ import pl.pb.monopoly.service.GameService;
 import java.util.List;
 import java.util.Map;
 
-/**
- * REST API rozgrywki:
- *  - GET  /api/game/{id}/state    - aktualny stan
- *  - POST /api/game/{id}/roll     - rzut kostka
- *  - POST /api/game/{id}/transfer - przelew siana
- *  - POST /api/game/{id}/buy      - aktywny gracz kupuje pole
- *  - POST /api/game/{id}/skip     - aktywny gracz pomija kupno (zostawia wolne)
- *  - POST /api/game/{id}/bid      - inny gracz licytuje pole (kwota w body)
- */
 @RestController
 @RequestMapping("/api/game")
 public class GameRestController {
@@ -267,7 +258,6 @@ public class GameRestController {
         }
     }
 
-    
     @PostMapping("/{id}/react")
     public ResponseEntity<?> react(@PathVariable Long id, @RequestBody Map<String, String> body, Authentication auth) {
         String code = body.get("code");

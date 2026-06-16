@@ -12,10 +12,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Codzienne Kolo Fortuny — nagrody powiazane z kartami w rece i bonusem startowym
- * w nastepnej rozgrywce (nie losowe teksty bez efektu).
- */
 @Service
 public class WheelService {
 

@@ -3,10 +3,6 @@ package pl.pb.monopoly.dto;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Pelny stan rozgrywki — REST, WebSocket i animacje na planszy.
- * myHandCards jest wypelniane TYLKO dla gracza, ktory robi zapytanie (pole prywatne).
- */
 public record GameStateDto(
         Long sessionId,
         String code,

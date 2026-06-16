@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
 
-/** Spójne odpowiedzi JSON dla /api/game — zamiast HTML Whitelabel 500. */
 @RestControllerAdvice(basePackageClasses = GameRestController.class)
 public class GameApiExceptionHandler {
 

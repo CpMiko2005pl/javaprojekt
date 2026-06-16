@@ -6,16 +6,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * Śledzi aktywne sesje HTTP zalogowanych użytkowników (zielona kropka = ma otwartą sesję).
- */
 @Service
 public class UserPresenceService {
 
     private final ConcurrentMap<String, String> sessionToUser = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<String>> userSessions = new ConcurrentHashMap<>();
 
-    /** Rejestruje sesję zalogowanego użytkownika (idempotentne). */
     public void registerSession(String username, String sessionId) {
         if (username == null || username.isBlank() || sessionId == null) {
             return;
@@ -26,7 +22,6 @@ public class UserPresenceService {
         }
     }
 
-    /** Usuwa sesję (wylogowanie / timeout). */
     public void removeSession(String sessionId) {
         if (sessionId == null) {
             return;

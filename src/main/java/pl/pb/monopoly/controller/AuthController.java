@@ -11,10 +11,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pl.pb.monopoly.dto.RegistrationForm;
 import pl.pb.monopoly.service.UserService;
 
-/**
- * Logowanie i rejestracja. Logowanie obsluguje Spring Security (formularz POST /login);
- * tutaj serwujemy jedynie widoki oraz przetwarzamy rejestracje wraz z walidacja.
- */
 @Controller
 public class AuthController {
 
@@ -39,7 +35,7 @@ public class AuthController {
     public String register(@Valid @ModelAttribute("form") RegistrationForm form,
                            BindingResult bindingResult,
                            RedirectAttributes redirectAttributes) {
-        // Walidacja unikalnosci - bledy biznesowe dokladane do BindingResult.
+
         if (!bindingResult.hasFieldErrors("username") && userService.usernameTaken(form.getUsername())) {
             bindingResult.rejectValue("username", "taken", "Ten login jest juz zajety");
         }
@@ -48,7 +44,7 @@ public class AuthController {
         }
 
         if (bindingResult.hasErrors()) {
-            return "register"; // ponowne wyswietlenie formularza z komunikatami bledow
+            return "register";
         }
 
         userService.register(form);

@@ -4,11 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Przedmiot zdobyty przez gracza ze skrzynki (lootbox).
- * Trzyma sluga itemu, ktory mapuje sie na statyczny katalog w {@code LootboxService}.
- * Relacja many-to-one z User (jeden gracz moze posiadac wiele przedmiotow).
- */
 @Entity
 @Table(name = "owned_items", indexes = {
         @Index(name = "idx_owned_user", columnList = "user_id")
@@ -23,14 +18,12 @@ public class OwnedItem {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /** Slug przedmiotu z katalogu LootboxService (np. "avatar-rektor", "color-neon"). */
     @Column(name = "item_slug", nullable = false, length = 60)
     private String itemSlug;
 
     @Column(name = "obtained_at", nullable = false)
     private LocalDateTime obtainedAt = LocalDateTime.now();
 
-    /** Czy item jest aktualnie ustawiony jako "aktywny" (np. wybrany jako tytulowy). */
     @Column(nullable = false)
     private boolean equipped = false;
 

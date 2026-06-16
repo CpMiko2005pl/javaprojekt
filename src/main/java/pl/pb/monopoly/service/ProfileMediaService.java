@@ -14,7 +14,7 @@ import java.util.Set;
 public class ProfileMediaService {
 
     private static final Path UPLOADS = Path.of("./data/uploads");
-    /** Katalog prywatny POZA /media — dokumenty weryfikacyjne nie sa publicznie dostepne. */
+
     private static final Path PRIVATE = Path.of("./data/private");
     private static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
     private static final long MAX_BANNER_BYTES = 10L * 1024 * 1024;
@@ -36,7 +36,6 @@ public class ProfileMediaService {
         return save(username, file, "banners", MAX_BANNER_BYTES, publicBaseUrl);
     }
 
-    /** Tlo calego profilu (styl Steam) — wieksze niz baner. */
     public String saveBackground(String username, MultipartFile file, String publicBaseUrl) throws IOException {
         return save(username, file, "backgrounds", MAX_BANNER_BYTES, publicBaseUrl);
     }
@@ -53,11 +52,6 @@ public class ProfileMediaService {
             "application/pdf", "pdf"
     );
 
-    /**
-     * Zapisuje dokument weryfikacyjny (legitymacja) do prywatnego {@code data/private/verification/}.
-     * Zwraca wzgledna sciezke (np. "verification/kuba.jpg") — NIE publiczny URL;
-     * dokument udostepnia wylacznie chroniony endpoint admina.
-     */
     public String saveVerificationDoc(String username, MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Nie wybrano pliku.");
@@ -95,7 +89,6 @@ public class ProfileMediaService {
         }
     }
 
-    /** Bezwzgledna, znormalizowana sciezka pliku spod wzglednej sciezki w katalogu prywatnym. */
     public Path resolveUpload(String relativePath) {
         return PRIVATE.resolve(relativePath).toAbsolutePath().normalize();
     }

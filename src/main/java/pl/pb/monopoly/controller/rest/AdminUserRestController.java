@@ -12,11 +12,6 @@ import pl.pb.monopoly.service.UserService;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Usluga REST admina — lista uzytkownikow z filtrami i sortowaniem (tylko GET).
- * Dostep ograniczony do ROLE_ADMIN w SecurityConfig (/api/admin/**).
- * Deleguje do tej samej logiki co widok MVC ({@link UserService#findForAdmin}).
- */
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminUserRestController {

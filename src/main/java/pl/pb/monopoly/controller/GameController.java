@@ -19,10 +19,6 @@ import pl.pb.monopoly.util.PublicUrlHelper;
 
 import java.util.List;
 
-/**
- * Lobby rozgrywki (tworzenie pokoju, zapraszanie znajomych, dolaczanie po kodzie)
- * oraz strona planszy (canvas).
- */
 @Controller
 @RequestMapping("/game")
 public class GameController {
@@ -44,7 +40,6 @@ public class GameController {
         this.ownedItemRepository = ownedItemRepository;
     }
 
-    /** Hub matchmakingu lub aktywne lobby — zawsze pod /game. */
     @GetMapping
     public String lobby(Authentication auth, Model model, HttpServletRequest request) {
         String me = auth.getName();
@@ -126,7 +121,7 @@ public class GameController {
         model.addAttribute("sessionName", session.getName());
         model.addAttribute("sessionCode", session.getCode());
         model.addAttribute("myPlayerId", me.get().getId());
-        // Reakcje (emotki/naklejki)
+
         var equippedStickers = ownedItemRepository.findByUserIdAndEquipped(me.get().getUser().getId(), true);
         var activeSticker = equippedStickers.stream()
                 .filter(o -> o.getItemSlug().startsWith("emoji-"))

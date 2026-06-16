@@ -5,21 +5,15 @@ import pl.pb.monopoly.domain.GamePlayer;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Ekonomia gry w stylu Business Tour — stałe globalne, ceny pól, tablice czynszów
- * oraz logika kosztów ulepszeń (każdy poziom = cena zakupu gruntu).
- */
 public final class GameEconomy {
 
     private GameEconomy() {
     }
 
-    // --- Stałe globalne (Business Tour) ---
-
     public static final int STARTING_CASH = 2_000_000;
     public static final int GO_BONUS = 300_000;
     public static final int JAIL_BAIL = 200_000;
-    /** Koszt lotu / World Tour (lotniska). */
+
     public static final int FLY_COST = 50_000;
     public static final double TAX_RATE = 0.10;
     public static final int SCHOLARSHIP_BONUS = 150_000;
@@ -28,54 +22,41 @@ public final class GameEconomy {
     public static final int RESORT_BUY_PRICE = 200_000;
     public static final int UTILITY_BUY_PRICE = 150_000;
 
-    /** Monety metagry: nagroda za wygrana i drobny udzial za rozegrany mecz. */
     public static final int COINS_WIN_REWARD = 500;
     public static final int COINS_PARTICIPATION = 100;
 
-    /** Limit czasu gry — po 60 minutach wygrywa gracz z najwyzszym majatkiem. */
     public static final int GAME_DURATION_SECONDS = 60 * 60;
 
-    /**
-     * Poziom gracza wyznaczany z punktow ELO. Skala liniowa zakotwiczona w:
-     * 1000 ELO -> poziom 4, 2000 ELO -> poziom 10 (czyli +6 poziomow na 1000 ELO).
-     * Minimum to poziom 1.
-     */
     public static int levelForElo(int elo) {
         return Math.max(1, (elo * 6) / 1000 - 2);
     }
 
-    /** Calkowity majatek gracza: gotowka + wartosc nieruchomosci (grunty + ulepszenia). */
     public static int netWorth(GamePlayer p) {
         if (p == null) return 0;
         return p.getCash() + computePropertyNetWorth(p.getOwnedPositions(), p.getPropertyLevels());
     }
 
-    /** Czynsz resortów wg liczby posiadanych: 1→50k, 2→100k, 3→200k, 4→400k. */
     public static final int[] RESORT_RENT = {0, 50_000, 100_000, 200_000, 400_000};
 
-    /** Mnożnik czynszu Wodociągów PB (suma oczek × mnożnik). */
     public static final int UTILITY_RENT_MULTIPLIER = 15_000;
 
     public static final int POS_START = 0;
     public static final int POS_JAIL = 10;
     public static final int POS_GO_TO_JAIL = 30;
 
-    /** 8 grup kolorystycznych — 22 nieruchomości (2+3+3+3+3+3+3+2), standardowe pozycje Monopoly. */
     public static final int[][] COLOR_GROUPS = {
-            {1, 3},              // brązowa (Alfa, Beta) — 60k
-            {6, 8, 9},           // jasnoniebieska (Gamma, Delta, Epsilon) — 80k
-            {11, 13, 14},        // fioletowa (GWINT, Gammajka, Relax) — 100k
-            {16, 18, 19},        // pomarańczowa (ACS, Korty, Boisko) — 120k
-            {21, 23, 24},        // czerwona (WI, Mechaniczny, Elektryczny) — 160k
-            {26, 27, 29},        // żółta (CNK, Biblioteka, Radio Akadera) — 220k
-            {31, 32, 34},        // zielona (Sigma, Inkubator, PolitechNET) — 300k
-            {37, 39}             // granatowa (Architektura, Rektorat) — 350k / 400k
+            {1, 3},
+            {6, 8, 9},
+            {11, 13, 14},
+            {16, 18, 19},
+            {21, 23, 24},
+            {26, 27, 29},
+            {31, 32, 34},
+            {37, 39}
     };
 
-    /** Pola resortów (kurorty PB). */
     public static final boolean[] RESORT_TILES = new boolean[40];
 
-    /** Pola gastronomiczne (Max Bistro, Bistro PB) — działają jak utility (czynsz × oczka). */
     public static final boolean[] UTILITY_TILES = new boolean[40];
 
     static {
@@ -83,17 +64,12 @@ public final class GameEconomy {
         RESORT_TILES[15] = true;
         RESORT_TILES[25] = true;
         RESORT_TILES[35] = true;
-        UTILITY_TILES[12] = true; // Max Bistro
-        UTILITY_TILES[28] = true; // Bistro PB
+        UTILITY_TILES[12] = true;
+        UTILITY_TILES[28] = true;
     }
 
-    /** Indeks grupy koloru dla każdego pola (-1 = brak). */
     public static final int[] TILE_COLOR_GROUP = buildColorGroupIndex();
 
-    /**
-     * Ceny zakupu pól. -1 = nie do kupienia.
-     * 22 nieruchomości + 4 kurorty (200k) + 2 gastro (150k).
-     */
     public static final int[] TILE_PRICE = {
             -1, 60_000, -1, 60_000, -1, RESORT_BUY_PRICE, 80_000, -1, 80_000, 80_000,
             -1, 100_000, UTILITY_BUY_PRICE, 100_000, 100_000, RESORT_BUY_PRICE, 120_000, -1, 120_000, 120_000,
@@ -101,10 +77,6 @@ public final class GameEconomy {
             -1, 300_000, 300_000, -1, 300_000, RESORT_BUY_PRICE, -1, 350_000, -1, 400_000
     };
 
-    /**
-     * Czynsze nieruchomości: [rent0, lvl1, lvl2, lvl3, biurowiec].
-     * Rent monopol (cały kolor, 0 budynków) = 2 × rent0 — liczone w {@link #rentForLevel}.
-     */
     public static final int[][] TILE_RENT_TABLE = buildRentTable();
 
     private static int[] buildColorGroupIndex() {
@@ -132,18 +104,18 @@ public final class GameEconomy {
         setRent(rents, 14, 10_000, 40_000,  80_000, 120_000,   350_000);
         setRent(rents, 16, 12_000, 48_000,  96_000, 144_000,   450_000);
         setRent(rents, 18, 12_000, 48_000,  96_000, 144_000,   450_000);
-        setRent(rents, 19, 12_000, 48_000,  96_000, 144_000,   450_000); // pomarańczowe
+        setRent(rents, 19, 12_000, 48_000,  96_000, 144_000,   450_000);
         setRent(rents, 21, 16_000, 64_000, 128_000, 192_000,   600_000);
         setRent(rents, 23, 16_000, 64_000, 128_000, 192_000,   600_000);
-        setRent(rents, 24, 16_000, 64_000, 128_000, 192_000,   600_000); // czerwone
+        setRent(rents, 24, 16_000, 64_000, 128_000, 192_000,   600_000);
         setRent(rents, 26, 22_000, 88_000, 176_000, 264_000,   850_000);
         setRent(rents, 27, 22_000, 88_000, 176_000, 264_000,   850_000);
         setRent(rents, 29, 22_000, 88_000, 176_000, 264_000,   850_000);
         setRent(rents, 31, 30_000, 120_000, 240_000, 360_000, 1_200_000);
         setRent(rents, 32, 30_000, 120_000, 240_000, 360_000, 1_200_000);
         setRent(rents, 34, 30_000, 120_000, 240_000, 360_000, 1_200_000);
-        setRent(rents, 37, 35_000, 140_000, 280_000, 420_000, 1_600_000); // granatowe 1
-        setRent(rents, 39, 40_000, 160_000, 320_000, 480_000, 2_000_000); // granatowe 2
+        setRent(rents, 37, 35_000, 140_000, 280_000, 420_000, 1_600_000);
+        setRent(rents, 39, 40_000, 160_000, 320_000, 480_000, 2_000_000);
         return rents;
     }
 
@@ -151,17 +123,11 @@ public final class GameEconomy {
         rents[pos] = new int[]{r0, r1, r2, r3, rMax};
     }
 
-    /** Koszt każdego poziomu ulepszenia = bazowa cena zakupu gruntu. */
     public static int upgradeCost(int pos) {
         int price = TILE_PRICE[pos];
         return price > 0 && !RESORT_TILES[pos] && !UTILITY_TILES[pos] ? price : 0;
     }
 
-    /**
-     * Cena wykupu cudzej dzialki (Business Tour): gracz, ktory wyladowal na polu
-     * rywala i oplacil czynsz, moze je odkupic za 2x cene gruntu + wartosc ulepszen.
-     * Zwraca 0 dla pol niewykupywalnych (resort/utility/bez ceny).
-     */
     public static int buyoutPrice(int pos, int level) {
         if (pos < 0 || pos >= 40) return 0;
         int base = TILE_PRICE[pos];
@@ -169,10 +135,8 @@ public final class GameEconomy {
         return base * 2 + Math.max(0, level) * upgradeCost(pos);
     }
 
-    /** Maksymalny poziom ulepszenia (4 = Biurowiec). */
     public static final int MAX_PROPERTY_LEVEL = 4;
 
-    /** Czynsz dla danego poziomu budynku (0–4). Monopol dotyczy tylko poziomu 0. */
     public static int rentForLevel(int pos, int level, boolean monopoly) {
         if (pos < 0 || pos >= 40 || TILE_PRICE[pos] <= 0) {
             return 0;
@@ -191,7 +155,6 @@ public final class GameEconomy {
         };
     }
 
-    /** Czy gracz posiada pełną grupę kolorystyczną danego pola. */
     public static boolean hasColorMonopoly(GamePlayer owner, int pos) {
         int groupIdx = TILE_COLOR_GROUP[pos];
         if (groupIdx < 0 || owner == null) {
@@ -205,7 +168,6 @@ public final class GameEconomy {
         return true;
     }
 
-    /** Wartość majątku gracza: suma cen gruntów + kosztów postawionych ulepszeń. */
     public static int computePropertyNetWorth(Set<Integer> ownedPositions, Map<Integer, Integer> propertyLevels) {
         int total = 0;
         for (int pos : ownedPositions) {
@@ -219,7 +181,6 @@ public final class GameEconomy {
         return total;
     }
 
-    /** Podatek: 10% wartości majątku nieruchomościowego. */
     public static int computeTax(GamePlayer player) {
         int worth = computePropertyNetWorth(player.getOwnedPositions(), player.getPropertyLevels());
         if (worth <= 0) {
@@ -228,19 +189,17 @@ public final class GameEconomy {
         return (int) Math.round(worth * TAX_RATE);
     }
 
-    /** Wypłata od banku — 70% ceny zakupu gruntu (ulepszenia nie podlegają zwrotowi). */
     public static int sellPrice(int position) {
         int price = TILE_PRICE[position];
         return price > 0 ? (int) Math.round(price * BANK_SELL_RATE) : 0;
     }
 
-    /** Pola losowania kart (Szansa / kolokwium). */
     private static final boolean[] CHANCE_TILES = new boolean[40];
-    /** Pola Kasy Studenckiej (community chest). */
+
     private static final boolean[] COMMUNITY_TILES = new boolean[40];
-    /** Pola podatkowe. */
+
     private static final boolean[] TAX_TILES = new boolean[40];
-    /** Pola wolnego postoju (free parking). */
+
     private static final boolean[] FREE_PARKING_TILES = new boolean[40];
 
     static {
@@ -250,9 +209,6 @@ public final class GameEconomy {
         FREE_PARKING_TILES[20] = true;
     }
 
-    /**
-     * Typ pola wg pozycji 0–39. Wartosci zgodne z kolumna board_tiles.tile_type.
-     */
     public static String tileType(int pos) {
         if (pos == POS_START) return "START";
         if (pos == POS_JAIL) return "JAIL";
@@ -266,7 +222,6 @@ public final class GameEconomy {
         return "PROPERTY";
     }
 
-    /** Bazowy czynsz pola (poziom 0, bez monopolu); null gdy pole nie ma czynszu. */
     public static Integer baseRent(int pos) {
         if (pos < 0 || pos >= 40) return null;
         int[] r = TILE_RENT_TABLE[pos];

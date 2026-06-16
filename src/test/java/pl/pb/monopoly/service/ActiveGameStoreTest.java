@@ -12,7 +12,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Testy jednostkowe magazynu aktywnych gier w RAM (Faza 1). */
 class ActiveGameStoreTest {
 
     private GameSession session(long id) {
@@ -44,9 +43,9 @@ class ActiveGameStoreTest {
         ActiveGameStore store = new ActiveGameStore();
         assertFalse(store.contains(null));
         assertNull(store.get(null));
-        store.put(null);              // brak NPE
-        store.put(new GameSession()); // id == null -> pomijane
-        store.remove(null);           // brak NPE
+        store.put(null);
+        store.put(new GameSession());
+        store.remove(null);
         assertEquals(0, store.size());
     }
 
@@ -66,7 +65,7 @@ class ActiveGameStoreTest {
         final Long id = 42L;
         final int threads = 8;
         final int incrementsPerThread = 5_000;
-        final int[] sharedCounter = {0}; // celowo NIE-atomowy — chroniony tylko lockiem
+        final int[] sharedCounter = {0};
         final AtomicInteger interleavings = new AtomicInteger();
 
         ExecutorService pool = Executors.newFixedThreadPool(threads);

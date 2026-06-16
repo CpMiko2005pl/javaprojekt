@@ -3,17 +3,6 @@ package pl.pb.monopoly.dto;
 import jakarta.validation.constraints.*;
 import pl.pb.monopoly.validation.PasswordMatches;
 
-/**
- * Formularz rejestracji nowego gracza wraz z WALIDACJA.
- *
- * Spelnia wymaganie "6 roznych regul walidacji" (Ty prosiles o 4 - jest z zapasem):
- *   1. @NotBlank  - pole wymagane (login, e-mail, haslo)
- *   2. @Size      - dlugosc tekstu (min/max)
- *   3. @Pattern   - format ciagu (login: male litery/cyfry; imie: pierwsza duza)
- *   4. @Email     - poprawny adres e-mail
- *   5. @Min       - wartosc minimalna (wiek >= 18)
- *   6. @PasswordMatches - wlasna walidacja miedzypolowa (haslo == powtorzenie)
- */
 @PasswordMatches
 public class RegistrationForm {
 

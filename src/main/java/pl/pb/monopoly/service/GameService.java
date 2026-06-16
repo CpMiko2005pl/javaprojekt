@@ -1,7 +1,5 @@
 package pl.pb.monopoly.service;
 
-
-
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,56 +28,50 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-/**
- * Silnik rozgrywki Kampus PB: ruch po planszy, Dziekanat (wiezienie),
- * podatki, transfery siana, KUPOWANIE pol, CZYNSZ, KARTY SZANSY oraz licytacje.
- * Stan synchronizowany przez WebSocket.
- */
 @Service
 public class GameService {
 
-    /** 40 pol — Kampus Politechniki Bialostockiej. */
     public static final String[] TILES = {
-            "START — Inauguracja semestru",  // 0
-            "Akademik Alfa",                 // 1  brazowe
-            "Stypendium — Kasa Studencka",   // 2  community
-            "Akademik Beta",                 // 3  brazowe
-            "Nieoddany projekt — Podatek",   // 4  tax
-            "Dwor Mejera — Kurort",          // 5  kurort
-            "Akademik Gamma",                // 6  jasnoniebieskie
-            "USOS — Karta Szansy",           // 7  chance
-            "Akademik Delta",                // 8  jasnoniebieskie
-            "Akademik Epsilon",              // 9  jasnoniebieskie
-            "WARUNEK (Dziekanat)",           // 10 jail
-            "Klub GWINT",                    // 11 fioletowe
-            "Max Bistro",                    // 12 gastro
-            "Gammajka",                      // 13 fioletowe
-            "Klub Relax",                    // 14 fioletowe
-            "Erasmus PB — Kurort",           // 15 kurort
-            "ACS",                           // 16 pomaranczowe
-            "Grant PB — Kasa Studencka",     // 17 community
-            "Korty Tenisowe PB",             // 18 pomaranczowe
-            "Boisko PB",                     // 19 pomaranczowe
-            "Sesja poprawkowa",              // 20 free parking
-            "Wydzial Informatyki",           // 21 czerwone
-            "Kolokwium — Karta Szansy",      // 22 chance
-            "Wydzial Mechaniczny",           // 23 czerwone
-            "Wydzial Elektryczny",           // 24 czerwone
-            "Inno-Eko-Tech — Kurort",        // 25 kurort
-            "CNK",                           // 26 zolte
-            "Biblioteka PB",                 // 27 zolte
-            "Bistro PB",                     // 28 gastro
-            "Radio Akadera",                 // 29 zolte
-            "Idz na Warunek",                // 30 go to jail
-            "Centrum Sigma",                 // 31 zielone
-            "Inkubator Przedsiebiorczosci",  // 32 zielone
-            "Stypendium Rektora — Kasa Studencka", // 33 community
-            "PolitechNET",                   // 34 zielone
-            "Aula Duga — Kurort",            // 35 kurort
-            "Kolokwium 2 — Karta Szansy",    // 36 chance
-            "Wydzial Architektury",          // 37 granatowe
-            "Oplata za laby — Podatek",      // 38 tax
-            "Rektorat"                       // 39 granatowe
+            "START — Inauguracja semestru",
+            "Akademik Alfa",
+            "Stypendium — Kasa Studencka",
+            "Akademik Beta",
+            "Nieoddany projekt — Podatek",
+            "Dwor Mejera — Kurort",
+            "Akademik Gamma",
+            "USOS — Karta Szansy",
+            "Akademik Delta",
+            "Akademik Epsilon",
+            "WARUNEK (Dziekanat)",
+            "Klub GWINT",
+            "Max Bistro",
+            "Gammajka",
+            "Klub Relax",
+            "Erasmus PB — Kurort",
+            "ACS",
+            "Grant PB — Kasa Studencka",
+            "Korty Tenisowe PB",
+            "Boisko PB",
+            "Sesja poprawkowa",
+            "Wydzial Informatyki",
+            "Kolokwium — Karta Szansy",
+            "Wydzial Mechaniczny",
+            "Wydzial Elektryczny",
+            "Inno-Eko-Tech — Kurort",
+            "CNK",
+            "Biblioteka PB",
+            "Bistro PB",
+            "Radio Akadera",
+            "Idz na Warunek",
+            "Centrum Sigma",
+            "Inkubator Przedsiebiorczosci",
+            "Stypendium Rektora — Kasa Studencka",
+            "PolitechNET",
+            "Aula Duga — Kurort",
+            "Kolokwium 2 — Karta Szansy",
+            "Wydzial Architektury",
+            "Oplata za laby — Podatek",
+            "Rektorat"
     };
 
     public static final String[] TILE_EFFECTS = {
@@ -125,14 +117,12 @@ public class GameService {
             "Nieruchomosc — 400 000 PLN / czynsz do 2 000 000"
     };
 
-    /** Ceny zakupu pol — delegacja do {@link GameEconomy}. */
     public static final int[] TILE_PRICE = GameEconomy.TILE_PRICE;
 
     public static final int POS_START = GameEconomy.POS_START;
     public static final int POS_JAIL = GameEconomy.POS_JAIL;
     public static final int POS_GO_TO_JAIL = GameEconomy.POS_GO_TO_JAIL;
 
-    /** Pola losowania kart. */
     private static final boolean[] CHANCE_TILES = new boolean[40];
     static {
         CHANCE_TILES[7] = true;
@@ -140,13 +130,10 @@ public class GameService {
         CHANCE_TILES[36] = true;
     }
 
-    /** Pola resortow (lotniska / dworce). */
     private static final boolean[] RESORT_TILES = GameEconomy.RESORT_TILES;
 
-    /** Pola gastronomiczne (Max Bistro, Bistro PB). */
     private static final boolean[] UTILITY_TILES = GameEconomy.UTILITY_TILES;
 
-    /** Karty Szansy — skala Business Tour (tysiace PLN). */
     public static final List<ChanceCard> CHANCE_CARDS = List.of(
             new ChanceCard("Stypendium rektora", "Otrzymujesz stypendium naukowe.", 150_000),
             new ChanceCard("Stypendium socjalne", "Komisja stypendialna sie zlitowala.", 100_000),
@@ -184,10 +171,9 @@ public class GameService {
     private final FriendService friendService;
     private BotAutoplayService botAutoplayService;
     private final ModerationService moderationService;
-    /** Magazyn aktywnych gier w RAM — rozgrywka ACTIVE zyje tu, nie w DB (Faza 2). */
+
     private final ActiveGameStore activeGameStore;
 
-    /** EntityManager — do detach (RAM) i merge (zapis koncowy) sesji. */
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager em;
 
@@ -213,17 +199,11 @@ public class GameService {
         this.activeGameStore = activeGameStore;
     }
 
-    /** Setter dla autoplay - lazy by uniknac cyklicznej zaleznosci konstruktorow. */
     @org.springframework.beans.factory.annotation.Autowired
     public void setBotAutoplayService(@Lazy BotAutoplayService botAutoplayService) {
         this.botAutoplayService = botAutoplayService;
     }
 
-    /**
-     * Wywoluje onTurnUpdate PO commicie biezacej transakcji.
-     * Dzieki temu bot widzi zaaktualizowany stan w BD i nie wpada w petle
-     * wynikajaca z odczytu niecommitowanego stanu.
-     */
     private void scheduleBotUpdate(Long sessionId) {
         if (botAutoplayService == null) return;
         final BotAutoplayService bot = botAutoplayService;
@@ -307,7 +287,6 @@ public class GameService {
             }
         }
 
-        // Rozdanie kart ręki każdemu graczowi (ludzkim i botom)
         for (GamePlayer gp : session.getPlayers()) {
             dealHandCards(gp);
         }
@@ -317,7 +296,6 @@ public class GameService {
         return saved;
     }
 
-    /** Losuje 3 unikalne karty z puli + bonus z Kola Fortuny. */
     private void dealHandCards(GamePlayer player) {
         List<HandCardType> pool = new ArrayList<>(Arrays.asList(HandCardType.values()));
         Collections.shuffle(pool);
@@ -336,7 +314,7 @@ public class GameService {
                         cards.add(wheelCard);
                     }
                 } catch (IllegalArgumentException ignored) {
-                    // nieznany typ — pomijamy
+
                 }
                 stats.setPendingWheelCard(null);
             }
@@ -393,7 +371,6 @@ public class GameService {
 
     public static final int MAX_PLAYERS = 4;
 
-    /** Lider dodaje bota w lobby (wybor nazwy i koloru). */
     @Transactional
     public GameStateDto addBot(Long sessionId, String username, String botName, String botColor) {
         GameSession session = getSession(sessionId);
@@ -418,7 +395,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Lider usuwa bota z lobby. */
     @Transactional
     public GameStateDto removeBot(Long sessionId, String username, Long botPlayerId) {
         GameSession session = getSession(sessionId);
@@ -449,7 +425,6 @@ public class GameService {
         return "Bot " + (bots + 1);
     }
 
-    /** Lider wysyla zaproszenie do znajomego — gracz dostaje powiadomienie WebSocket. */
     @Transactional
     public GameInviteDto inviteFriend(Long sessionId, String username, Long friendUserId) {
         GameSession session = getSession(sessionId);
@@ -553,22 +528,13 @@ public class GameService {
 
     @Transactional(readOnly = true)
     public GameSession getSession(Long id) {
-        // Aktywna rozgrywka zyje w RAM — zwroc obiekt z pamieci bez zapytania SQL.
+
         GameSession ram = activeGameStore.get(id);
         if (ram != null) return ram;
         return sessionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Nie ma sesji o id " + id));
     }
 
-    /**
-     * Zapisuje stan sesji we wlasciwym miejscu:
-     * <ul>
-     *   <li>ACTIVE w RAM — <b>brak zapisu</b> (stan juz zmutowany w obiekcie w pamieci),</li>
-     *   <li>ACTIVE w RAM + FINISHED — zapis koncowy raz (merge) i usuniecie z RAM,</li>
-     *   <li>lobby WAITING (poza RAM) — zwykly zapis do DB.</li>
-     * </ul>
-     * Zwraca obiekt sesji aktualny dla dalszego uzycia w metodzie wolajacej.
-     */
     private GameSession persist(GameSession session) {
         if (session == null) return null;
         Long id = session.getId();
@@ -576,16 +542,11 @@ public class GameService {
             if (session.getStatus() == GameStatus.FINISHED) {
                 finalizeFinished(session);
             }
-            return session; // RAM — zero SQL na ruch
+            return session;
         }
-        return sessionRepository.save(session); // lobby / sesja poza RAM
+        return sessionRepository.save(session);
     }
 
-    /**
-     * Wykonuje operacje pod lockiem danej sesji. REST (ruchy gracza), boty i
-     * harmonogram moga trafic na te sama gre w RAM rownolegle — bez serializacji
-     * wspoldzielony obiekt uleglby uszkodzeniu (np. ConcurrentModificationException).
-     */
     private <T> T withLock(Long sessionId, java.util.function.Supplier<T> body) {
         if (sessionId == null) return body.get();
         java.util.concurrent.locks.ReentrantLock lock = activeGameStore.lockFor(sessionId);
@@ -601,29 +562,22 @@ public class GameService {
         withLock(sessionId, () -> { body.run(); return null; });
     }
 
-    /** Zapis koncowego stanu zakonczonej gry do DB (raz) i usuniecie z RAM. */
     private void finalizeFinished(GameSession session) {
         Long id = session.getId();
-        em.merge(session);          // jednorazowy zapis pelnego stanu sesji + graczy
+        em.merge(session);
         activeGameStore.remove(id);
     }
 
-    /**
-     * Przenosi swiezo wystartowana sesje do RAM. Najpierw inicjalizuje leniwe
-     * powiazania {@code user} (po detach dostep do nich rzucilby
-     * LazyInitializationException), wymusza flush biezacego stanu i odlacza graf
-     * od kontekstu JPA. Od tej chwili wszystkie ruchy operuja na obiekcie w pamieci.
-     */
     private void loadIntoRam(GameSession session) {
         for (GamePlayer p : session.getPlayers()) {
             User u = p.getUser();
             if (u != null) {
                 u.getId();
-                u.getUsername(); // wymusza inicjalizacje leniwego proxy przed detach
+                u.getUsername();
             }
         }
-        em.flush();           // utrwal stan startowy zanim odlaczymy graf
-        em.detach(session);   // cascade=ALL -> detach kaskaduje na graczy
+        em.flush();
+        em.detach(session);
         activeGameStore.put(session);
     }
 
@@ -632,10 +586,6 @@ public class GameService {
         return toState(getSession(sessionId), username, null, null, null, null, null, null, null);
     }
 
-    /**
-     * Awaryjne zakonczenie sesji przez admina/moderatora. Dziala dla gry w RAM
-     * (ACTIVE) i dla sesji poza RAM (np. WAITING). Nie nalicza ELO/monet.
-     */
     @Transactional
     public void endSessionByAdmin(Long sessionId) {
         withLock(sessionId, () -> {
@@ -644,16 +594,15 @@ public class GameService {
             if (s == null || s.getStatus() == GameStatus.FINISHED) return;
             s.setStatus(GameStatus.FINISHED);
             if (activeGameStore.contains(sessionId)) {
-                finalizeFinished(s);          // zapis koncowy raz + usuniecie z RAM
+                finalizeFinished(s);
             } else {
-                sessionRepository.save(s);    // sesja poza RAM (lobby)
+                sessionRepository.save(s);
             }
             publishPublic(sessionId, null, null,
                     "Sesja zostala zakonczona przez administracje.", null, null, null, null);
         });
     }
 
-    /** Gracz zglosza gotowosc (lub cofa) w fazie lobby (WAITING). */
     @Transactional
     public GameStateDto readyUp(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
@@ -670,7 +619,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Lider startuje gre (tylko gdy wszyscy ludzie sa gotowi). */
     @Transactional
     public GameStateDto startGame(Long sessionId, String username) {
         GameSession session = getSession(sessionId);
@@ -693,15 +641,14 @@ public class GameService {
         }
         session.setStatus(GameStatus.ACTIVE);
         beginActivePlay(session);
-        persist(session); // ostatni zapis lobby (przejscie WAITING -> ACTIVE)
-        loadIntoRam(session);            // od teraz rozgrywka zyje w RAM
+        persist(session);
+        loadIntoRam(session);
         String msg = "Gra rozpoczeta! Niech zaczyna sie rozgrywka.";
         publishPublic(sessionId, null, null, msg, null, null, null, null);
         scheduleBotUpdate(sessionId);
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Gracz opuszcza gre — w lobby usuwa go z pokoju, w trwajacej grze bankrutuje. */
     @Transactional
     public void leaveGame(Long sessionId, String username) {
         withLock(sessionId, () -> leaveGameInternal(sessionId, username));
@@ -755,7 +702,6 @@ public class GameService {
         publishPublic(session.getId(), null, null, msg, null, null, null, null);
     }
 
-    /** Rzut kostka — tylko gracz z aktualna tura, bez aktywnej decyzji o kupnie. */
     @Transactional
     public GameStateDto roll(Long sessionId, String username) {
         return withLock(sessionId, () -> rollInternal(sessionId, username));
@@ -802,7 +748,6 @@ public class GameService {
         return doRoll(session, current, username);
     }
 
-    /** Rzut kostka wykonany przez bota (uzywany przez BotAutoplayService). */
     @Transactional
     public GameStateDto rollAsBot(Long sessionId, Long botPlayerId) {
         return withLock(sessionId, () -> rollAsBotInternal(sessionId, botPlayerId));
@@ -853,7 +798,6 @@ public class GameService {
         return doRoll(session, current, null);
     }
 
-    /** Rdzen logiki rzutu - wspoldzielony przez {@link #roll} i {@link #rollAsBot}. */
     private GameStateDto doRoll(GameSession session, GamePlayer current, String username) {
         if (session.getPendingExtraRollPlayerId() != null
                 && session.getPendingExtraRollPlayerId().equals(current.getId())
@@ -872,7 +816,6 @@ public class GameService {
                 .append(d1).append("+").append(d2).append("=").append(steps)
                 .append(isDoubles ? " (DUBLET!). " : ". ");
 
-        // Licznik dubletow: 3 dublety z rzedu = prosto do wiezienia (klasyczne Monopoly)
         boolean jailedByDoubles = false;
         if (isDoubles) {
             current.setDoublesCount(current.getDoublesCount() + 1);
@@ -887,7 +830,7 @@ public class GameService {
         ChanceCard drawnCard = null;
 
         if (jailedByDoubles) {
-            // Idziesz prosto do Dziekanatu — bez przejscia przez START, bez efektu pola
+
             newPos = POS_JAIL;
             current.setDoublesCount(0);
             current.setPosition(newPos);
@@ -909,7 +852,6 @@ public class GameService {
             current.setPosition(newPos);
             msg.append("Staje na: ").append(TILES[newPos]).append(". ");
 
-            // Rozliczenie pola: Karta Szansy / efekt pola / kupno / czynsz / ulepszenie
             if (CHANCE_TILES[newPos]) {
                 drawnCard = drawCard();
                 msg.append("Karta Szansy: \"").append(drawnCard.title())
@@ -939,17 +881,17 @@ public class GameService {
                         msg.append("Za malo siana, by kupic - pole zostaje wolne. ");
                     }
                 } else if (!ownerOfTile.getId().equals(current.getId()) && !ownerOfTile.isBankrupt()) {
-                    // Karta SKIP_RENT blokuje oplaty
+
                     if (current.isSkipNextRent()) {
                         current.setSkipNextRent(false);
                         msg.append("Karta Ochrony! ").append(current.getDisplayName())
                                 .append(" omija czynsz na ").append(TILES[newPos]).append(". ");
                         if (ownerOfTile.isDoubleRentNext()) {
-                            ownerOfTile.setDoubleRentNext(false); // Karta zuzyta na probe pobrania czynszu
+                            ownerOfTile.setDoubleRentNext(false);
                         }
                     } else {
                         int rent = computeRent(session, ownerOfTile, newPos, steps);
-                        // Karta DOUBLE_RENT_NEXT — wlasciciel zbiera 2x czynsz
+
                         boolean doubled = ownerOfTile.isDoubleRentNext();
                         if (doubled) {
                             rent *= 2;
@@ -961,13 +903,13 @@ public class GameService {
                                     .append(rent).append(" PLN dla ")
                                     .append(ownerOfTile.getDisplayName())
                                     .append(doubled ? " (PODWOJONY)! " : ". ");
-                            // Business Tour: po oplaceniu czynszu kupujacy moze wykupic dzialke
+
                             offerTakeoverIfPossible(session, current, ownerOfTile, newPos, msg);
                         }
                     }
                 } else if (ownerOfTile.getId().equals(current.getId())) {
                     msg.append("To Twoje pole - bez czynszu. ");
-                    // Sledzenie ladowan wlasciciela na WLASNYM polu (dla ulepszenia)
+
                     if (!RESORT_TILES[newPos] && !UTILITY_TILES[newPos] && !CHANCE_TILES[newPos]) {
                         int level = current.getPropertyLevels().getOrDefault(newPos, 0);
                         int upgradeCost = GameEconomy.upgradeCost(newPos);
@@ -989,12 +931,10 @@ public class GameService {
             }
         }
 
-        // Dublet (ale nie trzeci) = dodatkowy rzut dla tego samego gracza po rozliczeniu pola
         if (isDoubles && !jailedByDoubles && !current.isBankrupt()) {
             session.setPendingExtraRollPlayerId(current.getId());
         }
 
-        // Zakonczenie tury — chyba ze trwa decyzja kupna/platnosci/ulepszenia
         if (session.getPendingPurchasePos() == null
                 && session.getPendingPaymentDebtorId() == null
                 && session.getPendingUpgradePos() == null
@@ -1016,12 +956,10 @@ public class GameService {
         Long sessionId = session.getId();
         publishPublic(sessionId, d1, d2, msg.toString(), movedId, oldPos, newPos, cardDto);
 
-        // Powiadom autoplay (boty rzucaja same, decyzja czeka 10s)
         scheduleBotUpdate(sessionId);
         return toState(session, username, d1, d2, msg.toString(), movedId, oldPos, newPos, cardDto);
     }
 
-    /** Aktywny gracz kupuje pole, na ktorym sie znajduje. */
     @Transactional
     public GameStateDto buy(Long sessionId, String username) {
         return withLock(sessionId, () -> buyInternal(sessionId, username));
@@ -1041,7 +979,6 @@ public class GameService {
         return doBuy(session, me, username);
     }
 
-    /** Bot kupuje pole - bez sprawdzania username. */
     @Transactional
     public GameStateDto buyAsBot(Long sessionId, Long botPlayerId) {
         return withLock(sessionId, () -> buyAsBotInternal(sessionId, botPlayerId));
@@ -1070,7 +1007,7 @@ public class GameService {
         }
         me.setCash(me.getCash() - price);
         me.getOwnedPositions().add(pos);
-        /* Zakup zawiera pierwszy dom — level 1 od razu na planszy */
+
         if (GameEconomy.upgradeCost(pos) > 0) {
             me.getPropertyLevels().put(pos, 1);
         }
@@ -1081,7 +1018,6 @@ public class GameService {
         msg.append(me.getDisplayName()).append(" kupuje ").append(TILES[pos])
                 .append(" za ").append(price).append(" PLN (z 1 domem). ");
 
-        // Powiadom o zdobytym monopolu
         if (GameEconomy.hasColorMonopoly(me, pos)) {
             msg.append("[MONOPOL] ").append(me.getDisplayName()).append(" zdobywa monopol na grupie! ");
         }
@@ -1097,7 +1033,6 @@ public class GameService {
         return toState(session, username, null, null, msg.toString(), null, null, null, null);
     }
 
-    /** Aktywny gracz pomija kupno - inni mogli wczesniej zalicytowac, ale w tej wersji pole zostaje wolne. */
     @Transactional
     public GameStateDto skipPurchase(Long sessionId, String username) {
         return withLock(sessionId, () -> skipPurchaseInternal(sessionId, username));
@@ -1117,7 +1052,6 @@ public class GameService {
         return doSkip(session, me, username, false);
     }
 
-    /** Bot pomija pole. */
     @Transactional
     public GameStateDto skipAsBot(Long sessionId, Long botPlayerId) {
         return withLock(sessionId, () -> skipAsBotInternal(sessionId, botPlayerId));
@@ -1134,10 +1068,6 @@ public class GameService {
         return doSkip(session, me, null, false);
     }
 
-    /**
-     * Decyzja bota: kupuje gdy ma >= 2x ceny w gotowce (zostanie poduszka),
-     * w przeciwnym razie pomija. Wszystko w jednej transakcji.
-     */
     @Transactional
     public GameStateDto botDecide(Long sessionId, Long botPlayerId, int snapPos) {
         return withLock(sessionId, () -> botDecideInternal(sessionId, botPlayerId, snapPos));
@@ -1171,7 +1101,6 @@ public class GameService {
         return doSkip(session, bot, null, false);
     }
 
-    /** Bot decyduje o ulepszeniu wlasnego pola (kup gdy cash >= 2x koszt, inaczej skip). */
     @Transactional
     public GameStateDto botUpgradeDecide(Long sessionId, Long botPlayerId, int snapPos) {
         return withLock(sessionId, () -> botUpgradeDecideInternal(sessionId, botPlayerId, snapPos));
@@ -1205,7 +1134,6 @@ public class GameService {
         return doSkipUpgrade(session, bot, null, false);
     }
 
-    /** Auto-skip wywolany przez timeout (10s). Wymusza pominiecie dla obecnego decydera. */
     @Transactional
     public GameStateDto autoSkipTimeout(Long sessionId, int snapPosition) {
         return withLock(sessionId, () -> autoSkipTimeoutInternal(sessionId, snapPosition));
@@ -1251,10 +1179,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /**
-     * Inny gracz (nie stojacy na polu) sklada oferte licytacji rowna lub wieksza
-     * od ceny minimalnej. Kupno natychmiastowe — najszybsza oferta wygrywa.
-     */
     @Transactional
     public GameStateDto bid(Long sessionId, String username, int amount) {
         return withLock(sessionId, () -> bidInternal(sessionId, username, amount));
@@ -1281,7 +1205,7 @@ public class GameService {
         me.setCash(me.getCash() - amount);
         me.getOwnedPositions().add(pos);
         session.clearPendingPurchase();
-        // Licytacje wygral inny gracz — decydent traci ewentualny dodatkowy rzut
+
         session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
         persist(session);
@@ -1333,7 +1257,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Sprzedaz nieruchomosci do banku (70% ceny gruntu). */
     @Transactional
     public GameStateDto sellProperty(Long sessionId, String username, int position) {
         return withLock(sessionId, () -> sellPropertyInternal(sessionId, username, position));
@@ -1354,7 +1277,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /** Zadluzony gracz oplaca zaleglosc po zebraniu wystarczajacej kwoty. */
     @Transactional
     public GameStateDto payDebt(Long sessionId, String username) {
         return withLock(sessionId, () -> payDebtInternal(sessionId, username));
@@ -1373,7 +1295,6 @@ public class GameService {
         return doPayDebt(session, me, username);
     }
 
-    /** Zadluzony gracz rezygnuje — bankructwo. */
     @Transactional
     public GameStateDto declareBankruptcy(Long sessionId, String username) {
         return withLock(sessionId, () -> declareBankruptcyInternal(sessionId, username));
@@ -1392,7 +1313,6 @@ public class GameService {
         return doDeclareBankruptcy(session, me, username);
     }
 
-    /** Bot/automat: sprzedaje pola i splaca lub bankrutuje. */
     @Transactional
     public GameStateDto resolvePaymentAsBot(Long sessionId, Long debtorId, int snapAmount) {
         return withLock(sessionId, () -> resolvePaymentAsBotInternal(sessionId, debtorId, snapAmount));
@@ -1433,7 +1353,6 @@ public class GameService {
         return doDeclareBankruptcy(session, debtor, null);
     }
 
-    /** Timeout dla czlowieka w fazie splaty — auto jak bot. */
     @Transactional
     public GameStateDto autoPaymentTimeout(Long sessionId, int snapAmount) {
         return withLock(sessionId, () -> autoPaymentTimeoutInternal(sessionId, snapAmount));
@@ -1481,7 +1400,7 @@ public class GameService {
                 player.setCash(player.getCash() + GameEconomy.SCHOLARSHIP_BONUS);
                 msg.append("Kasa Studencka — stypendium (+").append(GameEconomy.SCHOLARSHIP_BONUS).append(" PLN). ");
             }
-            default -> { /* posiadlosci - obsluga w roll() */ }
+            default -> {  }
         }
     }
 
@@ -1489,7 +1408,6 @@ public class GameService {
         return CHANCE_CARDS.get(ThreadLocalRandom.current().nextInt(CHANCE_CARDS.size()));
     }
 
-    /** Znajduje wlasciciela danego pola w sesji (lub null). */
     private GamePlayer findOwner(GameSession session, int pos) {
         for (GamePlayer p : session.getPlayers()) {
             if (p.getOwnedPositions().contains(pos)) return p;
@@ -1504,7 +1422,6 @@ public class GameService {
                 .orElseThrow(() -> new IllegalArgumentException("Nie grasz w tej sesji"));
     }
 
-    /** Czynsz resortow — 50 / 100 / 200 / 400 tys. PLN za 1–4 resorty. */
     private int computeRent(GameSession session, GamePlayer owner, int pos, int diceSum) {
         if (RESORT_TILES[pos]) {
             int resorts = 0;
@@ -1521,12 +1438,10 @@ public class GameService {
         return computeRentForLevel(pos, level, monopoly);
     }
 
-    /** Czynsz dla poziomu budynku (0=grunt, 1-3=ulepszenia, 3=biurowiec). */
     static int computeRentForLevel(int pos, int level, boolean monopoly) {
         return GameEconomy.rentForLevel(pos, level, monopoly);
     }
 
-    /** Podglad czynszu po ulepszeniu (monopol tylko gdy docelowy poziom = 0). */
     static int computeRentForLevel(int pos, int level, GamePlayer owner) {
         boolean monopoly = level == 0 && owner != null && GameEconomy.hasColorMonopoly(owner, pos);
         return computeRentForLevel(pos, level, monopoly);
@@ -1563,7 +1478,6 @@ public class GameService {
         return GameEconomy.upgradeCost(pos);
     }
 
-    /** Po bankructwie zwalnia pola gracza wraz z ulepszeniami. */
     private void releaseProperties(GamePlayer player) {
         player.getOwnedPositions().clear();
         player.getPropertyLevels().clear();
@@ -1584,25 +1498,18 @@ public class GameService {
         }
     }
 
-    /** Cena sprzedazy nieruchomosci — polowa ceny zakupu. */
     public static int sellPrice(int position) {
         return GameEconomy.sellPrice(position);
     }
 
-    /**
-     * Pobiera oplate od gracza. Tarcza Akademicka pokrywa do {@link GameEconomy#SHIELD_MAX_ABSORB} PLN jednorazowo.
-     * Gdy brak siana — uruchamia faze splaty zamiast ujemnego salda.
-     * @return true gdy oplacono od razu, false gdy trwa pending payment
-     */
     private boolean chargePlayer(GameSession session, GamePlayer debtor, int amount,
                                  GamePlayer creditor, String reason, StringBuilder msg) {
         if (amount <= 0) return true;
 
-        // Karta Tarcza Akademicka
         if (debtor.isShieldActive() && amount <= GameEconomy.SHIELD_MAX_ABSORB) {
             debtor.setShieldActive(false);
             msg.append("Tarcza Akademicka absorbuje oplate ").append(amount).append(" PLN! ");
-            if (creditor != null) creditor.setCash(creditor.getCash() + amount); // placi bank
+            if (creditor != null) creditor.setCash(creditor.getCash() + amount);
             return true;
         }
 
@@ -1690,7 +1597,7 @@ public class GameService {
         StringBuilder msg = new StringBuilder();
         applyBankruptcy(debtor, msg);
         session.clearPendingPayment();
-        // Bankrut nie gra dalej — tura przechodzi dalej, dodatkowy rzut anulowany
+
         session.setPendingExtraRollPlayerId(null);
         advanceTurn(session);
         checkGameEnd(session, msg);
@@ -1708,13 +1615,6 @@ public class GameService {
         msg.append(player.getDisplayName()).append(" BANKRUCTWO! ");
     }
 
-    // ========== WYKUP CUDZEJ DZIALKI (Business Tour) ==========
-
-    /**
-     * Po oplaceniu czynszu oferuje kupujacemu wykup dzialki od wlasciciela.
-     * Wykup mozliwy tylko dla zwyklych nieruchomosci (nie resort/utility/szansa),
-     * gdy wlasciciel zyje, brak innych pending, a kupujacy ma gotowke na wykup.
-     */
     private void offerTakeoverIfPossible(GameSession session, GamePlayer buyer,
                                          GamePlayer seller, int pos, StringBuilder msg) {
         if (TILE_PRICE[pos] <= 0) return;
@@ -1736,7 +1636,6 @@ public class GameService {
                 .append(seller.getDisplayName()).append(" za ").append(price).append(" PLN! ");
     }
 
-    /** Gracz wykupuje dzialke, na ktorej wyladowal (Business Tour). */
     @Transactional
     public GameStateDto buyoutTakeover(Long sessionId, String username) {
         return withLock(sessionId, () -> {
@@ -1754,7 +1653,6 @@ public class GameService {
         });
     }
 
-    /** Gracz rezygnuje z wykupu dzialki. */
     @Transactional
     public GameStateDto skipTakeover(Long sessionId, String username) {
         return withLock(sessionId, () -> {
@@ -1772,14 +1670,13 @@ public class GameService {
         });
     }
 
-    /** Timeout decyzji czlowieka — automatyczna rezygnacja z wykupu. */
     @Transactional
     public GameStateDto autoTakeoverTimeout(Long sessionId, int snapPos) {
         return withLock(sessionId, () -> {
             GameSession session = getSession(sessionId);
             if (session.getPendingTakeoverPos() == null
                     || !Integer.valueOf(snapPos).equals(session.getPendingTakeoverPos())) {
-                return null; // juz rozstrzygniete
+                return null;
             }
             GamePlayer buyer = session.getPlayers().stream()
                     .filter(p -> p.getId().equals(session.getPendingTakeoverBuyerId()))
@@ -1789,7 +1686,6 @@ public class GameService {
         });
     }
 
-    /** Bot decyduje o wykupie: wykupuje gdy ma gotowke >= 1.5x ceny, inaczej rezygnuje. */
     @Transactional
     public GameStateDto resolveTakeoverAsBot(Long sessionId, Long buyerId, int snapPos) {
         return withLock(sessionId, () -> {
@@ -1828,7 +1724,7 @@ public class GameService {
             buyer.setCash(buyer.getCash() - price);
             seller.setCash(seller.getCash() + price);
             seller.getOwnedPositions().remove(pos);
-            clearPropertyDevelopment(seller, pos); // wlasciciel traci pole, poziom spada do 0
+            clearPropertyDevelopment(seller, pos);
             buyer.getOwnedPositions().add(pos);
             session.clearPendingTakeover();
             msg.append(buyer.getDisplayName()).append(" WYKUPUJE ").append(TILES[pos])
@@ -1844,7 +1740,6 @@ public class GameService {
         return finishTakeover(session, buyer, username, msg);
     }
 
-    /** Domkniecie decyzji o wykupie — konczy ture kupujacego (z uwzglednieniem dubletu). */
     private GameStateDto finishTakeover(GameSession session, GamePlayer buyer, String username, StringBuilder msg) {
         endTurnOrExtraRoll(session, buyer);
         checkGameEnd(session, msg);
@@ -1858,14 +1753,10 @@ public class GameService {
         return toState(session, username, null, null, msg.toString(), null, null, null, null);
     }
 
-    /**
-     * Co 30 s wymusza koniec gier, ktore przekroczyly limit czasu (60 min),
-     * nawet gdy nikt nie wykonuje ruchu. Zwyciezca = najwyzszy majatek.
-     */
     @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 30_000L)
     @Transactional
     public void enforceTimeLimits() {
-        // Aktywne gry zyja w RAM — iterujemy magazyn, nie DB. Kazda sesja pod swoim lockiem.
+
         for (GameSession ref : new ArrayList<>(activeGameStore.activeSessions())) {
             Long id = ref.getId();
             withLock(id, () -> {
@@ -1876,7 +1767,7 @@ public class GameService {
                 StringBuilder msg = new StringBuilder();
                 checkGameEnd(s, msg);
                 if (s.getStatus() == GameStatus.FINISHED) {
-                    finalizeFinished(s); // zapis koncowy raz + usuniecie z RAM
+                    finalizeFinished(s);
                     publishPublic(id, null, null, msg.toString(), null, null, null, null);
                 }
             });
@@ -1890,7 +1781,6 @@ public class GameService {
                 .filter(p -> !p.isBankrupt())
                 .toList();
 
-        // Limit czasu: po 60 min wygrywa gracz z najwyzszym majatkiem (gotowka + nieruchomosci)
         if (session.getCreatedAt() != null && !active.isEmpty()) {
             long elapsed = ChronoUnit.SECONDS.between(session.getCreatedAt(), LocalDateTime.now());
             if (elapsed >= GameEconomy.GAME_DURATION_SECONDS) {
@@ -1906,7 +1796,6 @@ public class GameService {
             }
         }
 
-        // Wygrana przez 3 kompletne grupy kolorow
         for (GamePlayer p : active) {
             if (countColorMonopolies(p) >= 3) {
                 session.setStatus(GameStatus.FINISHED);
@@ -1915,7 +1804,7 @@ public class GameService {
                 return;
             }
         }
-        // Wygrana przez wszystkie 4 kurorty
+
         for (GamePlayer p : active) {
             if (countKurortyOwned(p) >= 4) {
                 session.setStatus(GameStatus.FINISHED);
@@ -1935,7 +1824,7 @@ public class GameService {
             msg.append("Wszyscy bankruci — remis. ");
             persistGameResults(session, null);
         } else {
-            // Auto-koniec gdy zostaly same boty
+
             boolean onlyBots = active.stream().allMatch(p -> p.getUser() == null);
             if (onlyBots) {
                 session.setStatus(GameStatus.FINISHED);
@@ -1969,10 +1858,6 @@ public class GameService {
         return count;
     }
 
-    /**
-     * Komunikaty "blisko wygranej" — broadcast do WSZYSTKICH (lacznie z zagrozonym graczem).
-     * Monopole: wygrana = 3 grupy (alert przy 1 i 2). Kurorty: wygrana = 4 (alert przy 2 i 3).
-     */
     private void appendWinAlerts(List<GamePlayer> players, StringBuilder msg) {
         for (GamePlayer p : players) {
             if (p.isBankrupt()) continue;
@@ -1993,14 +1878,12 @@ public class GameService {
         }
     }
 
-    /** Zapisuje MatchHistory i aktualizuje PlayerStatistics po koncu gry. */
     private void persistGameResults(GameSession session, GamePlayer winner) {
         long humanPlayers = session.getPlayers().stream().filter(p -> p.getUser() != null).count();
         if (humanPlayers == 0) return;
         int allPlayers = session.getPlayers().size();
         long durationMinutes = ChronoUnit.MINUTES.between(session.getCreatedAt(), LocalDateTime.now());
 
-        // Miejsca: zwyciezca 1., pozostali wg gotowki na koniec gry (bankruci na koncu)
         List<GamePlayer> ranked = new ArrayList<>(session.getPlayers());
         ranked.sort((a, b) -> {
             boolean aWon = winner != null && winner.getId().equals(a.getId());
@@ -2032,7 +1915,6 @@ public class GameService {
             mh.setEloChange(eloChange);
             matchHistoryRepository.save(mh);
 
-            // Monety za mecz: solidna nagroda za wygrana, drobny udzial za uczestnictwo.
             int coinReward = won ? GameEconomy.COINS_WIN_REWARD : GameEconomy.COINS_PARTICIPATION;
             user.addCoins(coinReward);
 
@@ -2042,7 +1924,7 @@ public class GameService {
                 if (won) {
                     stats.setGamesWon(stats.getGamesWon() + 1);
                     stats.setWinStreak(stats.getWinStreak() + 1);
-                    // Lootbox za wygraną (max 10 w zapasie)
+
                     stats.setAvailableLootboxes(Math.min(stats.getAvailableLootboxes() + 1, 10));
                 } else {
                     stats.setWinStreak(0);
@@ -2054,7 +1936,6 @@ public class GameService {
         }
     }
 
-    /** Mapa slug koloru -> hex z katalogu lootbox. */
     private static final Map<String, String> PAWN_COLORS = Map.of(
             "color-blue",    "#38bdf8",
             "color-red",     "#f43f5e",
@@ -2063,7 +1944,6 @@ public class GameService {
             "color-neon",    "#a3e635"
     );
 
-    /** Zwraca kolor pionka wg. zalozonego itemu gracza lub domyslny. */
     private String equippedColor(User user, String defaultColor) {
         if (user == null || user.getId() == null) return defaultColor;
         List<OwnedItem> equipped = ownedItemRepository.findByUserIdAndEquipped(user.getId(), true);
@@ -2074,7 +1954,6 @@ public class GameService {
         return defaultColor;
     }
 
-    /** Zwraca unikalny kolor dla gracza — jeśli kolor jest zajęty, dobiera pierwszy wolny z COLORS. */
     private String uniqueColor(User user, GameSession session) {
         Set<String> taken = session.getPlayers().stream()
                 .map(GamePlayer::getColor)
@@ -2087,7 +1966,6 @@ public class GameService {
         return COLORS[session.getPlayers().size() % COLORS.length];
     }
 
-    /** Sciezka GLB zalozonego pionka 3D ze skrzynki lub null. */
     private String equippedPawnModel(User user) {
         if (user == null || user.getId() == null) return null;
         return PawnModelCatalog.equippedModelPath(
@@ -2112,8 +1990,7 @@ public class GameService {
     private void publishPublic(Long sessionId, Integer d1, Integer d2, String message,
                                Long movedId, Integer fromPos, Integer toPos,
                                ChanceCardDto card) {
-        // Build state inside transaction (uses JPA 1st-level cache = current in-memory state)
-        // Broadcast is deferred to afterCommit so clients that act on WS don't race the commit
+
         GameStateDto state = buildPublicState(sessionId, d1, d2, message, movedId, fromPos, toPos, card);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -2127,17 +2004,15 @@ public class GameService {
         }
     }
 
-
     public void broadcastReaction(Long sessionId, String username, String reactionCode) {
         GameSession session = getSession(sessionId);
         GamePlayer player = findPlayerByUsername(session, username);
-        
+
         Map<String, Object> payload = new HashMap<>();
         payload.put("type", "REACTION");
         payload.put("playerId", player.getId());
         payload.put("code", reactionCode);
-        
-        // reactionCode moze byc emoji (np. "😂") lub slugiem naklejki (np. "emoji-pizza")
+
         if (reactionCode.startsWith("emoji-")) {
             LootboxService.LootboxItem item = LootboxService.findBySlug(reactionCode);
             if (item != null) payload.put("icon", item.iconClass());
@@ -2159,11 +2034,6 @@ public class GameService {
         players.get(next).setDoublesCount(0);
     }
 
-    /**
-     * Konczy ture gracza. Jesli gracz ma prawo do dodatkowego rzutu (dublet lub karta
-     * "Dodatkowy rzut") i nie zbankrutowal — tura zostaje przy nim (rzuca ponownie).
-     * W przeciwnym razie tura przechodzi do nastepnego niezbankrutowanego gracza.
-     */
     private void endTurnOrExtraRoll(GameSession session, GamePlayer player) {
         Long extra = session.getPendingExtraRollPlayerId();
         if (player != null && extra != null && extra.equals(player.getId()) && !player.isBankrupt()) {
@@ -2182,7 +2052,6 @@ public class GameService {
                 .ifPresent(p -> session.setLeaderId(p.getUser().getId()));
     }
 
-    /** Czysci oczekujace decyzje i ustawia pierwsza ture na czlowieka (jesli jest). */
     private void beginActivePlay(GameSession session) {
         session.clearPendingPurchase();
         session.clearPendingPayment();
@@ -2313,7 +2182,7 @@ public class GameService {
                 winnerId = active.get(0).getId();
                 winnerName = active.get(0).getDisplayName();
             } else if (!active.isEmpty()) {
-                // Wygrana przez monopole lub kurorty — znajdz gracza spelniajacego warunek
+
                 GamePlayer monopoleWinner = active.stream()
                         .filter(p -> countColorMonopolies(p) >= 3)
                         .findFirst().orElse(null);
@@ -2328,7 +2197,7 @@ public class GameService {
                         winnerId = kurortWinner.getId();
                         winnerName = kurortWinner.getDisplayName();
                     } else {
-                        // Wygrana po limicie czasu — najwyzszy majatek
+
                         GamePlayer richest = active.stream()
                                 .max(java.util.Comparator.comparingInt(GameEconomy::netWorth))
                                 .orElse(active.get(0));
@@ -2339,11 +2208,9 @@ public class GameService {
             }
         }
 
-        // Lista cen i grup pol — statyczne dane do rysowania UI
         List<Integer> prices = new ArrayList<>();
         for (int v : TILE_PRICE) prices.add(v);
 
-        // Karty reki — tylko dla gracza, ktory robi zapytanie
         List<HandCardDto> myHandCards = null;
         if (username != null) {
             for (GamePlayer p : players) {
@@ -2361,7 +2228,6 @@ public class GameService {
             }
         }
 
-        // Pending upgrade
         PendingUpgradeDto pendingUpgrade = null;
         if (session.getPendingUpgradePos() != null) {
             int uPos = session.getPendingUpgradePos();
@@ -2400,7 +2266,6 @@ public class GameService {
             );
         }
 
-        // Wykup cudzej dzialki (Business Tour)
         PendingTakeoverDto pendingTakeover = null;
         if (session.getPendingTakeoverPos() != null && session.getPendingTakeoverPrice() != null) {
             int tPos = session.getPendingTakeoverPos();
@@ -2418,7 +2283,6 @@ public class GameService {
 
         List<PropertyCardDto> myPropertyCards = buildMyPropertyCards(session, username);
 
-        // Pozostaly czas gry (sekundy) — tylko dla trwajacej rozgrywki
         Long secondsLeft = null;
         if (session.getStatus() == GameStatus.ACTIVE && session.getCreatedAt() != null) {
             long elapsed = ChronoUnit.SECONDS.between(session.getCreatedAt(), LocalDateTime.now());
@@ -2435,7 +2299,7 @@ public class GameService {
 
     private List<PropertyCardDto> buildMyPropertyCards(GameSession session, String username) {
         if (username == null) {
-            return null; // null w WS broadcast — klient zachowuje ostatni cache
+            return null;
         }
         GamePlayer me = session.getPlayers().stream()
                 .filter(p -> p.getUser() != null && p.getUser().getUsername().equals(username))
@@ -2469,8 +2333,6 @@ public class GameService {
         }
         return cards;
     }
-
-    // ========== ODKUP PO PRZEJECIU KARTA ==========
 
     @Transactional
     public GameStateDto buybackProperty(Long sessionId, String username) {
@@ -2621,12 +2483,6 @@ public class GameService {
         return skipBuyback(sessionId, null);
     }
 
-    // ========== KARTY W RECE ==========
-
-    /**
-     * Bot zagrywa karte z reki (uzywane przez BotAutoplayService).
-     * Nie wymaga username — identyfikacja po botPlayerId.
-     */
     @Transactional
     public GameStateDto playCard(Long sessionId, Long botPlayerId, String cardType) {
         return withLock(sessionId, () -> playCardBotInternal(sessionId, botPlayerId, cardType));
@@ -2646,8 +2502,7 @@ public class GameService {
         } catch (IllegalArgumentException ex) {
             return null;
         }
-        // Boty graja proste karty: ADD_CASH, EXTRA_ROLL, SCHOLARSHIP_ALL, DOUBLE_RENT_NEXT
-        // Karty wymagajace targetPos (TELEPORT, FREE_UPGRADE, DESTROY_PROPERTY) pomijane
+
         if (type == HandCardType.TELEPORT || type == HandCardType.FREE_UPGRADE
                 || type == HandCardType.DESTROY_PROPERTY) {
             return null;
@@ -2690,10 +2545,6 @@ public class GameService {
         return buildPublicState(session.getId(), null, null, msg.toString(), null, null, null, null);
     }
 
-    /**
-     * Gracz zagrywa karte z reki.
-     * @param targetPos pozycja pola (wymagana dla DESTROY_PROPERTY, ignorowana dla reszty)
-     */
     @Transactional
     public GameStateDto playCard(Long sessionId, String username, String cardType, Integer targetPos) {
         return withLock(sessionId, () -> playCardInternal(sessionId, username, cardType, targetPos));
@@ -2833,9 +2684,6 @@ public class GameService {
         return toState(session, username, null, null, msg.toString(), null, null, null, null);
     }
 
-    // ========== ULEPSZENIA NIERUCHOMOSCI ==========
-
-    /** Wlasciciel ulepsza pole (Domek lub Hotel). */
     @Transactional
     public GameStateDto upgrade(Long sessionId, String username) {
         return withLock(sessionId, () -> upgradeInternal(sessionId, username));
@@ -2891,11 +2739,6 @@ public class GameService {
         return toState(session, username, null, null, msg, null, null, null, null);
     }
 
-    /**
-     * Auto-timeout ulepszenia (15s) — wywolywane przez BotAutoplayService.
-     * snapPos/snapPlayerId to migawka z chwili zaplanowania timera — przeterminowany
-     * timer z poprzedniego ulepszenia nie skasuje nowszej, cudzej decyzji.
-     */
     @Transactional
     public GameStateDto autoUpgradeTimeout(Long sessionId, int snapPos, Long snapPlayerId) {
         return withLock(sessionId, () -> autoUpgradeTimeoutInternal(sessionId, snapPos, snapPlayerId));
@@ -2927,7 +2770,6 @@ public class GameService {
         return doSkipUpgrade(session, decider, username, true);
     }
 
-    /** Wlasciciel pomija ulepszenie pola. */
     @Transactional
     public GameStateDto skipUpgrade(Long sessionId, String username) {
         return withLock(sessionId, () -> skipUpgradeInternal(sessionId, username));
@@ -2974,6 +2816,5 @@ public class GameService {
         return code;
     }
 
-    /** Wewnetrzny rekord karty Szansy. */
     public record ChanceCard(String title, String description, int moneyEffect) {}
 }

@@ -2,7 +2,6 @@ package pl.pb.monopoly.util;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/** Publiczny adres aplikacji (ngrok, reverse proxy, LAN). */
 public final class PublicUrlHelper {
 
     private PublicUrlHelper() {

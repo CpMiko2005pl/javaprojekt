@@ -4,7 +4,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import pl.pb.monopoly.dto.GameInviteNotificationDto;
 
-/** Powiadomienia per uzytkownik (zaproszenia do gry itp.). */
 @Service
 public class UserNotificationService {
 

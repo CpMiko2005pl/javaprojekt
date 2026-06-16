@@ -9,16 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Gracz w obrebie jednej sesji rozgrywki.
- * - cash: "siano" (gotowka w grze)
- * - ownedPositions: posiadane pola
- * - propertyLevels: poziomy ulepszenia pol (0=brak, 1-2=domki, 3=hotel)
- * - landingCounts: ile razy wlasciciel SZNUROWL na WLASNYM polu (do oferty ulepszenia)
- * - handCards: karty w rece (maks. 3, nazwy HandCardType)
- * - skipNextRent: karta "Ochrona" jest aktywna
- * - shieldActive: karta "Tarcza Akademicka" jest aktywna
- */
 @Entity
 @Table(name = "game_players")
 public class GamePlayer {
@@ -39,7 +29,7 @@ public class GamePlayer {
     private String displayName;
 
     @Column(nullable = false)
-    /** Startowy kapitał — Business Tour (2 000 000 PLN). */
+
     private int cash = 2_000_000;
 
     @Column(nullable = false)
@@ -54,14 +44,12 @@ public class GamePlayer {
     @Column(name = "turn_order", nullable = false)
     private int turnOrder = 0;
 
-    /** Pola planszy, ktore gracz posiada (pozycje 0-39). */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_player_properties",
             joinColumns = @JoinColumn(name = "player_id"))
     @Column(name = "position")
     private Set<Integer> ownedPositions = new HashSet<>();
 
-    /** Poziomy ulepszenia pol: pozycja -> poziom (0=brak, 1=domek, 2=hotel). */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_player_property_levels",
             joinColumns = @JoinColumn(name = "player_id"))
@@ -69,7 +57,6 @@ public class GamePlayer {
     @Column(name = "level")
     private Map<Integer, Integer> propertyLevels = new HashMap<>();
 
-    /** Ile razy wlasciciel stanął na WLASNYM polu (do logiki ulepszenia). */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_player_landing_counts",
             joinColumns = @JoinColumn(name = "player_id"))
@@ -77,38 +64,30 @@ public class GamePlayer {
     @Column(name = "landing_count")
     private Map<Integer, Integer> landingCounts = new HashMap<>();
 
-    /** Karty w rece (HandCardType.name()), maks. 3 na gre. */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "game_player_hand_cards",
             joinColumns = @JoinColumn(name = "player_id"))
     @Column(name = "card_type")
     private List<String> handCards = new ArrayList<>();
 
-    /** Gracz zglosil gotowosc w fazie lobby (WAITING). */
     @Column(name = "ready", nullable = false, columnDefinition = "boolean default false")
     private boolean ready = false;
 
-    /** Liczba dubletow z rzedu w biezacej kolejce ruchu (3 dublety = wiezienie). */
     @Column(name = "doubles_count", nullable = false, columnDefinition = "integer default 0")
     private int doublesCount = 0;
 
-    /** Ile razy gracz rzucil kostka w biezacej turze (blokada podwojnego rzutu). */
     @Column(name = "rolls_this_turn", nullable = false, columnDefinition = "integer default 0")
     private int rollsThisTurn = 0;
 
-    /** Karta "Karta Ochrony" jest aktywna — nastepny czynsz jest pomijany. */
     @Column(name = "skip_next_rent", nullable = false)
     private boolean skipNextRent = false;
 
-    /** Karta "Tarcza Akademicka" jest aktywna. */
     @Column(name = "shield_active", nullable = false)
     private boolean shieldActive = false;
 
-    /** Karta "Podwojny Wymagacz" — nastepny zebrany czynsz jest x2. */
     @Column(name = "double_rent_next", nullable = false, columnDefinition = "boolean default false")
     private boolean doubleRentNext = false;
 
-    /** Karta "Przepustka z Dziekanatu" — nastepna wizyta w Dziekanacie bezplatna. */
     @Column(name = "jail_pass_active", nullable = false, columnDefinition = "boolean default false")
     private boolean jailPassActive = false;
 

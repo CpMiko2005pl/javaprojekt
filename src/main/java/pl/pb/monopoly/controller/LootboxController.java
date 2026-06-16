@@ -19,10 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * REST endpoint do otwierania skrzynki - zwraca wylosowany item i wirtualna
- * "tasme" itemow do animacji karuzeli (CS2-style) na froncie.
- */
 @RestController
 public class LootboxController {
 
@@ -82,10 +78,6 @@ public class LootboxController {
         }
     }
 
-    /**
-     * Zaloz / zdejmij przedmiot z ekwipunku.
-     * Dla kategorii "Kolor pionka" mozliwy jest tylko 1 equipped naraz.
-     */
     @PostMapping("/inventory/{id}/equip")
     @Transactional
     public ResponseEntity<?> equip(@PathVariable Long id, Authentication auth) {
@@ -100,7 +92,7 @@ public class LootboxController {
         String slot = LootboxService.equipSlot(category);
         boolean willEquip = !item.isEquipped();
         if (willEquip) {
-            // zdejmij inne itemy z tego samego slotu (np. wszystkie pionki)
+
             ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
                     .filter(o -> !o.getId().equals(id))
                     .filter(o -> {
@@ -112,7 +104,6 @@ public class LootboxController {
         item.setEquipped(willEquip);
         ownedItemRepository.save(item);
 
-        // Dla kart bonusowych: equip = ustaw pending_wheel_card; unequip = clear
         if ("Karta bonusowa".equals(category)) {
             HandCardType cardType = LootboxService.BONUS_CARD_MAP.get(item.getItemSlug());
             PlayerStatistics stats = user.getStatistics();
@@ -144,7 +135,6 @@ public class LootboxController {
                 "message", message
         ));
     }
-
 
     @PostMapping("/inventory/{id}/delete")
     @Transactional

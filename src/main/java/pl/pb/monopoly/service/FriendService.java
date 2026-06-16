@@ -13,10 +13,6 @@ import pl.pb.monopoly.repository.UserRepository;
 
 import java.util.List;
 
-/**
- * System znajomych: wysylanie zaproszen, akceptacja, lista znajomych,
- * wyszukiwanie graczy. Znajomych mozna potem zaprosic do wspolnej rozgrywki.
- */
 @Service
 public class FriendService {
 
@@ -46,7 +42,6 @@ public class FriendService {
         return s != null ? s.getEloPoints() : 0;
     }
 
-    /** Lista zaakceptowanych znajomych danego gracza. */
     @Transactional(readOnly = true)
     public List<FriendDto> friendsOf(String username) {
         User me = user(username);
@@ -61,7 +56,6 @@ public class FriendService {
         }).toList();
     }
 
-    /** Oczekujace zaproszenia skierowane do gracza. */
     @Transactional(readOnly = true)
     public List<FriendRequestDto> pendingFor(String username) {
         User me = user(username);
@@ -72,7 +66,6 @@ public class FriendService {
                 .toList();
     }
 
-    /** Wyszukiwanie graczy po loginie (z wykluczeniem samego siebie). */
     @Transactional(readOnly = true)
     public List<FriendDto> search(String fragment, String username) {
         if (fragment == null || fragment.isBlank()) {
@@ -93,7 +86,7 @@ public class FriendService {
         if (from.getId().equals(to.getId())) {
             throw new IllegalArgumentException("Nie mozesz dodac samego siebie");
         }
-        // Czy relacja juz istnieje (w dowolnym kierunku)?
+
         boolean exists = friendshipRepository.existsByRequesterIdAndAddresseeId(from.getId(), to.getId())
                 || friendshipRepository.existsByRequesterIdAndAddresseeId(to.getId(), from.getId());
         if (exists) {
@@ -112,14 +105,12 @@ public class FriendService {
         f.setStatus(FriendStatus.ACCEPTED);
     }
 
-    /** Czy uzytkownik ma zaakceptowana znajomosc z danym graczem. */
     @Transactional(readOnly = true)
     public boolean isFriend(String username, Long otherUserId) {
         if (otherUserId == null) return false;
         return friendsOf(username).stream().anyMatch(f -> otherUserId.equals(f.userId()));
     }
 
-    /** Odrzucenie zaproszenia lub usuniecie znajomego. */
     @Transactional
     public void removeOrReject(Long friendshipId, String username) {
         Friendship f = friendshipRepository.findById(friendshipId)

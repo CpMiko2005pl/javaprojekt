@@ -8,12 +8,6 @@ import pl.pb.monopoly.service.UserService;
 
 import java.util.List;
 
-/**
- * Usluga REST (wymaganie: usluga REST). Publiczny endpoint zwracajacy JSON
- * z globalnym rankingiem najlepszych graczy wg punktow ELO (jak FACEIT).
- *
- * Przyklad: GET http://localhost:8080/api/ranking-najlepszych
- */
 @RestController
 @RequestMapping("/api")
 public class RankingRestController {

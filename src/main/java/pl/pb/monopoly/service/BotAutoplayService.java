@@ -19,54 +19,39 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Automatyzacja: <ul>
- *   <li>boty rzucaja kostka 1.5s po przejsciu na ich ture,</li>
- *   <li>boty decyduja pendingPurchase (kupuja gdy cash &gt; 2x cena, inaczej skipuja) po 1.3s,</li>
- *   <li>boty decyduja pendingUpgrade po 1.3s (nie czekaja 15s jak czlowiek),</li>
- *   <li>czlowiek ma 25s na decyzje pendingPurchase - po tym czasie auto-skip.</li>
- * </ul>
- *
- * Wszystkie zaplanowane akcje wywoluja {@link GameService} ktore zapisuje stan i broadcastuje
- * przez WebSocket. {@link BotAutoplayService#onTurnUpdate(Long)} jest hookiem wolanym po kazdej
- * zmianie stanu by lancuchowo planowac kolejne akcje.
- */
 @Service
 public class BotAutoplayService {
 
     private static final Logger log = LoggerFactory.getLogger(BotAutoplayService.class);
 
-    /** Opoznienie miedzy zakonczeniem stanu a rzutem bota - dramaturgia. */
     private static final long BOT_ROLL_DELAY_MS = 1500;
-    /** Bot decyduje (kupno/ulepszenie/splata) dopiero po animacji ruchu u klienta (~5s). */
+
     private static final long BOT_DECISION_DELAY_MS = 4200;
-    /** Czas na decyzje gracza-czlowieka (kupno pola). Liczony od rzutu, a animacja
-        pionka u klienta trwa kilka sekund — stad zapas, by zdazyc kliknac Kupuj/Pomin. */
+
     private static final long HUMAN_DECISION_TIMEOUT_SECONDS = 25;
-    /** Czas na splate zadluzenia (sprzedaz, pozyczka). */
+
     private static final long HUMAN_PAYMENT_TIMEOUT_SECONDS = 30;
-    /** Czas na decyzje czlowieka o ulepszeniu pola. */
+
     private static final long HUMAN_UPGRADE_TIMEOUT_SECONDS = 15;
-    /** Czas na decyzje czlowieka o wykupie cudzej dzialki (Business Tour). */
+
     private static final long HUMAN_TAKEOVER_TIMEOUT_SECONDS = 15;
-    /** Krotki retry gdy akcja bota zwrocila null lub rzucila wyjatek. */
+
     private static final long BOT_RECOVERY_DELAY_MS = 600;
 
-    /** Sesja jest "aktywna dla watchdoga" tylko przez ten czas od ostatniej akcji. */
     private static final long WATCHDOG_ACTIVE_WINDOW_MS = 90_000;
 
     private final GameSessionRepository sessionRepository;
     private final GameService gameService;
-    /** Aktywne gry zyja w RAM — bot czyta stan stad, nie z DB. */
+
     private final ActiveGameStore activeGameStore;
-    /** Self-proxy — by watchdog/recovery wolaly onTurnUpdate przez proxy (z @Transactional). */
+
     private final ObjectProvider<BotAutoplayService> selfProvider;
     private final ScheduledExecutorService scheduler;
-    /** Anuluj poprzedni timer sesji — bez tego stare auto-skipy kasuja aktywne kupno. */
+
     private final ConcurrentHashMap<Long, ScheduledFuture<?>> pendingTasks = new ConcurrentHashMap<>();
-    /** Watchdog: ile kolejnych cykli sesja jest bez zaplanowanej akcji (do wykrycia zawieszenia). */
+
     private final ConcurrentHashMap<Long, Integer> idleCycles = new ConcurrentHashMap<>();
-    /** Ostatnia aktywnosc sesji (ms) — watchdog ignoruje porzucone/stare sesje. */
+
     private final ConcurrentHashMap<Long, Long> lastActivity = new ConcurrentHashMap<>();
 
     public BotAutoplayService(GameSessionRepository sessionRepository,
@@ -82,31 +67,25 @@ public class BotAutoplayService {
             t.setDaemon(true);
             return t;
         });
-        // Watchdog: co 5s odblokowuje sesje, w ktorych lancuch botow sie urwal
-        // (np. zgubiony broadcast, wyjatek bez retry, niespojny stan po stronie klienta).
+
         this.scheduler.scheduleWithFixedDelay(this::watchdog, 8, 5, TimeUnit.SECONDS);
     }
 
-    /**
-     * Co kilka sekund sprawdza aktywne sesje. Jesli sesja od &gt;=2 cykli (~10s) nie ma
-     * zaplanowanej zadnej akcji bota, ponownie wywoluje onTurnUpdate — dzieki temu gra
-     * nigdy nie zawisa na turze bota, nawet gdy lancuch zdarzen sie urwal.
-     */
     private void watchdog() {
         try {
             long now = System.currentTimeMillis();
-            // sprzataj stare wpisy
+
             lastActivity.entrySet().removeIf(e -> now - e.getValue() > WATCHDOG_ACTIVE_WINDOW_MS);
             for (Long id : new java.util.ArrayList<>(lastActivity.keySet())) {
                 if (pendingTasks.containsKey(id)) {
-                    idleCycles.remove(id);      // cos jest zaplanowane — sesja zyje
+                    idleCycles.remove(id);
                     continue;
                 }
                 int idle = idleCycles.merge(id, 1, Integer::sum);
                 if (idle >= 2) {
                     idleCycles.remove(id);
                     log.info("Watchdog: odblokowuje sesje {} (brak akcji bota)", id);
-                    // przez proxy — inaczej @Transactional sie nie zalaczy (self-invocation)
+
                     selfProvider.getObject().onTurnUpdate(id);
                 }
             }
@@ -116,16 +95,11 @@ public class BotAutoplayService {
         }
     }
 
-    /**
-     * Wolane po kazdej operacji ktora zmienia stan rozgrywki (roll/buy/skip/bid).
-     * Decyduje czy zaplanowac auto-rzut bota lub timeout decyzji czlowieka.
-     * Transakcja read-only zapewnia ze lazy associacje (players) sa dostepne.
-     */
     @Transactional(readOnly = true)
     public void onTurnUpdate(Long sessionId) {
         if (sessionId == null) return;
         try {
-            // Gra ACTIVE jest w RAM — odczyt bez SQL. Brak w RAM = nieaktywna.
+
             GameSession s = activeGameStore.get(sessionId);
             if (s == null) { clearTracking(sessionId); return; }
             if (s.getPlayers().isEmpty()) return;
@@ -133,7 +107,6 @@ public class BotAutoplayService {
             if (s.getStatus() == pl.pb.monopoly.domain.GameStatus.WAITING) { clearTracking(sessionId); return; }
             lastActivity.put(sessionId, System.currentTimeMillis());
 
-            // 1) Aktywna splata zadluzenia
             if (s.getPendingPaymentDebtorId() != null && s.getPendingPaymentAmount() != null) {
                 Long debtorId = s.getPendingPaymentDebtorId();
                 int snapAmount = s.getPendingPaymentAmount();
@@ -153,7 +126,6 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 1b) Odkup posesji po karcie przejecia
             if (s.getPendingBuybackVictimId() != null && s.getPendingBuybackPos() != null
                     && s.getPendingBuybackPrice() != null) {
                 int snapPos = s.getPendingBuybackPos();
@@ -175,7 +147,6 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 2a) Aktywne ulepszenie — bot decyduje szybko, czlowiek ma 15s
             if (s.getPendingUpgradePos() != null) {
                 int snapUpgradePos = s.getPendingUpgradePos();
                 Long snapUpgradePlayer = s.getPendingUpgradePlayerId();
@@ -196,7 +167,6 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 2a') Wykup cudzej dzialki (Business Tour) — bot decyduje szybko, czlowiek ma 15s
             if (s.getPendingTakeoverPos() != null) {
                 Long buyerId = s.getPendingTakeoverBuyerId();
                 if (buyerId == null) return;
@@ -217,7 +187,6 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 2b) Aktywna decyzja kupna - zaplanuj akcje decydenta
             if (s.getPendingPurchasePos() != null) {
                 Long deciderId = s.getPendingDeciderId();
                 if (deciderId == null) return;
@@ -238,12 +207,11 @@ public class BotAutoplayService {
                 return;
             }
 
-            // 3) Brak decyzji - jesli aktywny gracz to bot, zagraj karte (opcjonalnie) i rzuc
             int turnIdx = activeTurnIndex(s.getPlayers(), s.getCurrentTurn());
             GamePlayer current = s.getPlayers().get(turnIdx);
             if (current.getUser() == null && !current.isBankrupt()) {
                 Long botId = current.getId();
-                // Bot heurystycznie gra karte przed rzutem jezeli jest korzystna
+
                 String cardToPlay = chooseBotCard(current, s);
                 if (cardToPlay != null) {
                     final String card = cardToPlay;
@@ -251,7 +219,7 @@ public class BotAutoplayService {
                             () -> {
                                 GameStateDto result = gameService.playCard(sessionId, botId, card);
                                 if (result == null) {
-                                    // Karta nie zagrana (np. wymagala targetPos) — rzuc normalnie
+
                                     gameService.rollAsBot(sessionId, botId);
                                 }
                             },
@@ -268,15 +236,10 @@ public class BotAutoplayService {
         }
     }
 
-    /**
-     * Bot wybiera karte do zagrania przed rzutem (heurystycznie).
-     * Zwraca name() karty lub null jezeli bot nie chce grac zadnej.
-     */
     private static String chooseBotCard(GamePlayer bot, GameSession s) {
         List<String> hand = bot.getHandCards();
         if (hand == null || hand.isEmpty()) return null;
 
-        // Priorytet: EXTRA_ROLL > SCHOLARSHIP_ALL > ADD_CASH (jak malo siana) > DOUBLE_RENT_NEXT
         for (String c : hand) {
             if (HandCardType.EXTRA_ROLL.name().equals(c)) return c;
         }
@@ -292,7 +255,6 @@ public class BotAutoplayService {
         return null;
     }
 
-    /** Indeks pierwszego niebankruta od biezacej tury (jak normalizeCurrentTurn, bez zapisu). */
     private static int activeTurnIndex(List<GamePlayer> players, int currentTurn) {
         int n = players.size();
         if (n == 0) return 0;
@@ -314,11 +276,10 @@ public class BotAutoplayService {
         pendingTasks.put(sessionId, future);
     }
 
-    /** Ponowna proba gdy lancuch botow sie urwal (null return / wyjatek). */
     private void scheduleRecovery(Long sessionId) {
         scheduler.schedule(() -> {
             try {
-                // przez proxy — onTurnUpdate wymaga @Transactional (lazy players/user)
+
                 selfProvider.getObject().onTurnUpdate(sessionId);
             } catch (Exception ex) {
                 log.warn("Bot recovery failed for session {}: {}", sessionId, ex.getMessage());

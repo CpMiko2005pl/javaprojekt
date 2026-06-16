@@ -1,6 +1,5 @@
 package pl.pb.monopoly.dto;
 
-/** Powiadomienie WebSocket wysylane do zaproszonego gracza. */
 public record GameInviteNotificationDto(
         String type,
         Long inviteId,

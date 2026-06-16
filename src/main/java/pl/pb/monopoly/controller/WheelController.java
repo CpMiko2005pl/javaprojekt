@@ -10,10 +10,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import pl.pb.monopoly.dto.WheelResultDto;
 import pl.pb.monopoly.service.WheelService;
 
-/**
- * Codzienne Kolo Fortuny Stypendialnego. Strona z kolem (canvas) oraz endpoint
- * losowania (raz dziennie) zwracajacy JSON z wynikiem do animacji na froncie.
- */
 @Controller
 public class WheelController {
 

@@ -17,10 +17,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Logika biznesowa zwiazana z uzytkownikami: rejestracja, panel admina
- * (doladowanie srodkow, weryfikacja, zmiana roli) oraz ranking dla REST.
- */
 @Service
 public class UserService {
 
@@ -43,7 +39,6 @@ public class UserService {
         return userRepository.existsByEmail(email);
     }
 
-    /** Rejestracja nowego gracza na podstawie zwalidowanego formularza. */
     @Transactional
     public User register(RegistrationForm form) {
         User user = new User();
@@ -54,9 +49,8 @@ public class UserService {
         user.setAge(form.getAge());
         user.setPassword(passwordEncoder.encode(form.getPassword()));
         user.setRole(Role.USER);
-        user.setCoins(1000); // startowy banknot monet dla nowego konta
+        user.setCoins(1000);
 
-        // Klient REST: pobierz awatar z DiceBear, jesli gracz nie ustawil wlasnego.
         if (user.getAvatarUrl() == null || user.getAvatarUrl().isBlank()) {
             String avatar = avatarFetchService.fetchAvatarUrl(user.getUsername());
             if (avatar != null) {
@@ -64,9 +58,8 @@ public class UserService {
             }
         }
 
-        // Kompozycja: kazdy nowy gracz dostaje wlasny rekord statystyk.
         PlayerStatistics stats = new PlayerStatistics();
-        stats.setLevel(GameEconomy.levelForElo(stats.getEloPoints())); // poziom spojny z ELO (1000 -> 4)
+        stats.setLevel(GameEconomy.levelForElo(stats.getEloPoints()));
         user.attachStatistics(stats);
 
         return userRepository.save(user);
@@ -83,13 +76,8 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("Nie ma uzytkownika o id " + id));
     }
 
-    /** Dozwolone kryteria sortowania listy admina (whitelist — ochrona przed wstrzyknieciem). */
     private static final java.util.Set<String> SORTABLE = java.util.Set.of("username", "createdAt", "coins");
 
-    /**
-     * Panel admina: lista uzytkownikow z filtrami (data rejestracji od, rola) i
-     * sortowaniem (username/createdAt/coins, rosnaco/malejaco). Wspolna dla MVC i REST.
-     */
     @Transactional(readOnly = true)
     public List<User> findForAdmin(String sort, String dir, LocalDate dateFrom, Role role) {
         String property = (sort != null && SORTABLE.contains(sort)) ? sort : "username";
@@ -98,7 +86,6 @@ public class UserService {
         return userRepository.findForAdmin(role, from, Sort.by(direction, property));
     }
 
-    /** Panel admina: edycja danych biezacych uzytkownika (bez hasla i roli). */
     @Transactional
     public void updateByAdmin(Long id, AdminUserEditForm form) {
         User user = getById(id);
@@ -117,13 +104,11 @@ public class UserService {
         user.setBio(form.getBio() != null && !form.getBio().isBlank() ? form.getBio().strip() : null);
     }
 
-    /** Panel admina: weryfikacja konta po przeslaniu legitymacji PB. */
     @Transactional
     public void setVerified(Long userId, boolean verified) {
         getById(userId).setVerified(verified);
     }
 
-    /** Panel admina: zarzadzanie rolami uzytkownikow. */
     @Transactional
     public void changeRole(Long userId, Role role) {
         getById(userId).setRole(role);
@@ -134,7 +119,6 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    /** Aktualizacja danych profilu (email, bio, banner, awatar). */
     @Transactional
     public void updateProfile(String username, String newEmail, String bio,
                               String bannerUrl, String avatarUrl, String profileBgUrl) {
@@ -153,7 +137,6 @@ public class UserService {
         user.setProfileBgUrl(profileBgUrl != null && !profileBgUrl.isBlank() ? profileBgUrl.strip() : null);
     }
 
-    /** Zmiana hasla po weryfikacji biezacego. */
     @Transactional
     public void changePassword(String username, String currentPwd, String newPwd) {
         User user = userRepository.findByUsername(username)
@@ -167,7 +150,6 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPwd));
     }
 
-    /** Dane do uslugi REST: ranking najlepszych graczy wg punktow ELO. */
     @Transactional(readOnly = true)
     public List<RankingEntryDto> topPlayers() {
         List<User> top = userRepository.findTopPlayers(PageRequest.of(0, 10));

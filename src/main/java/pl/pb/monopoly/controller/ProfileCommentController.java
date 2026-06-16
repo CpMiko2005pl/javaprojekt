@@ -17,13 +17,6 @@ import pl.pb.monopoly.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
-/**
- * Komentarze pod profilem gracza. Zasady:
- *  - jeden autor = maks. 1 komentarz pod danym profilem (edycja/usuniecie, po usunieciu mozna dodac nowy),
- *  - usunac komentarz moze: autor, WLASCICIEL profilu (zarzadza swoja tablica) lub admin/moderator,
- *  - na odpowiedz pod komentarzem moze tylko wlasciciel profilu,
- *  - polubic komentarz moze kazdy zalogowany (toggle).
- */
 @Controller
 public class ProfileCommentController {
 
@@ -123,7 +116,6 @@ public class ProfileCommentController {
         return "redirect:" + back;
     }
 
-    /** Odpowiedz wlasciciela profilu pod komentarzem. Pusta tresc kasuje odpowiedz. */
     @PostMapping("/comments/{id}/reply")
     @Transactional
     public String reply(@PathVariable Long id,
@@ -154,7 +146,6 @@ public class ProfileCommentController {
         return "redirect:" + back;
     }
 
-    /** Polubienie / cofniecie polubienia komentarza. */
     @PostMapping("/comments/{id}/like")
     @Transactional
     public String like(@PathVariable Long id,
@@ -186,7 +177,6 @@ public class ProfileCommentController {
         return t.length() > 500 ? t.substring(0, 500) : t;
     }
 
-    /** Zezwala tylko na sciezki wzgledne tej aplikacji (ochrona przed open-redirect). */
     private static String safeBack(String from, String fallback) {
         if (from != null && from.startsWith("/") && !from.startsWith("//")) {
             return from;

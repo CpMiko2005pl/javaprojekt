@@ -5,15 +5,6 @@ import jakarta.validation.constraints.Min;
 
 import java.time.LocalDate;
 
-/**
- * Statystyki gracza - KOMPOZYCJA z {@link User} (jedna ze "co najmniej 2 klas
- * polaczonych relacja kompozycji"). Rekord statystyk nie ma sensu bez gracza,
- * dlatego jest tworzony i usuwany razem z nim (cascade ALL + orphanRemoval po
- * stronie User).
- *
- * Pola w stylu rankingowym (jak FACEIT): poziom, punkty ELO, seria zwyciestw.
- * Pola codziennego Kola Fortuny: data ostatniego losowania i ostatnia nagroda.
- */
 @Entity
 @Table(name = "player_statistics")
 public class PlayerStatistics {
@@ -30,53 +21,42 @@ public class PlayerStatistics {
     @Column(name = "games_won", nullable = false)
     private int gamesWon = 0;
 
-    /** Poziom konta (jak na FACEIT) - rosnie wraz z punktami ELO. */
     @Min(1)
     @Column(nullable = false)
     private int level = 1;
 
-    /** Punkty rankingowe ELO - podstawa rankingu najlepszych graczy. */
     @Min(0)
     @Column(name = "elo_points", nullable = false)
     private int eloPoints = 1000;
 
-    /** Aktualna seria zwyciestw. */
     @Min(0)
     @Column(name = "win_streak", nullable = false)
     private int winStreak = 0;
 
-    /** Liczba dni z rzedu logowania (Daily Streak). */
     @Min(0)
     @Column(name = "daily_streak", nullable = false)
     private int dailyStreak = 0;
 
-    /** Pole typu Date - data ostatniego logowania (do wyliczania streaka). */
     @Column(name = "last_login")
     private LocalDate lastLogin;
 
-    /** Pole typu Date - data ostatniego zakrecenia Kolem Fortuny (raz dziennie). */
     @Column(name = "last_spin_date")
     private LocalDate lastSpinDate;
 
-    /** Opis ostatnio wylosowanej nagrody/ulatwienia. */
     @Column(name = "last_reward", length = 120)
     private String lastReward;
 
-    /** Bonusowa karta z Kola Fortuny — dolaczana do reki w nastepnej grze (HandCardType.name()). */
     @Column(name = "pending_wheel_card", length = 40)
     private String pendingWheelCard;
 
-    /** Bonus gotowki na start nastepnej gry z Kola Fortuny. */
     @Min(0)
     @Column(name = "pending_start_cash_bonus", nullable = false)
     private int pendingStartCashBonus = 0;
 
-    /** Liczba dostepnych skrzynek (lootboxow) do otwarcia. */
     @Min(0)
     @Column(name = "available_lootboxes", nullable = false)
     private int availableLootboxes = 1;
 
-    /** Data ostatniego odebrania darmowej skrzynki (raz dziennie). */
     @Column(name = "last_lootbox_grant_date")
     private LocalDate lastLootboxGrantDate;
 
@@ -87,7 +67,6 @@ public class PlayerStatistics {
     public PlayerStatistics() {
     }
 
-    /** Procent wygranych (0-100), pomocniczy do panelu gracza. */
     @Transient
     public int getWinRate() {
         return gamesPlayed == 0 ? 0 : Math.round(gamesWon * 100f / gamesPlayed);

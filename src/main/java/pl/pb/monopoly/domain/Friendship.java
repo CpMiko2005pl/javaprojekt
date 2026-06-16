@@ -4,10 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Relacja znajomosci miedzy dwoma graczami.
- * requester wysyla zaproszenie do addressee; po akceptacji status = ACCEPTED.
- */
 @Entity
 @Table(name = "friendships",
        uniqueConstraints = @UniqueConstraint(columnNames = {"requester_id", "addressee_id"}))

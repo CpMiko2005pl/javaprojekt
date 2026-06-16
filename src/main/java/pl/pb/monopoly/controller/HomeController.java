@@ -91,7 +91,7 @@ public class HomeController {
                             @RequestParam(value = "q", required = false) String query,
                             HttpServletRequest request,
                             Model model) {
-        // BUG FIX: moderator tez ma profil gracza
+
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         lootboxService.grantDailyIfNeeded(user.getUsername());
         user = userRepository.findByUsername(authentication.getName()).orElseThrow();
@@ -116,7 +116,7 @@ public class HomeController {
         model.addAttribute("coins", user.getCoins());
         model.addAttribute("shopBoxes", LootboxService.shopBoxes());
         model.addAttribute("inventory", buildInventory(user));
-        // Komentarze pod wlasnym profilem (gracz zarzadza: usuwa, odpowiada, lajkuje)
+
         model.addAttribute("comments", profileCommentService.commentsFor(user, user));
         model.addAttribute("commentFrom", "/dashboard");
         model.addAttribute("wheelSegments", WheelService.rewardLabels());
@@ -130,7 +130,6 @@ public class HomeController {
         model.addAttribute("mediaHint", mediaHint);
         model.addAttribute("lanServer", environment.acceptsProfiles(org.springframework.core.env.Profiles.of("lan")));
 
-        // BUG FIX: zalozonej ramki (frame) — pozwala pokazac efekt wizualny
         String equippedFrame = ownedItemRepository.findByUserIdAndEquipped(user.getId(), true)
                 .stream()
                 .map(OwnedItem::getItemSlug)
@@ -147,7 +146,6 @@ public class HomeController {
                 .findFirst().orElse(null);
         model.addAttribute("equippedTitleName", equippedTitleName);
 
-        // Moderatorzy dostaja dodatkowy link do panelu mod
         boolean isMod = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_MODERATOR")
                         || a.getAuthority().equals("ROLE_ADMIN"));

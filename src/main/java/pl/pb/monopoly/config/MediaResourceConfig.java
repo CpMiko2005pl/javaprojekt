@@ -10,9 +10,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Pliki w {@code ./data/uploads/} dostepne pod {@code /media/**}.
- */
 @Configuration
 public class MediaResourceConfig implements WebMvcConfigurer, ApplicationRunner {
 

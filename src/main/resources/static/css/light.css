@@ -1,8 +1,3 @@
-/* =====================================================================
-   LIGHT THEME — PB Design System
-   Aktywacja: <link rel="stylesheet" href="/css/light.css"> + class="light-page" na body
-   ===================================================================== */
-
 :root {
     --pb-green:   #00A651;
     --pb-green-l: #20C96B;
@@ -26,7 +21,6 @@ body.light-page a:hover  { color:#000000; }
 body.light-page h1, body.light-page h2, body.light-page h3 { color:#0f172a; }
 body.light-page .muted   { color:#475569; }
 
-/* NAVBAR */
 body.light-page .navbar {
     background:rgba(255,255,255,0.7);
     backdrop-filter:blur(24px);
@@ -47,7 +41,6 @@ body.light-page .mobile-menu a { color:#475569; }
 body.light-page .mobile-menu-logout { color:#475569; }
 body.light-page .mobile-menu-logout:hover { color:#e11d48; }
 
-/* BUTTONS */
 body.light-page .btn { background:var(--lp-gr); color:#fff; box-shadow:0 8px 20px rgba(0,166,81,0.22); }
 body.light-page .btn:hover { filter:brightness(1.08); color:#fff; }
 body.light-page .btn-secondary { background:rgba(255,255,255,0.78); color:#0f172a; border:1px solid rgba(255,255,255,0.9); box-shadow:var(--lp-shadow); }
@@ -55,20 +48,17 @@ body.light-page .btn-secondary:hover { background:#fff; color:#0f172a; border-co
 body.light-page .btn-ghost { background:transparent; color:#0f172a; border-color:rgba(0,0,0,0.15); }
 body.light-page .btn-danger { background:linear-gradient(135deg,#e11d48,#be123c); color:#fff; }
 
-/* FORMS */
 body.light-page .form-card { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); box-shadow:var(--lp-shadow); }
 body.light-page .field label { color:#475569; text-transform:none; letter-spacing:0; font-size:.85rem; }
 body.light-page .field input, body.light-page .field select { background:rgba(255,255,255,0.85); border-color:rgba(0,166,81,0.18); color:#0f172a; }
 body.light-page .field input::placeholder { color:#94a3b8; }
 body.light-page .field input:focus, body.light-page .field select:focus { border-color:#00A651; box-shadow:0 0 0 3px rgba(0,166,81,0.1); }
 
-/* CARDS / PANEL */
 body.light-page .card { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); }
 body.light-page .card h3 { color:#6A1B9A; }
 body.light-page .panel { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); }
 body.light-page .panel h2 { color:#0f172a; }
 
-/* TABLES */
 body.light-page table { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); }
 body.light-page thead, body.light-page th { background:rgba(255,255,255,0.5); color:#475569; }
 body.light-page td  { color:#0f172a; border-bottom-color:rgba(0,0,0,0.05); }
@@ -77,13 +67,11 @@ body.light-page .sort-link { color:#0f172a; }
 body.light-page .sort-link:hover { color:#00A651; }
 body.light-page .neon-table-wrap { border-color:rgba(106,27,154,0.14); }
 
-/* BADGES / ALERTS */
 body.light-page .badge-ok { background:rgba(0,166,81,0.1); color:#00A651; border-color:rgba(0,166,81,0.2); }
 body.light-page .alert-success { background:rgba(0,166,81,0.08); color:#00A651; border-color:rgba(0,166,81,0.22); }
 body.light-page .alert-error   { background:rgba(225,29,72,0.08); color:#e11d48; border-color:rgba(225,29,72,0.22); }
 body.light-page .section-kicker { background:rgba(255,255,255,0.82); border-color:rgba(0,0,0,0.08); color:#00A651; }
 
-/* PROFILE / STATS */
 body.light-page .profile-header { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); }
 body.light-page .stat { background:var(--lp-glass); backdrop-filter:blur(16px); border:1px solid var(--lp-glass-b); }
 body.light-page .stat .label { color:#475569; }
@@ -97,7 +85,6 @@ body.light-page .list-row { border-bottom-color:rgba(0,0,0,0.06); }
 body.light-page .page-header { border-bottom-color:rgba(0,0,0,0.07); }
 body.light-page .page-header h1 { color:#0f172a; }
 
-/* QUICK CARDS */
 body.light-page .quick-card { background:var(--lp-glass); backdrop-filter:blur(20px); border:1px solid var(--lp-glass-b); color:#0f172a; box-shadow:var(--lp-shadow); }
 body.light-page .quick-card:hover { border-color:rgba(0,166,81,0.38); box-shadow:0 14px 32px rgba(0,166,81,0.1); }
 body.light-page .quick-card-gold .quick-icon { background:linear-gradient(135deg,#f59e0b,#d97706); }
@@ -106,7 +93,6 @@ body.light-page .quick-card-purple .quick-icon { background:linear-gradient(135d
 body.light-page .quick-card-rose .quick-icon { background:linear-gradient(135deg,#e11d48,#be123c); }
 body.light-page .quick-body span { color:#475569; }
 
-/* LOOTBOX section on light page */
 body.light-page .lootbox-section {
     background:rgba(255,255,255,0.65);
     backdrop-filter:blur(20px);
@@ -114,7 +100,6 @@ body.light-page .lootbox-section {
     box-shadow:var(--lp-shadow);
 }
 
-/* WHEEL — jasny motyw PB */
 body.light-page .wheel-page-panel {
     max-width:560px;
     margin:0 auto;
@@ -170,7 +155,6 @@ body.light-page .lootbox-dup-note {
     font-weight:600;
 }
 
-/* Koło fortuny — modal na profilu (light-page) */
 body.light-page .wheel-modal-box {
     background:var(--lp-glass);
     backdrop-filter:blur(24px);
@@ -188,9 +172,6 @@ body.light-page .btn-wheel-spin {
 }
 body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 
-/* ───────────────────────────────────────────────
-   HERO
-─────────────────────────────────────────────── */
 .lp-hero {
     position:relative;
     min-height:calc(100vh - 64px);
@@ -275,7 +256,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-stat-item .val { font-family:var(--font-display); font-size:1.7rem; font-weight:800; color:#0f172a; line-height:1; letter-spacing:-0.03em; }
 .lp-stat-item .lbl { font-size:.73rem; color:#475569; margin-top:.18rem; }
 
-/* Matchmaking widget */
 .lp-mw { background:rgba(255,255,255,0.84); backdrop-filter:blur(28px); border:1px solid rgba(255,255,255,0.92); border-radius:22px; box-shadow:0 20px 50px rgba(106,27,154,0.1); padding:20px; }
 .lp-mw-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:13px; }
 .lp-mw-title { font-family:var(--font-display); font-weight:800; font-size:16px; color:#6A1B9A; }
@@ -287,9 +267,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-mw-elo { font-weight:700; font-size:12px; color:#475569; }
 .lp-mw-wait { display:flex; align-items:center; justify-content:center; padding:9px 12px; border-radius:11px; border:1px dashed rgba(0,0,0,0.15); font-size:12px; font-weight:600; color:#475569; gap:8px; }
 
-/* ───────────────────────────────────────────────
-   SEKCJE OGÓLNE
-─────────────────────────────────────────────── */
 .lp-section { padding:90px 5%; }
 .lp-inner { max-width:1160px; margin:0 auto; }
 .lp-sec-title { text-align:center; margin-bottom:54px; }
@@ -297,7 +274,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-sec-title p { color:#475569; font-size:1.04rem; max-width:530px; margin:0 auto; }
 .lp-gr-text { background:var(--lp-gr); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 
-/* Feature cards */
 .lp-feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
 .lp-feat-card {
     padding:32px 24px; border-radius:22px;
@@ -314,7 +290,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-feat-card h3 { font-size:1.1rem; color:#0f172a; margin:0; font-family:var(--font-display); letter-spacing:-0.01em; }
 .lp-feat-card p  { color:#475569; font-size:.875rem; line-height:1.65; margin:0; }
 
-/* Ranking */
 .lp-ranking-wrap { background:rgba(255,255,255,0.72); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,.88); border-radius:22px; overflow:hidden; box-shadow:0 10px 38px rgba(0,166,81,.05); }
 .lp-rank-table { width:100%; border-collapse:collapse; text-align:left; }
 .lp-rank-table th { padding:16px 20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#475569; border-bottom:1px solid rgba(0,0,0,.06); background:rgba(255,255,255,.52); }
@@ -330,7 +305,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-rank-elo { font-family:var(--font-display); font-weight:800; font-size:16px; color:#00A651; }
 .lp-wr-good { color:#00A651; } .lp-wr-bad { color:#e11d48; }
 
-/* CTA */
 .lp-cta { padding:90px 5%; background:rgba(255,255,255,.3); border-top:1px solid rgba(0,0,0,.05); }
 .lp-cta-grid { max-width:1160px; margin:0 auto; display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center; }
 @media(max-width:800px){ .lp-cta-grid{grid-template-columns:1fr;gap:34px;} }
@@ -344,7 +318,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-cta-card p { color:#475569; font-size:13px; margin-bottom:20px; }
 .lp-cta-btns { display:flex; flex-direction:column; gap:10px; }
 
-/* FOOTER dark */
 .lp-footer { background:#0f172a; color:#94a3b8; padding:68px 5% 32px; }
 .lp-footer-grid { max-width:1160px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr; gap:56px; margin-bottom:54px; }
 @media(max-width:780px){ .lp-footer-grid{grid-template-columns:1fr;gap:32px;} }
@@ -362,24 +335,18 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-social a.linki { color:#94a3b8; }
 .lp-social a:hover, .lp-social a.linki:hover { color:#fff; }
 
-/* ───────────────────────────────────────────────
-   FACEIT-STYLE DASHBOARD
-─────────────────────────────────────────────── */
 .lp-faceit { max-width:1180px; margin:28px auto 80px; padding:0 1.5rem; }
 .lp-ph { border-radius:22px; overflow:hidden; background:rgba(255,255,255,.72); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,.88); box-shadow:var(--lp-shadow); margin-bottom:24px; }
 .lp-ph-banner { aspect-ratio:1920/336; background:linear-gradient(135deg,rgba(0,166,81,.22) 0%,rgba(106,27,154,.28) 100%); position:relative; overflow:hidden; }
 .lp-ph-banner::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(255,255,255,.28)); pointer-events:none; z-index:1; }
 .lp-ph-banner-img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; position:relative; z-index:0; }
 
-/* Row no longer overlaps banner — avatar pulled up with negative margin instead */
 .lp-ph-row { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 28px 24px; flex-wrap:wrap; gap:15px; }
 .lp-ph-identity { display:flex; align-items:flex-start; gap:17px; }
 
-/* Avatar sticks up into the banner via negative margin-top */
 .lp-ph-avatar { width:120px; height:120px; border-radius:22px; background:var(--lp-gr); border:5px solid #fff; box-shadow:0 8px 28px rgba(0,166,81,.26); display:grid; place-items:center; font-family:var(--font-display); font-size:46px; font-weight:800; color:#fff; overflow:hidden; flex-shrink:0; margin-top:-68px; }
 .lp-ph-avatar img { width:100%; height:100%; object-fit:cover; }
 
-/* Details always rendered in the white area below the banner */
 .lp-ph-details { padding-top:6px; }
 .lp-ph-details h2 { font-size:1.85rem; font-family:var(--font-display); margin:0 0 3px; color:#0f172a; letter-spacing:-0.02em; }
 .lp-ph-details .lp-role { color:#6A1B9A; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:0; }
@@ -438,13 +405,11 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-elo-pos { color:#00A651; } .lp-elo-neg { color:#EF4444; }
 .lp-m-place { font-size:12px; font-weight:600; color:#475569; min-width:65px; text-align:right; }
 
-/* Znajomi na dashboardzie */
 .lp-friends-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 @media(max-width:700px){ .lp-friends-grid{grid-template-columns:1fr;} }
 .lp-friend-row { display:flex; align-items:center; gap:.7rem; padding:.6rem 0; border-bottom:1px solid rgba(0,0,0,.05); }
 .lp-friend-row:last-of-type { border-bottom:none; }
 
-/* AUTH pages */
 .lp-auth-wrap { min-height:calc(100vh - 64px); display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; }
 .lp-auth-box { width:100%; max-width:420px; }
 .lp-auth-box h1 { font-family:var(--font-display); font-size:1.75rem; font-weight:800; margin-bottom:.28rem; letter-spacing:-0.02em; }
@@ -465,10 +430,6 @@ body.light-page .btn-wheel-spin:hover { filter:brightness(1.08); color:#fff; }
 .lp-test-row { display:flex; justify-content:space-between; align-items:center; padding:.58rem 1rem; border-bottom:1px solid rgba(0,0,0,.04); font-size:.82rem; color:#0f172a; }
 .lp-test-row:last-child { border-bottom:none; }
 
-/* =====================================================================
-   PLANSZA / ROZGRYWKA — jasny motyw (body.light-page.board-fullscreen)
-   ===================================================================== */
-
 body.light-page.board-fullscreen {
     background:
         radial-gradient(1200px 600px at 85% -5%, rgba(106,27,154,0.10), transparent 60%),
@@ -485,7 +446,6 @@ body.light-page .board-canvas-shell .canvas-loader {
     color: #475569;
 }
 
-/* Topbar */
 body.light-page .bt-topbar-float {
     background: rgba(255,255,255,.78);
     backdrop-filter: blur(14px);
@@ -494,7 +454,6 @@ body.light-page .bt-topbar-float {
 body.light-page .board-topbar-brand { color: #00A651; }
 body.light-page .board-topbar-room  { color: #0f172a; }
 
-/* Pasek graczy */
 body.light-page .bt-players-strip {
     background: linear-gradient(to bottom, rgba(255,255,255,.6), transparent);
 }
@@ -511,7 +470,6 @@ body.light-page .bt-player-card.active {
 }
 body.light-page .bt-player-meta span { color: #00854a; }
 
-/* Badge wyniku rzutu */
 body.light-page .bt-dice-badge {
     background: rgba(255,255,255,.94);
     border: 1px solid rgba(0,166,81,.4);
@@ -526,7 +484,6 @@ body.light-page .bt-dice-badge-plus,
 body.light-page .bt-dice-badge-eq { color: #475569; }
 body.light-page .bt-dice-badge-sum { color: #b45309; }
 
-/* Toast feed */
 body.light-page .bt-toast {
     background: rgba(255,255,255,.92);
     border: 1px solid rgba(0,0,0,.08);
@@ -535,7 +492,6 @@ body.light-page .bt-toast {
 }
 body.light-page .bt-toast .toast-name { color: #b45309; }
 
-/* Info o polu */
 body.light-page .bt-tile-info-float {
     background: rgba(255,255,255,.86);
     border: 1px solid rgba(0,0,0,.07);
@@ -549,14 +505,12 @@ body.light-page .bt-log {
     margin-top: 0; padding: 0; min-height: 0;
 }
 
-/* Winner banner */
 body.light-page .bt-winner-float {
     background: rgba(245,158,11,.12);
     border-color: rgba(180,83,9,.35);
     color: #b45309;
 }
 
-/* Floating action panel (kupno / licytacja / splata) */
 body.light-page .bt-action-float {
     background: rgba(255,255,255,.95);
     backdrop-filter: blur(18px);
@@ -567,7 +521,6 @@ body.light-page .bt-action-header { color: #0f172a; }
 body.light-page .bt-action-tile   { color: #00854a; }
 body.light-page .bt-action-price  { color: #b45309; }
 
-/* Bottom HUD */
 body.light-page .bt-bottom-hud {
     background: linear-gradient(to top, rgba(255,255,255,.94) 0%, transparent 100%);
 }
@@ -593,7 +546,6 @@ body.light-page .btn-bt {
 }
 body.light-page .btn-bt:active { box-shadow: 0 1px 0 #047857; }
 
-/* Ikony HUD (karty / transfer) */
 body.light-page .bt-float-icon-btn {
     background: rgba(255,255,255,.88);
     border: 1px solid rgba(0,0,0,.1);
@@ -602,7 +554,6 @@ body.light-page .bt-float-icon-btn {
 }
 body.light-page .bt-float-icon-btn:hover { background: #fff; color: #0f172a; }
 
-/* Popupy: karty w rece + transfer */
 body.light-page .bt-hand-popup,
 body.light-page .bt-transfer-popup,
 body.light-page .bt-properties-popup {
@@ -679,7 +630,6 @@ body.light-page .bt-hand-popup select {
     color: #0f172a;
 }
 
-/* ===== /game — Match Lobby (Faceit-style) ===== */
 body.game-lobby-page { background: var(--lp-bg); }
 .fc-main { max-width: 920px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
 
@@ -834,13 +784,11 @@ body.game-lobby-page { background: var(--lp-bg); }
 .fc-slot-clickable:hover { border-color: rgba(0,166,81,.4); background: rgba(0,166,81,.04); }
 .fc-slot-add-hint { color: #047857 !important; }
 
-/* Lobby layout: pokój + sidebar dołącz */
 .fc-lobby-layout { display: grid; grid-template-columns: 1fr 280px; gap: 1.2rem; align-items: start; }
 @media (max-width: 900px) { .fc-lobby-layout { grid-template-columns: 1fr; } }
 .fc-lobby-side { display: flex; flex-direction: column; gap: .75rem; }
 .fc-side-card { margin: 0; padding: 1rem; }
 
-/* Modal zaproszen */
 .fc-modal {
     position: fixed; inset: 0; z-index: 1200;
     display: flex; align-items: center; justify-content: center; padding: 1rem;
@@ -875,7 +823,6 @@ body.game-lobby-page { background: var(--lp-bg); }
     display: grid; place-items: center; font-weight: 800; font-size: .85rem;
 }
 
-/* Banner zaproszeń na hubie */
 .fc-invite-banner {
     margin-bottom: 1.2rem; padding: .85rem 1rem; border-radius: 12px;
     background: rgba(0,166,81,.08); border: 1px solid rgba(0,166,81,.25);
@@ -888,7 +835,6 @@ body.game-lobby-page { background: var(--lp-bg); }
 .fc-invite-banner-row:first-of-type { border-top: none; }
 .fc-invite-banner-actions { display: flex; gap: .4rem; }
 
-/* Toast powiadomienia */
 #gameInviteToastHost {
     position: fixed; top: 72px; right: 16px; z-index: 1300;
     display: flex; flex-direction: column; gap: .55rem; max-width: min(360px, calc(100vw - 32px));
@@ -907,7 +853,6 @@ body.game-lobby-page { background: var(--lp-bg); }
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* Historia meczow — karuzela ze strzalkami */
 .hist-carousel-wrap {
     display: flex;
     align-items: center;
@@ -969,7 +914,6 @@ body.light-page .fc-hub-disabled { opacity: .5; pointer-events: none; user-selec
 }
 .fc-match-history-head h3 { margin: 0; font-size: .95rem; color: #475569; }
 
-/* Awatary w listach (znajomi / wyszukiwarka) */
 .lp-ph-details h2.player-name-row .presence-dot-inline {
     width: 12px;
     height: 12px;
@@ -1016,7 +960,6 @@ body.light-page .page-back-link:hover { color: #00a651; }
     color: #047857;
 }
 
-/* Ekwipunek — zwijanie + paginacja */
 .inventory-sc-head { align-items: center; }
 .inventory-sc-title {
     display: flex;
@@ -1075,7 +1018,6 @@ body.light-page .btn-equip {
     color: #047857;
 }
 
-/* Dashboard — karta „Znajdź graczy” */
 .lp-find-players-card {
     display: flex;
     align-items: center;
@@ -1134,7 +1076,6 @@ body.light-page .btn-equip {
     border-radius: 4px;
 }
 
-/* Ustawienia — upload awatara / banera */
 .lp-media-upload {
     display: flex;
     gap: 1rem;

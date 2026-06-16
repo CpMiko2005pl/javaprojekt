@@ -1,6 +1,5 @@
 package pl.pb.monopoly.dto;
 
-/** Szczegóły posesji gracza — panel „Moje nieruchomości” na planszy. */
 public record PropertyCardDto(
         int position,
         String tileName,

@@ -7,9 +7,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Mapowanie pionkow 3D ze skrzynki (slug lootbox) na plik GLB w /models/.
- */
 public final class PawnModelCatalog {
 
     private static final Map<String, String> SLUG_TO_FILE = Map.ofEntries(
@@ -36,7 +33,6 @@ public final class PawnModelCatalog {
         return file != null ? "/models/" + file : null;
     }
 
-    /** Sciezka do modelu zalozonego pionka 3D lub null (domyslny walec). */
     public static String equippedModelPath(Collection<OwnedItem> equipped) {
         if (equipped == null) {
             return null;
@@ -50,7 +46,6 @@ public final class PawnModelCatalog {
         return null;
     }
 
-    /** Wszystkie sciezki modeli — do preloadu na planszy 3D. */
     public static List<String> allModelPaths() {
         return SLUG_TO_FILE.values().stream()
                 .map(f -> "/models/" + f)

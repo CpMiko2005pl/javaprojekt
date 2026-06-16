@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/** Ostrzezenie moderacyjne wyslane graczowi. */
 @Entity
 @Table(name = "user_warnings")
 public class UserWarning {

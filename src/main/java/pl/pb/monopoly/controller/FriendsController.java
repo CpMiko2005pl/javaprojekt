@@ -12,11 +12,6 @@ import pl.pb.monopoly.service.FriendService;
 import java.util.List;
 import java.util.Map;
 
-/**
- * System znajomych: lista, wyszukiwanie graczy, zaproszenia i ich akceptacja.
- * Operacje moga byc wywolywane zarowno z dedykowanej strony /friends jak i z
- * panelu gracza /dashboard - decyduje o tym parametr "from" w formularzu.
- */
 @Controller
 @RequestMapping("/friends")
 public class FriendsController {
@@ -38,7 +33,6 @@ public class FriendsController {
         return "friends";
     }
 
-    /** JSON: wyszukiwanie graczy na żywo (lupka w menu głównym / na /friends). */
     @GetMapping("/api/search")
     @ResponseBody
     public List<FriendDto> apiSearch(@RequestParam(value = "q", required = false) String q,
@@ -46,7 +40,6 @@ public class FriendsController {
         return friendService.search(q, auth.getName());
     }
 
-    /** JSON: wyślij zaproszenie bez przeładowania strony (działa wielokrotnie). */
     @PostMapping("/api/add")
     @ResponseBody
     public ResponseEntity<?> apiAdd(@RequestBody Map<String, String> body, Authentication auth) {

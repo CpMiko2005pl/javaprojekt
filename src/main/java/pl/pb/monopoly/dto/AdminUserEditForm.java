@@ -2,11 +2,6 @@ package pl.pb.monopoly.dto;
 
 import jakarta.validation.constraints.*;
 
-/**
- * Formularz edycji danych uzytkownika przez admina (edycja na danych biezacych).
- * Walidacja spojna z ograniczeniami encji {@code User}. NIE obejmuje hasla ani roli
- * (rola jest zmieniana z listy uzytkownikow osobnym formularzem).
- */
 public class AdminUserEditForm {
 
     @NotBlank(message = "E-mail jest wymagany")

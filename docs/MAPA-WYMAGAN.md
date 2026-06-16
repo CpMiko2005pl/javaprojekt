@@ -9,8 +9,8 @@ tylko na koniec meczu. Plansza to widok 3D (`static/js/board3d.js`, Three.js).
 ## Wymagania ogólne (model danych)
 | Wymaganie | Status | Gdzie |
 |---|---|---|
-| ≥3 klasy domeny | ✅ | `domain/` — m.in. `User`, `PlayerStatistics`, `GameSession`, `GamePlayer`, `MonopolyCard`, `GameLog`, `Achievement`, `ProfileComment` |
-| ≥2 klasy połączone **kompozycją** | ✅ | `User`↔`PlayerStatistics` (1–1), `User`↔`Achievement`/`GameLog` (1–*), `GameSession`↔`GamePlayer` (1–*) — `cascade=ALL, orphanRemoval=true` |
+| ≥3 klasy domeny | ✅ | `domain/` — m.in. `User`, `PlayerStatistics`, `GameSession`, `GamePlayer`, `MatchHistory`, `Friendship`, `OwnedItem`, `ProfileComment` |
+| ≥2 klasy połączone **kompozycją** | ✅ | `User`↔`PlayerStatistics` (1–1), `GameSession`↔`GamePlayer` (1–*) — `cascade=ALL, orphanRemoval=true` |
 | Pola różnych typów + ≥1 `Date` | ✅ | `String/int/boolean/enum`; daty: `User.createdAt`, `GameSession.createdAt`, `MatchHistory.playedAt` |
 | Ograniczenia wartości pól | ✅ | `@Size`, `@Min`, `@Max`, `@Pattern`, `@Email` + `@Column` w `domain/*` |
 
@@ -91,3 +91,9 @@ Plik: `dto/RegistrationForm.java` (+ `validation/PasswordMatches.java`)
 - **Zapis do bazy dopiero przy wylogowaniu / `HttpSession` draft profilu** — decyzja prowadzącego.
 - Stare odniesienia do `PropertyController` i `board.js` jako głównej planszy są **nieaktualne**
   (główna plansza to `board3d.js`).
+
+## Sprzątanie martwego kodu (2026)
+Usunięto nieużywane encje i ich repozytoria (brak odczytu w aplikacji):
+`Property`, `MonopolyCard`, `BoardTile`, `BoardCard`, `Rank`, `DailyTask`, `Achievement`, `GameLog`.
+Odpowiadające tabele w bazie usuwa skrypt `db/drop-dead-tables.sql`
+(`ddl-auto=update` sam ich nie kasuje). Komentarze w kodzie Java/CSS/properties wyczyszczone.

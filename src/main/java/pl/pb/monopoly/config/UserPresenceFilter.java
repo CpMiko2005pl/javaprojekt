@@ -14,7 +14,6 @@ import pl.pb.monopoly.service.UserPresenceService;
 
 import java.io.IOException;
 
-/** Oznacza zalogowanego użytkownika jako online przy każdym żądaniu HTTP. */
 @Component
 public class UserPresenceFilter extends OncePerRequestFilter {
 

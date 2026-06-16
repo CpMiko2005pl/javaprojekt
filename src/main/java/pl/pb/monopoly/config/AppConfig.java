@@ -7,10 +7,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
-/**
- * Beany infrastrukturalne. {@link RestTemplate} sluzy jako klient REST (Java)
- * do zewnetrznego API DiceBear (awatary przy rejestracji).
- */
 @Configuration
 public class AppConfig {
 

@@ -28,11 +28,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Panel moderatora (ROLE_MODERATOR i ROLE_ADMIN).
- * Moderator widzi aktywne gry i uzytkownikow, moze zakonczyc sesje,
- * weryfikowac konta, zawieszac graczy i wysylac ostrzezenia.
- */
 @Controller
 @RequestMapping("/moderator")
 public class ModeratorController {
@@ -61,7 +56,6 @@ public class ModeratorController {
         this.gameService = gameService;
     }
 
-    /** Podglad przeslanej legitymacji gracza — moderator i admin. */
     @GetMapping("/users/{id}/legitymacja")
     public ResponseEntity<Resource> viewLegitymacja(@PathVariable Long id) {
         User user = userService.getById(id);
@@ -159,7 +153,7 @@ public class ModeratorController {
 
     @PostMapping("/sessions/{id}/end")
     public String endSession(@PathVariable Long id, RedirectAttributes ra) {
-        // Aktywna gra zyje w RAM — konczymy przez serwis (zapis koncowy + broadcast + usuniecie z RAM).
+
         gameService.endSessionByAdmin(id);
         ra.addFlashAttribute("message", "Sesja zakonczona przez moderatora.");
         return "redirect:/moderator";

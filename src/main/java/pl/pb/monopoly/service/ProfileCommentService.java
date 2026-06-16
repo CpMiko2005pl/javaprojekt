@@ -11,10 +11,6 @@ import pl.pb.monopoly.repository.ProfileCommentRepository;
 
 import java.util.List;
 
-/**
- * Budowanie widoku komentarzy pod profilem (z lajkami, odpowiedziami i uprawnieniami)
- * — wspolne dla profilu publicznego (/u/...) i panelu gracza (/dashboard).
- */
 @Service
 public class ProfileCommentService {
 
@@ -27,7 +23,6 @@ public class ProfileCommentService {
         this.likeRepository = likeRepository;
     }
 
-    /** Lista komentarzy pod profilem {@code target} widziana oczami {@code viewer} (moze byc null). */
     @Transactional(readOnly = true)
     public List<ProfileCommentDto> commentsFor(User target, User viewer) {
         Long viewerId = viewer != null ? viewer.getId() : null;
@@ -58,9 +53,9 @@ public class ProfileCommentService {
                 likes,
                 likedByMe,
                 mine,
-                mine,                                   // canEdit: tylko autor
-                mine || isOwner || canModerate,         // canDelete: autor, wlasciciel profilu lub moderacja
-                isOwner                                 // canReply: wlasciciel profilu
+                mine,
+                mine || isOwner || canModerate,
+                isOwner
         );
     }
 

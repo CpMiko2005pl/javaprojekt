@@ -6,12 +6,6 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
-/**
- * Komentarz wystawiony przez jednego gracza (author) pod profilem innego (target).
- * Zasada: jeden autor moze miec maksymalnie JEDEN komentarz pod danym profilem
- * (ograniczenie unikalnosci author_id + target_id). Mozna go edytowac i usunac;
- * po usunieciu mozna napisac nowy.
- */
 @Entity
 @Table(name = "profile_comments",
         uniqueConstraints = @UniqueConstraint(name = "uk_profile_comment_author_target",
@@ -41,7 +35,6 @@ public class ProfileComment {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /** Odpowiedz wlasciciela profilu na komentarz (opcjonalna). */
     @Size(max = 500)
     @Column(name = "reply", length = 500)
     private String reply;

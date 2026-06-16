@@ -4,7 +4,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import pl.pb.monopoly.dto.GameStateDto;
 
-/** Rozsyła stan gry do wszystkich klientów subskrybujących pokój. */
 @Service
 public class GameSyncService {
 
@@ -13,7 +12,6 @@ public class GameSyncService {
     public GameSyncService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
-
 
     public void broadcastReaction(Long sessionId, Object payload) {
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/reactions", payload);

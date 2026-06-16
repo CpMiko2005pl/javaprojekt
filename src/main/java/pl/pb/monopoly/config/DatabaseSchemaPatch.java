@@ -11,10 +11,6 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-/**
- * Uzupelnia brakujace kolumny, gdy ddl-auto=update ich nie dodal
- * (PostgreSQL Neon / H2 na serwerze LAN).
- */
 @Component
 @Order(0)
 public class DatabaseSchemaPatch implements ApplicationRunner {
@@ -80,10 +76,7 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
     }
 
     private void patchPostgres() {
-        // KRYTYCZNE: usun bledne klucze obce na game_sessions. Kolumny pending_*_id oraz
-        // current_turn decider trzymaja ID GRACZA (game_players), a nie ID uzytkownika (users).
-        // Stary schemat mial FK -> users, przez co kazde "pole do kupienia" (ustawienie
-        // pending_decider_id) wywolywalo 500 przy commitcie. Kasujemy wszystkie takie FK.
+
         patch("""
                 SET search_path TO monopoly, public;
                 DO $$
@@ -106,10 +99,7 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
                   END LOOP;
                 END $$;
                 """);
-        // KRYTYCZNE: usun bledne klucze obce na tabelach kolekcji gracza. Kolumny position /
-        // tile_position / card_type to indeksy pola planszy (0-39) lub nazwy kart — NIE klucze obce.
-        // Stary schemat mial FK np. game_player_properties.position -> properties(id), przez co
-        // kazdy zakup nieruchomosci (dodanie owned position) konczyl sie 500. Kasujemy je.
+
         patch("""
                 SET search_path TO monopoly, public;
                 DO $$
@@ -143,7 +133,7 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
                   END LOOP;
                 END $$;
                 """);
-        // Ustaw schemat dla polaczenia JDBC (Neon: search_path bywa pusty -> "no schema selected")
+
         patch("""
                 SET search_path TO monopoly, public;
                 ALTER TABLE game_players

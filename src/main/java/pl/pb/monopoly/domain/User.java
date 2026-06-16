@@ -4,21 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
-/**
- * Glowna encja domeny - gracz/student PB.
- *
- * Relacje KOMPOZYCJI (cascade = ALL + orphanRemoval = true) - obiekty potomne
- * nie istnieja bez wlasciciela i sa usuwane razem z nim:
- *   - User 1--1 PlayerStatistics  (statystyki naleza scisle do uzytkownika)
- *   - User 1--* Achievement       (osiagniecia gracza)
- *   - User 1--* GameLog           (historia/logi rozgrywek gracza)
- *
- * Pola roznych typow: String, int (posrednio), BigDecimal, boolean, LocalDateTime, enum.
- * Ograniczenia wartosci nalozone adnotacjami walidacji ORAZ ograniczeniami kolumn.
- */
 @Entity
 @Table(name = "users")
 public class User {
@@ -33,7 +19,6 @@ public class User {
     @Column(nullable = false, unique = true, length = 20)
     private String username;
 
-    /** Haslo przechowywane WYLACZNIE jako hash BCrypt. */
     @NotBlank
     @Column(nullable = false)
     private String password;
@@ -56,22 +41,13 @@ public class User {
     @Column(nullable = false)
     private int age;
 
-    /**
-     * Monety (coiny) gracza - waluta metagry. Zdobywane za wygrane mecze,
-     * wydawane w sklepie na skrzynki. Zastapily dawne saldo PLN (balance).
-     */
     @Min(value = 0, message = "Liczba monet nie moze byc ujemna")
     @Column(nullable = false)
     private int coins = 1000;
 
-    /** Czy konto zweryfikowano (po przeslaniu skanu legitymacji PB). */
     @Column(nullable = false)
     private boolean verified = false;
 
-    /**
-     * Wzgledna sciezka przeslanej legitymacji w katalogu uploads (np. "verification/kuba.jpg").
-     * null = gracz nie przeslal jeszcze dokumentu. Podglada ja wylacznie admin.
-     */
     @Column(name = "verification_doc_url", length = 255)
     private String verificationDocUrl;
 
@@ -79,58 +55,40 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
 
-    /** Pole typu Date (wymagane). */
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    /** Adres URL niestandardowego awatara (opcjonalne). */
     @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
 
-    /** Adres URL banera profilowego (opcjonalne). */
     @Column(name = "banner_url", length = 512)
     private String bannerUrl;
 
-    /** Adres URL tla calego profilu (styl Steam) — opcjonalne. */
     @Column(name = "profile_bg_url", length = 512)
     private String profileBgUrl;
 
-    /** Krotki opis gracza widoczny na profilu publicznym. */
     @Column(name = "bio", length = 200)
     private String bio;
 
-    /** Konto zawieszone — gracz nie moze sie logowac ani grac. */
     @Column(nullable = false)
     private boolean suspended = false;
 
-    /** Koniec zawieszenia (null = bezterminowo). */
     @Column(name = "suspended_until")
     private LocalDateTime suspendedUntil;
 
     @Column(name = "suspension_reason", length = 500)
     private String suspensionReason;
 
-    // --- KOMPOZYCJA ---
-
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private PlayerStatistics statistics;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Achievement> achievements = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<GameLog> gameLogs = new ArrayList<>();
 
     public User() {
     }
 
-    /** Wygodne podlaczenie statystyk z zachowaniem obustronnej relacji. */
     public void attachStatistics(PlayerStatistics stats) {
         stats.setUser(this);
         this.statistics = stats;
     }
-
-    // --- Gettery / settery ---
 
     public Long getId() {
         return id;
@@ -196,7 +154,6 @@ public class User {
         this.coins = Math.max(0, coins);
     }
 
-    /** Dolicza monety (np. nagroda za wygrana). */
     public void addCoins(int amount) {
         this.coins = Math.max(0, this.coins + amount);
     }
@@ -239,22 +196,6 @@ public class User {
 
     public void setStatistics(PlayerStatistics statistics) {
         this.statistics = statistics;
-    }
-
-    public List<Achievement> getAchievements() {
-        return achievements;
-    }
-
-    public void setAchievements(List<Achievement> achievements) {
-        this.achievements = achievements;
-    }
-
-    public List<GameLog> getGameLogs() {
-        return gameLogs;
-    }
-
-    public void setGameLogs(List<GameLog> gameLogs) {
-        this.gameLogs = gameLogs;
     }
 
     public String getAvatarUrl() {

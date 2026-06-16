@@ -6,10 +6,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Sesja rozgrywki (pokoj). KOMPOZYCJA z {@link GamePlayer} - gracze w sesji
- * sa usuwani razem z nia (cascade ALL + orphanRemoval).
- */
 @Entity
 @Table(name = "game_sessions")
 public class GameSession {
@@ -18,7 +14,6 @@ public class GameSession {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Krotki kod pokoju do zapraszania znajomych. */
     @Column(nullable = false, unique = true, length = 8)
     private String code;
 
@@ -32,40 +27,30 @@ public class GameSession {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    /** Indeks gracza, ktory aktualnie wykonuje ruch (rozgrywka hot-seat). */
     @Column(name = "current_turn", nullable = false)
     private int currentTurn = 0;
 
-    /**
-     * Pozycja pola, ktore aktualnie czeka na decyzje "kup / pomin" od gracza.
-     * Gdy != null, kolejny rzut kostka jest zablokowany - gracz musi
-     * wykonac decyzje. Inni gracze moga w tym czasie zlozyc oferte (licytacja).
-     */
     @Column(name = "pending_purchase_pos")
     private Integer pendingPurchasePos;
 
     @Column(name = "pending_purchase_price")
     private Integer pendingPurchasePrice;
 
-    /** ID gracza, ktory ma decyzje na temat kupna pola (= currentTurnPlayer). */
     @Column(name = "pending_decider_id")
     private Long pendingDeciderId;
 
-    /** Gracz, ktory musi uregulowac zobowiazanie (brak siana na oplate). */
     @Column(name = "pending_payment_debtor_id")
     private Long pendingPaymentDebtorId;
 
     @Column(name = "pending_payment_amount")
     private Integer pendingPaymentAmount;
 
-    /** Wlasciciel pola / odbiorca czynszu; null = oplata do banku (podatek, karta). */
     @Column(name = "pending_payment_creditor_id")
     private Long pendingPaymentCreditorId;
 
     @Column(name = "pending_payment_reason", length = 120)
     private String pendingPaymentReason;
 
-    /** Oczekujace ulepszenie pola (2. wizyta wlasciciela). */
     @Column(name = "pending_upgrade_pos")
     private Integer pendingUpgradePos;
 
@@ -75,7 +60,6 @@ public class GameSession {
     @Column(name = "pending_upgrade_cost")
     private Integer pendingUpgradeCost;
 
-    /** Odkup posesji przejetej karta (ofiara placi 2x cene zakupu). */
     @Column(name = "pending_buyback_pos")
     private Integer pendingBuybackPos;
 
@@ -88,30 +72,21 @@ public class GameSession {
     @Column(name = "pending_buyback_price")
     private Integer pendingBuybackPrice;
 
-    /** Gracz z aktywna karta "Dodatkowy rzut" — dostaje jeszcze jedna ture. */
     @Column(name = "pending_extra_roll_player_id")
     private Long pendingExtraRollPlayerId;
 
-    /**
-     * Wykup cudzej dzialki (Business Tour): gracz, ktory wyladowal na polu rywala
-     * i oplacil czynsz, moze odkupic to pole od wlasciciela. To INNA mechanika niz
-     * pendingBuyback (tamta to odkup po karcie przejecia — odwrotny kierunek).
-     */
     @Column(name = "pending_takeover_pos")
     private Integer pendingTakeoverPos;
 
-    /** Gracz, ktory wyladowal na polu i moze je wykupic (= kupujacy). */
     @Column(name = "pending_takeover_buyer_id")
     private Long pendingTakeoverBuyerId;
 
-    /** Dotychczasowy wlasciciel pola (= sprzedajacy). */
     @Column(name = "pending_takeover_seller_id")
     private Long pendingTakeoverSellerId;
 
     @Column(name = "pending_takeover_price")
     private Integer pendingTakeoverPrice;
 
-    /** ID uzytkownika (User), ktory jest liderem lobby i moze rozpoczac gre. */
     @Column(name = "leader_id")
     private Long leaderId;
 

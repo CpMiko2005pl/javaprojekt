@@ -7,27 +7,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import pl.pb.monopoly.domain.*;
 import pl.pb.monopoly.repository.*;
 import pl.pb.monopoly.service.GameEconomy;
-import pl.pb.monopoly.service.GameService;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Wypelnia baze danymi startowymi przy pierwszym uruchomieniu (jesli pusta).
- * Dzieki temu panel gracza (FACEIT), ranking, znajomi i historia meczow sa
- * od razu wypelnione na potrzeby prezentacji.
- *
- * Konta testowe (login / haslo):
- *   admin     / admin123     (ROLE_ADMIN)
- *   moderator / moderator123 (ROLE_MODERATOR)
- *   gracz     / gracz123     (ROLE_USER)
- */
 @Configuration
 public class DataInitializer {
 
     @Bean
     CommandLineRunner seedData(UserRepository users,
-                               MonopolyCardRepository cards,
                                MatchHistoryRepository matches,
                                FriendshipRepository friendships,
                                ProfileCommentRepository comments,
@@ -51,89 +39,17 @@ public class DataInitializer {
                 users.save(kuba);
                 users.save(ola);
 
-                // Historia meczow dla "gracz" (panel FACEIT)
                 seedMatches(matches, gracz);
                 seedMatches(matches, ola);
 
-                // Znajomi: gracz <-> moderator (zaakceptowane), gracz <-> kuba (zaakceptowane),
-                // admin -> gracz (oczekujace, do akceptacji w panelu)
                 friendships.save(new Friendship(gracz, moderator, FriendStatus.ACCEPTED));
                 friendships.save(new Friendship(kuba, gracz, FriendStatus.ACCEPTED));
                 friendships.save(new Friendship(admin, gracz, FriendStatus.PENDING));
                 friendships.save(new Friendship(ola, gracz, FriendStatus.PENDING));
 
-                // Komentarze pod profilem "gracz" (do testowania zarzadzania na dashboardzie)
                 comments.save(new ProfileComment(ola, gracz, "Super profil, zapraszam do wspolnej gry!"));
                 comments.save(new ProfileComment(kuba, gracz, "Jak tam ELO? Lecimy dzisiaj jakiegos rankeda?"));
                 comments.save(new ProfileComment(moderator, gracz, "Pamietaj o zasadach kultury na czacie!"));
-            }
-
-            if (cards.count() == 0) {
-                cards.save(buildCard("Stypendium rektora", "Otrzymujesz stypendium naukowe.",
-                        CardType.KASA_MIEJSKA, 200));
-                cards.save(buildCard("Mandat za rower na deptaku", "Placisz mandat strazy miejskiej.",
-                        CardType.SZANSA, -100));
-                cards.save(buildCard("Sesja poprawkowa", "Wszyscy gracze placa po 50 PLN do puli.",
-                        CardType.WYDARZENIE, -50));
-            }
-        };
-    }
-
-    /**
-     * Wypelnia tabele slownikowe przeniesione z kodu: pola planszy (board_tiles),
-     * karty planszowe (board_cards), rangi (ranks) i zadania dzienne (daily_tasks).
-     * Dane pochodza z dotychczasowych tablic statycznych w GameService/GameEconomy.
-     */
-    @Bean
-    CommandLineRunner seedDictionaries(BoardTileRepository boardTiles,
-                                       BoardCardRepository boardCards,
-                                       RankRepository ranks,
-                                       DailyTaskRepository dailyTasks) {
-        return args -> {
-            if (boardTiles.count() == 0) {
-                for (int pos = 0; pos < GameService.TILES.length; pos++) {
-                    int price = GameEconomy.TILE_PRICE[pos];
-                    String type = GameEconomy.tileType(pos);
-                    Integer rent = "PROPERTY".equals(type) ? GameEconomy.baseRent(pos) : null;
-                    boardTiles.save(new BoardTile(
-                            pos,
-                            GameService.TILES[pos],
-                            GameService.TILE_EFFECTS[pos],
-                            price > 0 ? price : null,
-                            rent,
-                            type,
-                            null));
-                }
-            }
-
-            if (boardCards.count() == 0) {
-                for (GameService.ChanceCard c : GameService.CHANCE_CARDS) {
-                    boardCards.save(new BoardCard("SZANSA", c.title(), c.description(), c.moneyEffect(), null));
-                }
-            }
-
-            if (ranks.count() == 0) {
-                ranks.save(new Rank("Nowicjusz",   0,    799,  "#9ca3af", "rank-novice"));
-                ranks.save(new Rank("Brazowy",     800,  999,  "#cd7f32", "rank-bronze"));
-                ranks.save(new Rank("Srebrny",     1000, 1199, "#c0c0c0", "rank-silver"));
-                ranks.save(new Rank("Zloty",       1200, 1399, "#ffd700", "rank-gold"));
-                ranks.save(new Rank("Platynowy",   1400, 1599, "#22d3ee", "rank-platinum"));
-                ranks.save(new Rank("Diamentowy",  1600, 1799, "#60a5fa", "rank-diamond"));
-                ranks.save(new Rank("Mistrz",      1800, 1999, "#a855f7", "rank-master"));
-                ranks.save(new Rank("Legenda PB",  2000, 100000, "#f43f5e", "rank-legend"));
-            }
-
-            if (dailyTasks.count() == 0) {
-                dailyTasks.save(new DailyTask("Codzienne logowanie",
-                        "Zaloguj sie do gry, aby odebrac nagrode.", "COINS", 100, true));
-                dailyTasks.save(new DailyTask("Rozegraj partie",
-                        "Ukoncz jedna pelna gre.", "COINS", 250, true));
-                dailyTasks.save(new DailyTask("Zwycieska passa",
-                        "Wygraj jedna gre.", "XP", 150, true));
-                dailyTasks.save(new DailyTask("Inwestor",
-                        "Kup 3 nieruchomosci w jednej grze.", "COINS", 200, true));
-                dailyTasks.save(new DailyTask("Otwieracz skrzyn",
-                        "Otworz skrzynke z nagroda.", "LOOTBOX", 1, true));
             }
         };
     }
@@ -155,7 +71,7 @@ public class DataInitializer {
         PlayerStatistics s = new PlayerStatistics();
         int elo = 800 + level * 90 + wins * 5;
         s.setEloPoints(elo);
-        s.setLevel(GameEconomy.levelForElo(elo)); // poziom spojny z ELO
+        s.setLevel(GameEconomy.levelForElo(elo));
         s.setGamesPlayed(games);
         s.setGamesWon(wins);
         s.setWinStreak(ThreadLocalRandom.current().nextInt(0, 5));
@@ -182,14 +98,5 @@ public class DataInitializer {
                                : -ThreadLocalRandom.current().nextInt(12, 26));
             matches.save(m);
         }
-    }
-
-    private MonopolyCard buildCard(String title, String description, CardType type, int effect) {
-        MonopolyCard c = new MonopolyCard();
-        c.setTitle(title);
-        c.setDescription(description);
-        c.setType(type);
-        c.setMoneyEffect(effect);
-        return c;
     }
 }

@@ -4,10 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Polubienie komentarza pod profilem. Jeden uzytkownik moze polubic dany
- * komentarz tylko raz (ograniczenie unikalnosci comment_id + user_id).
- */
 @Entity
 @Table(name = "profile_comment_likes",
         uniqueConstraints = @UniqueConstraint(name = "uk_pc_like_comment_user",

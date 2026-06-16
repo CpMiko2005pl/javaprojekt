@@ -18,16 +18,6 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
-/**
- * Skrzynki (lootboxy) z humorystycznymi przedmiotami studenckimi.
- *
- * Mechanika:
- *  - kazdy gracz dostaje codziennie 1 darmowa skrzynke (max 5 zapasu),
- *  - po otwarciu losuje sie przedmiot z waga rarity:
- *      COMMON 60%, RARE 25%, EPIC 12%, LEGENDARY 3%,
- *  - przedmiot zapisuje sie w `OwnedItem` (encja JPA),
- *  - katalog itemow jest STATYCZNY i wbudowany w te klase (LOOTBOX_ITEMS).
- */
 @Service
 public class LootboxService {
 
@@ -48,7 +38,6 @@ public class LootboxService {
         }
     }
 
-    /** Pojedynczy przedmiot z katalogu (statyczny). */
     public record LootboxItem(
             String slug,
             String name,
@@ -58,7 +47,6 @@ public class LootboxService {
             String description
     ) {}
 
-    /** Mapowanie slug karty bonusowej na HandCardType. */
     public static final java.util.Map<String, HandCardType> BONUS_CARD_MAP = java.util.Map.of(
             "card-bonus-upgrade", HandCardType.FREE_UPGRADE,
             "card-bonus-shield", HandCardType.SHIELD,
@@ -67,9 +55,8 @@ public class LootboxService {
             "card-bonus-double", HandCardType.DOUBLE_RENT_NEXT
     );
 
-    /** Pelny katalog itemow — bez awatarów (upload w ustawieniach profilu), z rozbudowanymi ramkami i kartami bonusowymi. */
     public static final List<LootboxItem> LOOTBOX_ITEMS = List.of(
-            // ===== COMMON =====
+
             new LootboxItem("color-blue", "Pionek: Kobalt PB", Rarity.COMMON, "Kolor pionka",
                     "fa-solid fa-circle", "Niebieski pionek w barwach uczelni."),
             new LootboxItem("color-red", "Pionek: Czerwien Wydzialu", Rarity.COMMON, "Kolor pionka",
@@ -87,7 +74,6 @@ public class LootboxService {
             new LootboxItem("card-bonus-cash", "Karta bonusowa: Stypendium Rektora", Rarity.COMMON, "Karta bonusowa",
                     "fa-solid fa-coins", "Dodana do reki na START nastepnej gry."),
 
-            // ===== RARE =====
             new LootboxItem("color-emerald", "Pionek: Szmaragd", Rarity.RARE, "Kolor pionka",
                     "fa-solid fa-circle", "Zielen kampusowych traw."),
             new LootboxItem("color-pink", "Pionek: Pink Hype", Rarity.RARE, "Kolor pionka",
@@ -115,7 +101,6 @@ public class LootboxService {
             new LootboxItem("card-bonus-double", "Karta bonusowa: Podwojny Wymagacz", Rarity.RARE, "Karta bonusowa",
                     "fa-solid fa-sack-dollar", "Dodana do reki na START nastepnej gry."),
 
-            // ===== EPIC =====
             new LootboxItem("color-neon", "Pionek: Neon Cyber", Rarity.EPIC, "Kolor pionka",
                     "fa-solid fa-circle-radiation", "Swieci w 3D na planszy."),
             new LootboxItem("frame-gold", "Ramka: Zlota", Rarity.EPIC, "Ramka",
@@ -139,7 +124,6 @@ public class LootboxService {
             new LootboxItem("card-bonus-teleport", "Karta bonusowa: Teleport Kampusowy", Rarity.EPIC, "Karta bonusowa",
                     "fa-solid fa-rocket", "Dodana do reki na START nastepnej gry."),
 
-            // ===== LEGENDARY =====
             new LootboxItem("frame-rainbow", "Ramka: Tecza", Rarity.LEGENDARY, "Ramka",
                     "fa-solid fa-rainbow", "Animowana, spektakularna."),
             new LootboxItem("frame-champion", "Ramka: Mistrz Areny", Rarity.LEGENDARY, "Ramka",
@@ -168,11 +152,6 @@ public class LootboxService {
         return LOOTBOX_ITEMS.stream().filter(i -> i.slug().equals(slug)).findFirst().orElse(null);
     }
 
-    /**
-     * "Slot" wyposazenia dla danej kategorii. Itemy z tego samego slotu wykluczaja
-     * sie wzajemnie (mozna miec zalozony tylko jeden). Pionek 3D i Kolor pionka
-     * dziela jeden slot "pawn" — nie da sie zalozyc kilku pionkow naraz.
-     */
     public static String equipSlot(String category) {
         if (category == null) return "";
         return switch (category) {
@@ -181,13 +160,9 @@ public class LootboxService {
         };
     }
 
-    // ===================== SKLEP (skrzynki za monety) =====================
-
-    /** Skrzynka kupowana za monety — losuje przedmiot z przypisanych kategorii. */
     public record ShopBox(String key, String name, String description, String iconClass,
                           int price, Set<String> categories) {}
 
-    /** 3 skrzynki sklepowe: pionki, tytuly, ramki. */
     public static final List<ShopBox> SHOP_BOXES = List.of(
             new ShopBox("pawns", "Skrzynka Pionkow", "Pionki 3D i kolory pionka.",
                     "fa-solid fa-chess-pawn", 300, Set.of("Pionek 3D", "Kolor pionka")),
@@ -205,13 +180,8 @@ public class LootboxService {
         return SHOP_BOXES.stream().filter(b -> b.key().equals(key)).findFirst().orElse(null);
     }
 
-    /** Wynik zakupu skrzynki — zawiera tez pozostala liczbe monet. */
     public record BuyResult(LootboxItem item, boolean addedToInventory, String inventoryNote, int coinsLeft) {}
 
-    /**
-     * Kupuje i otwiera skrzynke kategorii {@code boxKey} za monety gracza.
-     * Losuje przedmiot z kategorii skrzynki (priorytet: jeszcze nieposiadane).
-     */
     @Transactional
     public BuyResult buyBox(String username, String boxKey) {
         ShopBox box = findBox(boxKey);
@@ -250,10 +220,6 @@ public class LootboxService {
         return new BuyResult(rolled, true, null, user.getCoins());
     }
 
-    /**
-     * Doliczenie darmowej skrzynki, jezeli gracz nie odebral dzis i ma < 5.
-     * Wywoluje sie automatycznie z {@code grantDailyIfNeeded()} przy wejsciu na profil.
-     */
     @Transactional
     public void grantDailyIfNeeded(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -267,10 +233,8 @@ public class LootboxService {
         }
     }
 
-    /** Wynik otwarcia skrzynki — item moze byc bez zapisu, gdy gracz ma juz caly katalog. */
     public record OpenResult(LootboxItem item, boolean addedToInventory, String inventoryNote) {}
 
-    /** Otwiera skrzynke jezeli gracz ma >0 dostepnych. Duplikaty nie trafiaja do ekwipunku. */
     @Transactional
     public OpenResult open(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -302,14 +266,12 @@ public class LootboxService {
         return new OpenResult(rolled, true, null);
     }
 
-    /** Auto-ustawienie karty bonusowej — zapisuje pending_wheel_card na nastepna gre. */
     private void equipBonusCard(User user, OwnedItem item) {
         HandCardType cardType = BONUS_CARD_MAP.get(item.getItemSlug());
         if (cardType == null) return;
         PlayerStatistics stats = user.getStatistics();
         if (stats == null) return;
-        
-        // Zdejmij inne karty bonusowe przed zalozeniem nowej
+
         ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
                 .filter(o -> !o.getId().equals(item.getId()))
                 .filter(o -> "Karta bonusowa".equals(findBySlug(o.getItemSlug()).category()))
@@ -325,7 +287,6 @@ public class LootboxService {
         }
     }
 
-    /** Auto-zalozenie pionka 3D po wylosowaniu ze skrzynki (zdejmuje inne pionki — ten sam slot). */
     private void equipPawn3d(User user, OwnedItem item) {
         ownedItemRepository.findByUserIdOrderByObtainedAtDesc(user.getId()).stream()
                 .filter(o -> !o.getId().equals(item.getId()))
@@ -346,12 +307,10 @@ public class LootboxService {
         return ownedItemRepository.findByUserIdOrderByObtainedAtDesc(userId);
     }
 
-    /** Losuje item z waga rarity. */
     private LootboxItem rollItem() {
         return rollItemFromPool(new ArrayList<>(LOOTBOX_ITEMS));
     }
 
-    /** Losuje item, ktorego gracz jeszcze nie ma. Gdy ma caly katalog — zwykly roll bez zapisu. */
     private LootboxItem rollItemNotOwned(Set<String> ownedSlugs) {
         List<LootboxItem> unowned = LOOTBOX_ITEMS.stream()
                 .filter(i -> !ownedSlugs.contains(i.slug()))
@@ -389,19 +348,10 @@ public class LootboxService {
         return rarityPool.get(ThreadLocalRandom.current().nextInt(rarityPool.size()));
     }
 
-    /**
-     * Tworzy "tasme" pseudolosowych itemow do animacji CS2 - 50 itemow,
-     * pozycja 40 to faktyczny wynik. Reszta to wizualny szum (przeważnie
-     * zwykle itemy + kilka rzadszych).
-     */
     public List<LootboxItem> rollVisualStrip(LootboxItem winner) {
         return rollVisualStrip(winner, LOOTBOX_ITEMS);
     }
 
-    /**
-     * Wariant z wlasna pula "szumu" — dzieki temu tasma skrzynki kategorialnej
-     * (np. tylko ramki) pokazuje wylacznie itemy z tej kategorii.
-     */
     public List<LootboxItem> rollVisualStrip(LootboxItem winner, List<LootboxItem> pool) {
         List<LootboxItem> noisePool = (pool == null || pool.isEmpty()) ? LOOTBOX_ITEMS : pool;
         List<LootboxItem> strip = new ArrayList<>();
@@ -415,7 +365,6 @@ public class LootboxService {
         return strip;
     }
 
-    /** Pula itemow nalezacych do skrzynki danej kategorii (do taśmy animacji). */
     public List<LootboxItem> poolForBox(String boxKey) {
         ShopBox box = findBox(boxKey);
         if (box == null) return LOOTBOX_ITEMS;
@@ -424,7 +373,6 @@ public class LootboxService {
                 .collect(Collectors.toList());
     }
 
-    /** Zwraca slownik slug -> item dla wszystkich katalogowanych. */
     public static Map<String, LootboxItem> bySlug() {
         return LOOTBOX_ITEMS.stream().collect(Collectors.toMap(LootboxItem::slug, i -> i));
     }

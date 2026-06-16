@@ -34,11 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Panel administracyjny (tylko ROLE_ADMIN).
- * Admin ma wszystkie funkcje moderatora (podglad i konczenie aktywnych gier,
- * weryfikacja kont) oraz dodatkowe: zmiana rol, usuwanie kont, edycja ekwipunku.
- */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -82,12 +77,12 @@ public class AdminController {
                         @CookieValue(value = "adminUserDir", required = false) String dirCookie,
                         HttpServletResponse response,
                         Model model) {
-        // Brak parametru w URL -> czytaj z cookie; brak cookie -> domyslne.
+
         String effSort = sort != null ? sort : (sortCookie != null ? sortCookie : "username");
         String effDir = dir != null ? dir : (dirCookie != null ? dirCookie : "asc");
         if (!SORT_KEYS.contains(effSort)) effSort = "username";
         if (!"asc".equalsIgnoreCase(effDir) && !"desc".equalsIgnoreCase(effDir)) effDir = "asc";
-        // Zmiana sortu w URL -> zapisz w cookies (30 dni).
+
         if (sort != null) writeCookie(response, "adminUserSort", effSort);
         if (dir != null) writeCookie(response, "adminUserDir", effDir);
 
@@ -104,13 +99,12 @@ public class AdminController {
 
     private void writeCookie(HttpServletResponse response, String name, String value) {
         Cookie cookie = new Cookie(name, value);
-        cookie.setMaxAge(30 * 24 * 60 * 60); // 30 dni
+        cookie.setMaxAge(30 * 24 * 60 * 60);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         response.addCookie(cookie);
     }
 
-    /** Formularz edycji danych biezacych uzytkownika (tylko ADMIN). */
     @GetMapping("/users/{id}/edit")
     public String editForm(@PathVariable Long id, Model model) {
         User u = userService.getById(id);
@@ -149,10 +143,9 @@ public class AdminController {
         }
     }
 
-    /** Funkcja moderatora: admin moze zakonczyc dowolna aktywna sesje gry. */
     @PostMapping("/sessions/{id}/end")
     public String endSession(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        // Aktywna gra zyje w RAM — konczymy przez serwis (zapis koncowy + broadcast + usuniecie z RAM).
+
         gameService.endSessionByAdmin(id);
         redirectAttributes.addFlashAttribute("message", "Sesja zakonczona przez administratora.");
         return "redirect:/admin/users";
@@ -183,8 +176,6 @@ public class AdminController {
         redirectAttributes.addFlashAttribute("message", "Usunieto uzytkownika.");
         return "redirect:/admin/users";
     }
-
-    // ===== EKWIPUNEK GRACZA =====
 
     @GetMapping("/users/{id}/inventory")
     public String inventory(@PathVariable Long id, Model model) {
@@ -223,7 +214,6 @@ public class AdminController {
         return "admin/inventory";
     }
 
-    /** Admin dodaje item do ekwipunku gracza (po slugu z katalogu). */
     @PostMapping("/users/{id}/inventory/add")
     public String addItem(@PathVariable Long id,
                           @RequestParam String slug,
@@ -235,7 +225,6 @@ public class AdminController {
         return "redirect:/admin/users/" + id + "/inventory";
     }
 
-    /** Admin usuwa item z ekwipunku gracza. */
     @PostMapping("/users/{id}/inventory/{itemId}/delete")
     public String removeItem(@PathVariable Long id,
                              @PathVariable Long itemId,
@@ -251,7 +240,6 @@ public class AdminController {
         return "redirect:/admin/users/" + id + "/inventory";
     }
 
-    /** Admin daje graczowi skrzynke (zwieksza availableLootboxes o 1). */
     @PostMapping("/users/{id}/give-lootbox")
     public String giveLootbox(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         User user = userService.getById(id);
@@ -264,7 +252,6 @@ public class AdminController {
         return "redirect:/admin/users";
     }
 
-    /** Admin dolicza (lub odejmuje, gdy ujemne) monety graczowi. */
     @PostMapping("/users/{id}/add-coins")
     public String addCoins(@PathVariable Long id,
                            @RequestParam int amount,
@@ -278,7 +265,6 @@ public class AdminController {
         return "redirect:/admin/users";
     }
 
-    /** Podglad przeslanej legitymacji gracza — tylko admin. */
     @GetMapping("/users/{id}/legitymacja")
     public ResponseEntity<Resource> viewLegitymacja(@PathVariable Long id) {
         User user = userService.getById(id);
@@ -287,7 +273,7 @@ public class AdminController {
             return ResponseEntity.notFound().build();
         }
         Path file = profileMediaService.resolveUpload(rel);
-        // ochrona przed wyjsciem poza katalog uploads
+
         Path base = profileMediaService.resolveUpload("verification");
         if (!file.startsWith(base) || !Files.isReadable(file)) {
             return ResponseEntity.notFound().build();

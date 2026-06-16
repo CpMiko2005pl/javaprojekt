@@ -11,11 +11,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.nio.charset.StandardCharsets;
 import java.net.URLEncoder;
 
-/**
- * Klient REST (Java) do zewnetrznego API DiceBear — generuje deterministyczny
- * awatar na podstawie loginu. Uzywany przy rejestracji, gdy gracz nie ma awatara.
- * Bledy sieci/API sa pochlaniane (zwraca null), aby rejestracja zawsze przeszla.
- */
 @Service
 public class AvatarFetchService {
 
@@ -28,10 +23,6 @@ public class AvatarFetchService {
         this.restTemplate = restTemplate;
     }
 
-    /**
-     * Buduje URL awatara dla danego seeda (loginu) i weryfikuje przez wywolanie
-     * REST, ze API odpowiada. Zwraca URL przy sukcesie, w przeciwnym razie null.
-     */
     public String fetchAvatarUrl(String seed) {
         if (seed == null || seed.isBlank()) return null;
         String url = UriComponentsBuilder.fromHttpUrl(DICEBEAR)

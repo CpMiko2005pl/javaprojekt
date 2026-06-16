@@ -4,10 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Wpis historii rozegranych meczow (do panelu gracza w stylu FACEIT).
- * Powiazany z {@link User} relacja *-1.
- */
 @Entity
 @Table(name = "match_history")
 public class MatchHistory {
@@ -20,35 +16,27 @@ public class MatchHistory {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /** Pole typu Date - kiedy rozegrano mecz. */
     @Column(name = "played_at", nullable = false)
     private LocalDateTime playedAt = LocalDateTime.now();
 
-    /** Nazwa planszy/mapy, np. "Kampus PB". */
     @Column(name = "board_name", length = 60)
     private String boardName = "Kampus PB";
 
-    /** Czy gracz wygral mecz. */
     @Column(nullable = false)
     private boolean won;
 
-    /** Miejsce w koncowej klasyfikacji (1 = zwyciezca). */
     @Column(nullable = false)
     private int placement;
 
-    /** Liczba graczy w meczu. */
     @Column(name = "players_count", nullable = false)
     private int playersCount;
 
-    /** Stan "siana" gracza na koniec meczu. */
     @Column(name = "final_cash", nullable = false)
     private int finalCash;
 
-    /** Czas trwania meczu w minutach. */
     @Column(name = "duration_minutes", nullable = false)
     private int durationMinutes;
 
-    /** Zmiana punktow ELO po meczu (+/-). */
     @Column(name = "elo_change", nullable = false)
     private int eloChange;
 
