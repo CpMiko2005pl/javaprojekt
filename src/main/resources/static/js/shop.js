@@ -158,7 +158,10 @@
     });
 
     function showError(text) {
-        if (!resultEl) { alert(text); return; }
+        if (!resultEl) {
+            if (typeof pbAlert === "function") pbAlert({ message: text, variant: "error" });
+            return;
+        }
         resultEl.innerHTML =
             '<div class="lootbox-result-error"><i class="fa-solid fa-triangle-exclamation"></i> ' +
             escapeHtml(text) + '</div>';

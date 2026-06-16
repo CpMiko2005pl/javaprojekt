@@ -616,19 +616,28 @@ var PROFILE_USERNAME = /*[[${user.username}]]*/ 'gracz';
       document.querySelectorAll('.btn-delete-item').forEach(function(btn){
           btn.addEventListener('click', function(e){
               e.stopPropagation();
-              if(!confirm("Czy na pewno chcesz bezpowrotnie usunac ten przedmiot?")) return;
               var id=btn.getAttribute('data-id');
-              fetch('/inventory/'+id+'/delete',{method:'POST',headers:csrfHeaders()})
-              .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});})
-              .then(function(res){
-                  if(!res.ok){ showInventoryToast(res.data.error||"Nie udalo sie usunac.", true); return; }
-                  var item=btn.closest('.inventory-item');
-                  if(item){
-                      item.remove();
-                      if(window.refreshInventoryPanel) window.refreshInventoryPanel();
-                  }
-                  showInventoryToast(res.data.message||"Usunieto.",false);
-              }).catch(function(){ showInventoryToast("Blad polaczenia.",true); });
+              var doDelete=function(){
+                  fetch('/inventory/'+id+'/delete',{method:'POST',headers:csrfHeaders()})
+                  .then(function(r){return r.json().then(function(d){return{ok:r.ok,data:d};});})
+                  .then(function(res){
+                      if(!res.ok){ showInventoryToast(res.data.error||"Nie udalo sie usunac.", true); return; }
+                      var item=btn.closest('.inventory-item');
+                      if(item){
+                          item.remove();
+                          if(window.refreshInventoryPanel) window.refreshInventoryPanel();
+                      }
+                      showInventoryToast(res.data.message||"Usunieto.",false);
+                  }).catch(function(){ showInventoryToast("Blad polaczenia.",true); });
+              };
+              if (typeof pbConfirm === "function") {
+                  pbConfirm({
+                      title: "Usunąć przedmiot?",
+                      message: "Czy na pewno chcesz bezpowrotnie usunąć ten przedmiot?",
+                      confirmText: "Usuń",
+                      danger: true
+                  }).then(function(ok){ if (ok) doDelete(); });
+              } else doDelete();
           });
       });
 })();

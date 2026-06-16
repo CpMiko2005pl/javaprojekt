@@ -20,8 +20,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
-    @Query("select u from User u where (:role is null or u.role = :role) " +
-           "and (:dateFrom is null or u.createdAt >= :dateFrom)")
+    @Query("select u from User u where u.role = COALESCE(:role, u.role) " +
+           "and u.createdAt >= COALESCE(:dateFrom, u.createdAt)")
     List<User> findForAdmin(@Param("role") Role role,
                             @Param("dateFrom") LocalDateTime dateFrom,
                             Sort sort);

@@ -28,27 +28,16 @@ public class DataInitializer {
                         28, Role.MODERATOR, true, encoder, 16, 45, 28);
                 User gracz = buildUser("gracz", "gracz@pb.edu.pl", "Grzegorz", "Graczewski",
                         21, Role.USER, false, encoder, 12, 38, 23);
-                User kuba = buildUser("kuba", "kuba@pb.edu.pl", "Jakub", "Kubicki",
-                        23, Role.USER, true, encoder, 9, 30, 14);
-                User ola = buildUser("ola", "ola@pb.edu.pl", "Aleksandra", "Olewska",
-                        22, Role.USER, true, encoder, 18, 52, 33);
 
                 users.save(admin);
                 users.save(moderator);
                 users.save(gracz);
-                users.save(kuba);
-                users.save(ola);
 
                 seedMatches(matches, gracz);
-                seedMatches(matches, ola);
 
                 friendships.save(new Friendship(gracz, moderator, FriendStatus.ACCEPTED));
-                friendships.save(new Friendship(kuba, gracz, FriendStatus.ACCEPTED));
                 friendships.save(new Friendship(admin, gracz, FriendStatus.PENDING));
-                friendships.save(new Friendship(ola, gracz, FriendStatus.PENDING));
 
-                comments.save(new ProfileComment(ola, gracz, "Super profil, zapraszam do wspolnej gry!"));
-                comments.save(new ProfileComment(kuba, gracz, "Jak tam ELO? Lecimy dzisiaj jakiegos rankeda?"));
                 comments.save(new ProfileComment(moderator, gracz, "Pamietaj o zasadach kultury na czacie!"));
             }
         };

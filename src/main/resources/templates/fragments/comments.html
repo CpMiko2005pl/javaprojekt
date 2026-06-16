@@ -79,7 +79,7 @@
                     </button>
                     <button type="button" class="btn btn-small pc-edit-btn" th:if="${c.canEdit}" th:data-id="${c.id}">Edytuj</button>
                     <form th:if="${c.canDelete}" th:action="@{/comments/{id}/delete(id=${c.id})}" method="post"
-                          class="inline-form" onsubmit="return confirm('Usunąć komentarz?');">
+                          class="inline-form" data-pb-confirm="Usunąć komentarz?" data-pb-confirm-danger>
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <input type="hidden" name="from" th:value="${from}">
                         <button type="submit" class="btn btn-small btn-danger">Usuń</button>
