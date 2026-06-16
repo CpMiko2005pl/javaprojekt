@@ -47,6 +47,8 @@ public class BotAutoplayService {
     private static final long HUMAN_PAYMENT_TIMEOUT_SECONDS = 30;
     /** Czas na decyzje czlowieka o ulepszeniu pola. */
     private static final long HUMAN_UPGRADE_TIMEOUT_SECONDS = 15;
+    /** Czas na decyzje czlowieka o wykupie cudzej dzialki (Business Tour). */
+    private static final long HUMAN_TAKEOVER_TIMEOUT_SECONDS = 15;
     /** Krotki retry gdy akcja bota zwrocila null lub rzucila wyjatek. */
     private static final long BOT_RECOVERY_DELAY_MS = 600;
 
@@ -190,6 +192,27 @@ public class BotAutoplayService {
                     scheduleOnce(sessionId,
                             () -> gameService.autoUpgradeTimeout(sessionId, snapUpgradePos, snapUpgradePlayer),
                             HUMAN_UPGRADE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                }
+                return;
+            }
+
+            // 2a') Wykup cudzej dzialki (Business Tour) — bot decyduje szybko, czlowiek ma 15s
+            if (s.getPendingTakeoverPos() != null) {
+                Long buyerId = s.getPendingTakeoverBuyerId();
+                if (buyerId == null) return;
+                GamePlayer buyer = s.getPlayers().stream()
+                        .filter(p -> p.getId().equals(buyerId))
+                        .findFirst().orElse(null);
+                if (buyer == null) return;
+                int snapTakeoverPos = s.getPendingTakeoverPos();
+                if (buyer.getUser() == null) {
+                    scheduleOnce(sessionId,
+                            () -> gameService.resolveTakeoverAsBot(sessionId, buyerId, snapTakeoverPos),
+                            BOT_DECISION_DELAY_MS, TimeUnit.MILLISECONDS);
+                } else {
+                    scheduleOnce(sessionId,
+                            () -> gameService.autoTakeoverTimeout(sessionId, snapTakeoverPos),
+                            HUMAN_TAKEOVER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 }
                 return;
             }

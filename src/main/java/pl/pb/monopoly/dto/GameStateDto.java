@@ -36,6 +36,7 @@ public record GameStateDto(
         Long leaderId,
         boolean canRollAgain,
         List<PropertyCardDto> myPropertyCards,
-        Long secondsLeft
+        Long secondsLeft,
+        PendingTakeoverDto pendingTakeover
 ) {
 }

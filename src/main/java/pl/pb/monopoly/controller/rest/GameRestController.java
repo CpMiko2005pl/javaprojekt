@@ -164,6 +164,24 @@ public class GameRestController {
         }
     }
 
+    @PostMapping("/{id}/buyout")
+    public ResponseEntity<?> buyout(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.buyoutTakeover(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/skip-buyout")
+    public ResponseEntity<?> skipBuyout(@PathVariable Long id, Authentication auth) {
+        try {
+            return ResponseEntity.ok(gameService.skipTakeover(id, auth.getName()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/{id}/ready")
     public ResponseEntity<?> ready(@PathVariable Long id, Authentication auth) {
         try {

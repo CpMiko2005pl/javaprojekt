@@ -157,6 +157,18 @@ public final class GameEconomy {
         return price > 0 && !RESORT_TILES[pos] && !UTILITY_TILES[pos] ? price : 0;
     }
 
+    /**
+     * Cena wykupu cudzej dzialki (Business Tour): gracz, ktory wyladowal na polu
+     * rywala i oplacil czynsz, moze je odkupic za 2x cene gruntu + wartosc ulepszen.
+     * Zwraca 0 dla pol niewykupywalnych (resort/utility/bez ceny).
+     */
+    public static int buyoutPrice(int pos, int level) {
+        if (pos < 0 || pos >= 40) return 0;
+        int base = TILE_PRICE[pos];
+        if (base <= 0 || RESORT_TILES[pos] || UTILITY_TILES[pos]) return 0;
+        return base * 2 + Math.max(0, level) * upgradeCost(pos);
+    }
+
     /** Maksymalny poziom ulepszenia (4 = Biurowiec). */
     public static final int MAX_PROPERTY_LEVEL = 4;
 

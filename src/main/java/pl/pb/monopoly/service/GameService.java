@@ -774,6 +774,9 @@ public class GameService {
         if (session.getPendingUpgradePos() != null) {
             throw new IllegalArgumentException("Najpierw zdecyduj o ulepszeniu pola.");
         }
+        if (session.getPendingTakeoverPos() != null) {
+            throw new IllegalArgumentException("Najpierw zdecyduj o wykupie dzialki (wykup lub pomin).");
+        }
         List<GamePlayer> players = session.getPlayers();
         if (players.isEmpty()) {
             return toState(session, username, null, null, "Brak graczy.", null, null, null, null);
@@ -817,6 +820,10 @@ public class GameService {
             return null;
         }
         if (session.getPendingUpgradePos() != null) {
+            scheduleBotUpdate(sessionId);
+            return null;
+        }
+        if (session.getPendingTakeoverPos() != null) {
             scheduleBotUpdate(sessionId);
             return null;
         }
@@ -954,6 +961,8 @@ public class GameService {
                                     .append(rent).append(" PLN dla ")
                                     .append(ownerOfTile.getDisplayName())
                                     .append(doubled ? " (PODWOJONY)! " : ". ");
+                            // Business Tour: po oplaceniu czynszu kupujacy moze wykupic dzialke
+                            offerTakeoverIfPossible(session, current, ownerOfTile, newPos, msg);
                         }
                     }
                 } else if (ownerOfTile.getId().equals(current.getId())) {
@@ -989,7 +998,8 @@ public class GameService {
         if (session.getPendingPurchasePos() == null
                 && session.getPendingPaymentDebtorId() == null
                 && session.getPendingUpgradePos() == null
-                && session.getPendingBuybackVictimId() == null) {
+                && session.getPendingBuybackVictimId() == null
+                && session.getPendingTakeoverPos() == null) {
             endTurnOrExtraRoll(session, current);
         }
         current.setRollsThisTurn(current.getRollsThisTurn() + 1);
@@ -1698,6 +1708,156 @@ public class GameService {
         msg.append(player.getDisplayName()).append(" BANKRUCTWO! ");
     }
 
+    // ========== WYKUP CUDZEJ DZIALKI (Business Tour) ==========
+
+    /**
+     * Po oplaceniu czynszu oferuje kupujacemu wykup dzialki od wlasciciela.
+     * Wykup mozliwy tylko dla zwyklych nieruchomosci (nie resort/utility/szansa),
+     * gdy wlasciciel zyje, brak innych pending, a kupujacy ma gotowke na wykup.
+     */
+    private void offerTakeoverIfPossible(GameSession session, GamePlayer buyer,
+                                         GamePlayer seller, int pos, StringBuilder msg) {
+        if (TILE_PRICE[pos] <= 0) return;
+        if (RESORT_TILES[pos] || UTILITY_TILES[pos] || CHANCE_TILES[pos]) return;
+        if (seller == null || seller.isBankrupt() || buyer.getId().equals(seller.getId())) return;
+        if (session.getPendingPurchasePos() != null
+                || session.getPendingPaymentDebtorId() != null
+                || session.getPendingUpgradePos() != null
+                || session.getPendingBuybackVictimId() != null
+                || session.getPendingTakeoverPos() != null) return;
+        int level = seller.getPropertyLevels().getOrDefault(pos, 0);
+        int price = GameEconomy.buyoutPrice(pos, level);
+        if (price <= 0 || buyer.getCash() < price) return;
+        session.setPendingTakeoverPos(pos);
+        session.setPendingTakeoverBuyerId(buyer.getId());
+        session.setPendingTakeoverSellerId(seller.getId());
+        session.setPendingTakeoverPrice(price);
+        msg.append("Mozesz wykupic ").append(TILES[pos]).append(" od ")
+                .append(seller.getDisplayName()).append(" za ").append(price).append(" PLN! ");
+    }
+
+    /** Gracz wykupuje dzialke, na ktorej wyladowal (Business Tour). */
+    @Transactional
+    public GameStateDto buyoutTakeover(Long sessionId, String username) {
+        return withLock(sessionId, () -> {
+            GameSession session = getSession(sessionId);
+            requireParticipant(session, username);
+            requireActiveGame(session);
+            if (session.getPendingTakeoverPos() == null) {
+                throw new IllegalArgumentException("Brak aktywnego wykupu dzialki.");
+            }
+            GamePlayer me = findPlayerByUsername(session, username);
+            if (!me.getId().equals(session.getPendingTakeoverBuyerId())) {
+                throw new IllegalArgumentException("To nie Ty mozesz wykupic to pole.");
+            }
+            return doTakeover(session, me, username);
+        });
+    }
+
+    /** Gracz rezygnuje z wykupu dzialki. */
+    @Transactional
+    public GameStateDto skipTakeover(Long sessionId, String username) {
+        return withLock(sessionId, () -> {
+            GameSession session = getSession(sessionId);
+            requireParticipant(session, username);
+            requireActiveGame(session);
+            if (session.getPendingTakeoverPos() == null) {
+                throw new IllegalArgumentException("Brak aktywnego wykupu dzialki.");
+            }
+            GamePlayer me = findPlayerByUsername(session, username);
+            if (!me.getId().equals(session.getPendingTakeoverBuyerId())) {
+                throw new IllegalArgumentException("To nie Twoja decyzja o wykupie.");
+            }
+            return doSkipTakeover(session, me, username);
+        });
+    }
+
+    /** Timeout decyzji czlowieka — automatyczna rezygnacja z wykupu. */
+    @Transactional
+    public GameStateDto autoTakeoverTimeout(Long sessionId, int snapPos) {
+        return withLock(sessionId, () -> {
+            GameSession session = getSession(sessionId);
+            if (session.getPendingTakeoverPos() == null
+                    || !Integer.valueOf(snapPos).equals(session.getPendingTakeoverPos())) {
+                return null; // juz rozstrzygniete
+            }
+            GamePlayer buyer = session.getPlayers().stream()
+                    .filter(p -> p.getId().equals(session.getPendingTakeoverBuyerId()))
+                    .findFirst().orElse(null);
+            if (buyer == null) { session.clearPendingTakeover(); return null; }
+            return doSkipTakeover(session, buyer, null);
+        });
+    }
+
+    /** Bot decyduje o wykupie: wykupuje gdy ma gotowke >= 1.5x ceny, inaczej rezygnuje. */
+    @Transactional
+    public GameStateDto resolveTakeoverAsBot(Long sessionId, Long buyerId, int snapPos) {
+        return withLock(sessionId, () -> {
+            GameSession session = getSession(sessionId);
+            if (session.getPendingTakeoverPos() == null
+                    || !Integer.valueOf(snapPos).equals(session.getPendingTakeoverPos())) {
+                return null;
+            }
+            if (!buyerId.equals(session.getPendingTakeoverBuyerId())) return null;
+            GamePlayer buyer = session.getPlayers().stream()
+                    .filter(p -> p.getId().equals(buyerId))
+                    .findFirst().orElse(null);
+            if (buyer == null || buyer.getUser() != null) return null;
+            int price = session.getPendingTakeoverPrice() != null ? session.getPendingTakeoverPrice() : 0;
+            if (price > 0 && buyer.getCash() >= (long) price * 3 / 2) {
+                return doTakeover(session, buyer, null);
+            }
+            return doSkipTakeover(session, buyer, null);
+        });
+    }
+
+    private GameStateDto doTakeover(GameSession session, GamePlayer buyer, String username) {
+        int pos = session.getPendingTakeoverPos();
+        int price = session.getPendingTakeoverPrice() != null ? session.getPendingTakeoverPrice() : 0;
+        GamePlayer seller = session.getPlayers().stream()
+                .filter(p -> p.getId().equals(session.getPendingTakeoverSellerId()))
+                .findFirst().orElse(null);
+        StringBuilder msg = new StringBuilder();
+        if (buyer.getCash() < price || price <= 0) {
+            session.clearPendingTakeover();
+            msg.append("Za malo siana na wykup — pole zostaje u wlasciciela. ");
+        } else if (seller == null || seller.isBankrupt() || !seller.getOwnedPositions().contains(pos)) {
+            session.clearPendingTakeover();
+            msg.append("Wykup niemozliwy — pole zmienilo wlasciciela. ");
+        } else {
+            buyer.setCash(buyer.getCash() - price);
+            seller.setCash(seller.getCash() + price);
+            seller.getOwnedPositions().remove(pos);
+            clearPropertyDevelopment(seller, pos); // wlasciciel traci pole, poziom spada do 0
+            buyer.getOwnedPositions().add(pos);
+            session.clearPendingTakeover();
+            msg.append(buyer.getDisplayName()).append(" WYKUPUJE ").append(TILES[pos])
+                    .append(" od ").append(seller.getDisplayName())
+                    .append(" za ").append(price).append(" PLN! ");
+        }
+        return finishTakeover(session, buyer, username, msg);
+    }
+
+    private GameStateDto doSkipTakeover(GameSession session, GamePlayer buyer, String username) {
+        session.clearPendingTakeover();
+        StringBuilder msg = new StringBuilder(buyer.getDisplayName() + " rezygnuje z wykupu dzialki. ");
+        return finishTakeover(session, buyer, username, msg);
+    }
+
+    /** Domkniecie decyzji o wykupie — konczy ture kupujacego (z uwzglednieniem dubletu). */
+    private GameStateDto finishTakeover(GameSession session, GamePlayer buyer, String username, StringBuilder msg) {
+        endTurnOrExtraRoll(session, buyer);
+        checkGameEnd(session, msg);
+        if (session.getStatus() != GameStatus.FINISHED) {
+            appendWinAlerts(session.getPlayers(), msg);
+        }
+        persist(session);
+        Long sessionId = session.getId();
+        publishPublic(sessionId, null, null, msg.toString(), null, null, null, null);
+        scheduleBotUpdate(sessionId);
+        return toState(session, username, null, null, msg.toString(), null, null, null, null);
+    }
+
     /**
      * Co 30 s wymusza koniec gier, ktore przekroczyly limit czasu (60 min),
      * nawet gdy nikt nie wykonuje ruchu. Zwyciezca = najwyzszy majatek.
@@ -2240,6 +2400,22 @@ public class GameService {
             );
         }
 
+        // Wykup cudzej dzialki (Business Tour)
+        PendingTakeoverDto pendingTakeover = null;
+        if (session.getPendingTakeoverPos() != null && session.getPendingTakeoverPrice() != null) {
+            int tPos = session.getPendingTakeoverPos();
+            GamePlayer seller = players.stream()
+                    .filter(p -> p.getId().equals(session.getPendingTakeoverSellerId()))
+                    .findFirst().orElse(null);
+            pendingTakeover = new PendingTakeoverDto(
+                    tPos,
+                    TILES[tPos],
+                    session.getPendingTakeoverPrice(),
+                    session.getPendingTakeoverBuyerId(),
+                    session.getPendingTakeoverSellerId(),
+                    seller != null ? seller.getDisplayName() : "?");
+        }
+
         List<PropertyCardDto> myPropertyCards = buildMyPropertyCards(session, username);
 
         // Pozostaly czas gry (sekundy) — tylko dla trwajacej rozgrywki
@@ -2254,7 +2430,7 @@ public class GameService {
                 movedId, fromPos, toPos, myTurn, tileNamesList(), tileEffectsList(),
                 pending, pendingPayment, ownership, prices, card, winnerId, winnerName,
                 myHandCards, pendingUpgrade, pendingBuyback, effectiveLeaderId, canRollAgain,
-                myPropertyCards, secondsLeft);
+                myPropertyCards, secondsLeft, pendingTakeover);
     }
 
     private List<PropertyCardDto> buildMyPropertyCards(GameSession session, String username) {

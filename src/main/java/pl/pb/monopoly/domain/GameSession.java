@@ -92,6 +92,25 @@ public class GameSession {
     @Column(name = "pending_extra_roll_player_id")
     private Long pendingExtraRollPlayerId;
 
+    /**
+     * Wykup cudzej dzialki (Business Tour): gracz, ktory wyladowal na polu rywala
+     * i oplacil czynsz, moze odkupic to pole od wlasciciela. To INNA mechanika niz
+     * pendingBuyback (tamta to odkup po karcie przejecia — odwrotny kierunek).
+     */
+    @Column(name = "pending_takeover_pos")
+    private Integer pendingTakeoverPos;
+
+    /** Gracz, ktory wyladowal na polu i moze je wykupic (= kupujacy). */
+    @Column(name = "pending_takeover_buyer_id")
+    private Long pendingTakeoverBuyerId;
+
+    /** Dotychczasowy wlasciciel pola (= sprzedajacy). */
+    @Column(name = "pending_takeover_seller_id")
+    private Long pendingTakeoverSellerId;
+
+    @Column(name = "pending_takeover_price")
+    private Integer pendingTakeoverPrice;
+
     /** ID uzytkownika (User), ktory jest liderem lobby i moze rozpoczac gre. */
     @Column(name = "leader_id")
     private Long leaderId;
@@ -278,6 +297,25 @@ public class GameSession {
 
     public Long getPendingExtraRollPlayerId() { return pendingExtraRollPlayerId; }
     public void setPendingExtraRollPlayerId(Long pendingExtraRollPlayerId) { this.pendingExtraRollPlayerId = pendingExtraRollPlayerId; }
+
+    public Integer getPendingTakeoverPos() { return pendingTakeoverPos; }
+    public void setPendingTakeoverPos(Integer pendingTakeoverPos) { this.pendingTakeoverPos = pendingTakeoverPos; }
+
+    public Long getPendingTakeoverBuyerId() { return pendingTakeoverBuyerId; }
+    public void setPendingTakeoverBuyerId(Long pendingTakeoverBuyerId) { this.pendingTakeoverBuyerId = pendingTakeoverBuyerId; }
+
+    public Long getPendingTakeoverSellerId() { return pendingTakeoverSellerId; }
+    public void setPendingTakeoverSellerId(Long pendingTakeoverSellerId) { this.pendingTakeoverSellerId = pendingTakeoverSellerId; }
+
+    public Integer getPendingTakeoverPrice() { return pendingTakeoverPrice; }
+    public void setPendingTakeoverPrice(Integer pendingTakeoverPrice) { this.pendingTakeoverPrice = pendingTakeoverPrice; }
+
+    public void clearPendingTakeover() {
+        this.pendingTakeoverPos = null;
+        this.pendingTakeoverBuyerId = null;
+        this.pendingTakeoverSellerId = null;
+        this.pendingTakeoverPrice = null;
+    }
 
     public Long getLeaderId() { return leaderId; }
     public void setLeaderId(Long leaderId) { this.leaderId = leaderId; }

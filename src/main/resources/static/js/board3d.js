@@ -1254,7 +1254,7 @@
 
         /* BUG FIX: dodano pendingUpgrade do warunkow blokujacych przycisk */
         if (rollBtn) rollBtn.disabled = animating || rollInFlight || !state.myTurn || !!state.pendingPurchase
-            || !!state.pendingPayment || !!state.pendingUpgrade || !!state.pendingBuyback || state.status === "FINISHED";
+            || !!state.pendingPayment || !!state.pendingUpgrade || !!state.pendingBuyback || !!state.pendingTakeover || state.status === "FINISHED";
         updateCenterDicePanel(state);
         updateWinnerBanner(state);
         updateGameClock(state);
@@ -1323,7 +1323,7 @@
         var displayName = current ? (current.name || "Gracz") : "Gracz";
 
         /* Faza decyzji — ukryj przycisk rzutu (zastepuje go action panel) */
-        if (state.pendingPurchase || state.pendingPayment || state.pendingUpgrade || state.pendingBuyback) {
+        if (state.pendingPurchase || state.pendingPayment || state.pendingUpgrade || state.pendingBuyback || state.pendingTakeover) {
             rollPanel.style.display = "none";
             return;
         }
@@ -1607,7 +1607,7 @@
         if (!ap) return;
         /* Brak decyzji — chowamy panel ZAWSZE (rowniez w trakcie animacji), dzieki czemu
            panel "Zakup — decyduje Bot" nigdy nie zostaje na ekranie po decyzji bota. */
-        if (!state.pendingPayment && !state.pendingUpgrade && !state.pendingPurchase && !state.pendingBuyback) {
+        if (!state.pendingPayment && !state.pendingUpgrade && !state.pendingPurchase && !state.pendingBuyback && !state.pendingTakeover) {
             ap.style.display = "none";
             ap.innerHTML = "";
             lastActionPanelKey = null;
@@ -1625,6 +1625,11 @@
         if (state.pendingBuyback) {
             closeFloatingPopups();
             renderBuybackPanel(state, ap);
+            return;
+        }
+        if (state.pendingTakeover) {
+            closeFloatingPopups();
+            renderTakeoverPanel(state, ap);
             return;
         }
         if (state.pendingUpgrade) {
@@ -1867,7 +1872,7 @@
     function resetCameraIfIdle() {
         if (animating) return;
         if (!lastState) return;
-        var pend = lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback;
+        var pend = lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback || lastState.pendingTakeover;
         if (!pend) { camState.cinematic = false; camState.followPlayerId = null; }
     }
 
@@ -2014,6 +2019,7 @@
                         pendingPayment: lastState.pendingPayment,
                         pendingUpgrade: lastState.pendingUpgrade,
                         pendingBuyback: lastState.pendingBuyback,
+                        pendingTakeover: lastState.pendingTakeover,
                         ownership: lastState.ownership || state.ownership,
                         players: lastState.players || state.players,
                         dice1: state.dice1 != null ? state.dice1 : lastState.dice1,
@@ -2212,7 +2218,7 @@
         if (!animating && animationQueue.length === 0 &&
             lastState && lastState.myTurn &&
             !lastState.pendingPurchase && !lastState.pendingPayment && !lastState.pendingUpgrade &&
-            !lastState.pendingBuyback &&
+            !lastState.pendingBuyback && !lastState.pendingTakeover &&
             lastState.status !== "FINISHED" &&
             rollBtn && rollBtn.disabled) {
             fetch("/api/game/" + sessionId + "/state")
@@ -2270,7 +2276,7 @@
                 pushToast("Tura: " + (cur ? cur.name : "innego gracza"), "info", "fa-clock");
                 return;
             }
-            if (lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback) {
+            if (lastState.pendingPurchase || lastState.pendingPayment || lastState.pendingUpgrade || lastState.pendingBuyback || lastState.pendingTakeover) {
                 pushToast("Najpierw zakoncz decyzje na planszy.", "info", "fa-hand");
                 return;
             }
@@ -2664,6 +2670,49 @@
         if (btnBuyback) btnBuyback.addEventListener("click", function() { postAction("/buyback"); });
         var btnSkip = document.getElementById("btnSkipBuyback");
         if (btnSkip) btnSkip.addEventListener("click", function() { postAction("/skip-buyback"); });
+    }
+
+    /* Business Tour: wykup cudzej dzialki po wyladowaniu i oplaceniu czynszu. */
+    function renderTakeoverPanel(state, ap) {
+        var pt = state.pendingTakeover;
+        if (!pt) { ap.style.display = "none"; ap.innerHTML = ""; return; }
+
+        var amBuyer = state.players.some(function(p) { return p.isMe && sameId(p.id, pt.buyerId); });
+        var panelKey = "takeover|" + pt.buyerId + "|" + pt.position + "|" + pt.price;
+        if (panelKey === lastActionPanelKey) return;
+        lastActionPanelKey = panelKey;
+
+        var html = '<div class="hud-panel-head"><h2><i class="fa-solid fa-handshake"></i> Wykup dzialki</h2>';
+        if (amBuyer) html += '<span id="actionTimerLabel" class="action-timer-label">15s</span>';
+        html += '</div>';
+        if (amBuyer) html += '<div class="action-timer-track"><div id="actionTimerBar" class="action-timer-bar"></div></div>';
+        html += '<p class="action-tile-name"><i class="fa-solid fa-flag"></i> ' + escapeHtml(pt.tileName) + '</p>' +
+            '<p class="muted">Wlasciciel: <strong>' + escapeHtml(pt.sellerName || "rywal") + '</strong>.</p>' +
+            '<p class="muted action-tile-price">Wykup za <strong>' + pt.price + ' PLN</strong> (2x cena + ulepszenia)</p>';
+
+        if (amBuyer) {
+            var me = state.players.find(function(p) { return p.isMe; });
+            html += '<p class="muted small">Twoje siano: <strong>' + (me && me.cash != null ? me.cash : 0) + ' PLN</strong></p>' +
+                '<div class="action-buttons">' +
+                '<button class="btn btn-bt-roll" id="btnBuyout"><i class="fa-solid fa-handshake"></i> Wykup za ' + pt.price + ' PLN</button>' +
+                '<button class="btn btn-secondary" id="btnSkipBuyout">Pomin</button>' +
+                '</div>' +
+                '<p class="muted small" style="text-align:center;">Masz 15s — po czasie pole zostaje u wlasciciela.</p>';
+        } else {
+            html += '<p class="muted small">Gracz moze wykupic to pole lub pominac.</p>';
+        }
+        html += '<p class="error" id="actionErr" style="display:none;"></p>';
+        ap.style.display = "block";
+        ap.className = "bt-action-float bt-action-anim";
+        ap.innerHTML = html;
+
+        if (amBuyer) startActionTimer(Date.now() + 15000);
+        else clearActionTimer();
+
+        var btnBuyout = document.getElementById("btnBuyout");
+        if (btnBuyout) btnBuyout.addEventListener("click", function() { postAction("/buyout"); });
+        var btnSkipBuyout = document.getElementById("btnSkipBuyout");
+        if (btnSkipBuyout) btnSkipBuyout.addEventListener("click", function() { postAction("/skip-buyout"); });
     }
 
     function propertyLevelLabel(level) {
