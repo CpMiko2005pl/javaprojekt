@@ -8,4 +8,6 @@ import java.util.List;
 public interface MatchHistoryRepository extends JpaRepository<MatchHistory, Long> {
 
     List<MatchHistory> findByUserIdOrderByPlayedAtDesc(Long userId);
+
+    void deleteByUserId(Long userId);
 }

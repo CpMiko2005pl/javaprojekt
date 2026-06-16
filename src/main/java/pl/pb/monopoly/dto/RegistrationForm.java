@@ -1,7 +1,10 @@
 package pl.pb.monopoly.dto;
 
 import jakarta.validation.constraints.*;
+import pl.pb.monopoly.validation.MinimumAge;
 import pl.pb.monopoly.validation.PasswordMatches;
+
+import java.time.LocalDate;
 
 @PasswordMatches
 public class RegistrationForm {
@@ -25,9 +28,10 @@ public class RegistrationForm {
             message = "Nazwisko musi zaczynac sie wielka litera")
     private String lastName;
 
-    @Min(value = 18, message = "Do gry wymagany jest wiek co najmniej 18 lat")
-    @Max(value = 120, message = "Niepoprawny wiek")
-    private int age;
+    @NotNull(message = "Data urodzenia jest wymagana")
+    @Past(message = "Data urodzenia nie moze byc w przyszlosci")
+    @MinimumAge(18)
+    private LocalDate dateOfBirth;
 
     @NotBlank(message = "Haslo jest wymagane")
     @Size(min = 5, max = 100, message = "Haslo musi miec co najmniej 5 znakow")
@@ -68,12 +72,12 @@ public class RegistrationForm {
         this.lastName = lastName;
     }
 
-    public int getAge() {
-        return age;
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
     }
 
-    public void setAge(int age) {
-        this.age = age;
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String getPassword() {

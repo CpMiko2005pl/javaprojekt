@@ -1,6 +1,9 @@
 package pl.pb.monopoly.dto;
 
 import jakarta.validation.constraints.*;
+import pl.pb.monopoly.validation.MinimumAge;
+
+import java.time.LocalDate;
 
 public class AdminUserEditForm {
 
@@ -14,9 +17,10 @@ public class AdminUserEditForm {
     @Size(min = 3, max = 50, message = "Nazwisko: od 3 do 50 znakow")
     private String lastName;
 
-    @Min(value = 18, message = "Wymagany wiek to co najmniej 18 lat")
-    @Max(value = 120, message = "Wiek nie moze przekraczac 120 lat")
-    private int age;
+    @NotNull(message = "Data urodzenia jest wymagana")
+    @Past(message = "Data urodzenia nie moze byc w przyszlosci")
+    @MinimumAge(18)
+    private LocalDate dateOfBirth;
 
     @Min(value = 0, message = "Liczba monet nie moze byc ujemna")
     private int coins;
@@ -33,8 +37,8 @@ public class AdminUserEditForm {
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
 
-    public int getAge() { return age; }
-    public void setAge(int age) { this.age = age; }
+    public LocalDate getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
 
     public int getCoins() { return coins; }
     public void setCoins(int coins) { this.coins = coins; }

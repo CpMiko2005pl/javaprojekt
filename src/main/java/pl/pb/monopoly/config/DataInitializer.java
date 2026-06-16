@@ -8,6 +8,7 @@ import pl.pb.monopoly.domain.*;
 import pl.pb.monopoly.repository.*;
 import pl.pb.monopoly.service.GameEconomy;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -23,11 +24,11 @@ public class DataInitializer {
         return args -> {
             if (users.count() == 0) {
                 User admin = buildUser("admin", "admin@pb.edu.pl", "Anna", "Adminowska",
-                        30, Role.ADMIN, true, encoder, 22, 60, 41);
+                        LocalDate.of(1995, 4, 12), Role.ADMIN, true, encoder, 22, 60, 41);
                 User moderator = buildUser("moderator", "mod@pb.edu.pl", "Marek", "Moderacki",
-                        28, Role.MODERATOR, true, encoder, 16, 45, 28);
+                        LocalDate.of(1997, 8, 3), Role.MODERATOR, true, encoder, 16, 45, 28);
                 User gracz = buildUser("gracz", "gracz@pb.edu.pl", "Grzegorz", "Graczewski",
-                        21, Role.USER, false, encoder, 12, 38, 23);
+                        LocalDate.of(2004, 11, 20), Role.USER, false, encoder, 12, 38, 23);
 
                 users.save(admin);
                 users.save(moderator);
@@ -44,14 +45,14 @@ public class DataInitializer {
     }
 
     private User buildUser(String username, String email, String firstName, String lastName,
-                           int age, Role role, boolean verified, PasswordEncoder encoder,
+                           LocalDate dateOfBirth, Role role, boolean verified, PasswordEncoder encoder,
                            int level, int games, int wins) {
         User u = new User();
         u.setUsername(username);
         u.setEmail(email);
         u.setFirstName(firstName);
         u.setLastName(lastName);
-        u.setAge(age);
+        u.setDateOfBirth(dateOfBirth);
         u.setRole(role);
         u.setVerified(verified);
         u.setCoins(1000 + wins * 50);

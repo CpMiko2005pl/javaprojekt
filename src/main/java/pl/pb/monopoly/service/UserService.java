@@ -23,12 +23,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AvatarFetchService avatarFetchService;
+    private final UserAccountDeletionService userAccountDeletionService;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       AvatarFetchService avatarFetchService) {
+                       AvatarFetchService avatarFetchService,
+                       UserAccountDeletionService userAccountDeletionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.avatarFetchService = avatarFetchService;
+        this.userAccountDeletionService = userAccountDeletionService;
     }
 
     public boolean usernameTaken(String username) {
@@ -46,7 +49,7 @@ public class UserService {
         user.setEmail(form.getEmail());
         user.setFirstName(form.getFirstName());
         user.setLastName(form.getLastName());
-        user.setAge(form.getAge());
+        user.setDateOfBirth(form.getDateOfBirth());
         user.setPassword(passwordEncoder.encode(form.getPassword()));
         user.setRole(Role.USER);
         user.setCoins(1000);
@@ -99,7 +102,7 @@ public class UserService {
         }
         user.setFirstName(form.getFirstName());
         user.setLastName(form.getLastName());
-        user.setAge(form.getAge());
+        user.setDateOfBirth(form.getDateOfBirth());
         user.setCoins(form.getCoins());
         user.setBio(form.getBio() != null && !form.getBio().isBlank() ? form.getBio().strip() : null);
     }
@@ -116,7 +119,7 @@ public class UserService {
 
     @Transactional
     public void delete(Long userId) {
-        userRepository.deleteById(userId);
+        userAccountDeletionService.purgeAndDelete(userId);
     }
 
     @Transactional

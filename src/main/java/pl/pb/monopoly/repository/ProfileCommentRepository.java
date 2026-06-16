@@ -13,4 +13,6 @@ public interface ProfileCommentRepository extends JpaRepository<ProfileComment, 
     Optional<ProfileComment> findByAuthorIdAndTargetId(Long authorId, Long targetId);
 
     long countByTargetId(Long targetId);
+
+    List<ProfileComment> findByAuthorIdOrTargetId(Long authorId, Long targetId);
 }

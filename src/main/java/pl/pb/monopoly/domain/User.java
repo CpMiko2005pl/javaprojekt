@@ -2,7 +2,9 @@ package pl.pb.monopoly.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import pl.pb.monopoly.validation.MinimumAge;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -36,10 +38,11 @@ public class User {
     @Column(name = "last_name", length = 50)
     private String lastName;
 
-    @Min(value = 18, message = "Wymagany wiek to co najmniej 18 lat")
-    @Max(value = 120)
-    @Column(nullable = false)
-    private int age;
+    @NotNull(message = "Data urodzenia jest wymagana")
+    @Past(message = "Data urodzenia nie moze byc w przyszlosci")
+    @MinimumAge(18)
+    @Column(name = "date_of_birth", nullable = false)
+    private LocalDate dateOfBirth;
 
     @Min(value = 0, message = "Liczba monet nie moze byc ujemna")
     @Column(nullable = false)
@@ -138,12 +141,12 @@ public class User {
         this.lastName = lastName;
     }
 
-    public int getAge() {
-        return age;
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
     }
 
-    public void setAge(int age) {
-        this.age = age;
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public int getCoins() {

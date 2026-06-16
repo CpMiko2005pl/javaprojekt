@@ -113,7 +113,7 @@ public class AdminController {
             form.setEmail(u.getEmail());
             form.setFirstName(u.getFirstName());
             form.setLastName(u.getLastName());
-            form.setAge(u.getAge());
+            form.setDateOfBirth(u.getDateOfBirth());
             form.setCoins(u.getCoins());
             form.setBio(u.getBio());
             model.addAttribute("form", form);

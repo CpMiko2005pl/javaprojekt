@@ -14,4 +14,6 @@ public interface OwnedItemRepository extends JpaRepository<OwnedItem, Long> {
     List<OwnedItem> findByUserIdAndEquipped(Long userId, boolean equipped);
 
     java.util.Optional<OwnedItem> findByUserIdAndItemSlug(Long userId, String itemSlug);
+
+    void deleteByUserId(Long userId);
 }

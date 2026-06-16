@@ -11,6 +11,7 @@ import pl.pb.monopoly.domain.User;
 import pl.pb.monopoly.repository.AchievementRepository;
 import pl.pb.monopoly.repository.UserRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,7 +30,7 @@ class AchievementServiceTest {
         User u = new User();
         u.setUsername("achtest");
         u.setEmail("achtest@pb.edu.pl");
-        u.setAge(20);
+        u.setDateOfBirth(LocalDate.now().minusYears(20));
         u.setPassword("x");
         u.setCoins(0);
         PlayerStatistics s = new PlayerStatistics();

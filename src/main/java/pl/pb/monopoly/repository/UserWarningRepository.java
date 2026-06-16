@@ -10,4 +10,8 @@ public interface UserWarningRepository extends JpaRepository<UserWarning, Long> 
     List<UserWarning> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     long countByUserId(Long userId);
+
+    void deleteByUserId(Long userId);
+
+    void deleteByModeratorId(Long moderatorId);
 }

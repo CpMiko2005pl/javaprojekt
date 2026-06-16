@@ -11,7 +11,7 @@ Table users {
   password varchar(255) [not null]
   first_name varchar(20)
   last_name varchar(50)
-  age integer [not null]
+  date_of_birth date [not null, note: 'Wymagane min. 18 lat']
   coins integer [not null, default: 1000]
   verified boolean [not null]
   role varchar(20) [not null, note: 'USER | MODERATOR | ADMIN']

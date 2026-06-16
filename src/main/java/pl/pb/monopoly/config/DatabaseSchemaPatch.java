@@ -73,6 +73,27 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
                     created_at timestamp not null default current_timestamp
                 )
                 """);
+        patchUsersDateOfBirthH2();
+    }
+
+    private void patchUsersDateOfBirthH2() {
+        patch("ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth date");
+        try {
+            patch("UPDATE users SET date_of_birth = DATEADD('YEAR', -age, CURRENT_DATE) WHERE date_of_birth IS NULL");
+        } catch (Exception ex) {
+            log.debug("H2 age->date_of_birth migration skipped: {}", ex.getMessage());
+        }
+        patch("UPDATE users SET date_of_birth = DATEADD('YEAR', -25, CURRENT_DATE) WHERE date_of_birth IS NULL");
+        try {
+            patch("ALTER TABLE users ALTER COLUMN date_of_birth SET NOT NULL");
+        } catch (Exception ex) {
+            log.debug("H2 date_of_birth NOT NULL already set: {}", ex.getMessage());
+        }
+        try {
+            patch("ALTER TABLE users DROP COLUMN IF EXISTS age");
+        } catch (Exception ex) {
+            log.debug("H2 drop age column skipped: {}", ex.getMessage());
+        }
     }
 
     private void patchPostgres() {
@@ -243,6 +264,39 @@ public class DatabaseSchemaPatch implements ApplicationRunner {
                     message varchar(500) NOT NULL,
                     created_at timestamp NOT NULL DEFAULT now()
                 )
+                """);
+        patchUsersDateOfBirthPostgres();
+    }
+
+    private void patchUsersDateOfBirthPostgres() {
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth date
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                UPDATE users
+                SET date_of_birth = (CURRENT_DATE - (age * INTERVAL '1 year'))::date
+                WHERE date_of_birth IS NULL
+                  AND EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'users'
+                      AND column_name = 'age'
+                  )
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                UPDATE users SET date_of_birth = (CURRENT_DATE - INTERVAL '25 years')::date
+                WHERE date_of_birth IS NULL
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE users ALTER COLUMN date_of_birth SET NOT NULL
+                """);
+        patch("""
+                SET search_path TO monopoly, public;
+                ALTER TABLE users DROP COLUMN IF EXISTS age
                 """);
     }
 

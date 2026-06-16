@@ -47,11 +47,13 @@
                 </div>
 
                 <div class="field">
-                    <label for="age">Wiek * <small style="font-weight:400;color:#94a3b8;">(min. 18 lat)</small></label>
-                    <input type="number" id="age" th:field="*{age}" min="18" max="120"
-                           th:attr="aria-invalid=${#fields.hasErrors('age')} ? 'true' : 'false'"
-                           placeholder="np. 21">
-                    <p class="error" role="alert" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></p>
+                    <label for="dateOfBirth">Data urodzenia * <small style="font-weight:400;color:#94a3b8;">(min. 18 lat)</small></label>
+                    <input type="date" id="dateOfBirth" th:field="*{dateOfBirth}"
+                           th:attr="aria-invalid=${#fields.hasErrors('dateOfBirth')} ? 'true' : 'false',
+                                    max=${#temporals.format(#temporals.createToday().minusYears(18), 'yyyy-MM-dd')},
+                                    min=${#temporals.format(#temporals.createToday().minusYears(120), 'yyyy-MM-dd')}"
+                           required>
+                    <p class="error" role="alert" th:if="${#fields.hasErrors('dateOfBirth')}" th:errors="*{dateOfBirth}"></p>
                 </div>
 
                 <div class="field">

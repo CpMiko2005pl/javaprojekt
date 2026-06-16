@@ -14,7 +14,7 @@ CREATE TABLE users (
     password        VARCHAR(255) NOT NULL,
     first_name      VARCHAR(20),
     last_name       VARCHAR(50),
-    age             INTEGER      NOT NULL,
+    date_of_birth   DATE         NOT NULL,
     coins           INTEGER      NOT NULL DEFAULT 1000,
     verified        BOOLEAN      NOT NULL,
     role            VARCHAR(20)  NOT NULL,

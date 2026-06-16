@@ -15,4 +15,8 @@ public interface ProfileCommentLikeRepository extends JpaRepository<ProfileComme
     List<ProfileCommentLike> findByCommentIdIn(List<Long> commentIds);
 
     void deleteByCommentId(Long commentId);
+
+    void deleteByCommentIdIn(java.util.Collection<Long> commentIds);
+
+    void deleteByUserId(Long userId);
 }
