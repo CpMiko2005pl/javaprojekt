@@ -46,10 +46,11 @@
                 <button type="button" id="readyBtn" class="fc-btn fc-btn-ready">
                     <i class="fa-solid fa-check"></i> Gotowy
                 </button>
-                <form th:action="@{/game/{id}/leave(id=${sessionId})}" method="post" class="fc-leave-form">
+                <form th:action="@{/game/{id}/leave(id=${sessionId})}" method="post" class="fc-leave-form"
+                      data-pb-confirm="Opuścić lobby? Stracisz miejsce w tym pokoju."
+                      data-pb-confirm-title="Opuścić lobby?" data-pb-confirm-danger>
                     <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                    <button type="submit" class="fc-btn fc-btn-leave"
-                            onclick="return confirm('Opuscic lobby?')">
+                    <button type="submit" class="fc-btn fc-btn-leave">
                         <i class="fa-solid fa-right-from-bracket"></i> Opuść
                     </button>
                 </form>
@@ -180,10 +181,10 @@
                 </div>
                 <div class="fc-active-actions">
                     <a th:href="@{/game}" th:if="${s.status.name() == 'WAITING'}" class="fc-btn fc-btn-ghost fc-btn-sm">Do pokoju</a>
-                    <form th:action="@{/game/{id}/leave(id=${s.id})}" method="post">
+                    <form th:action="@{/game/{id}/leave(id=${s.id})}" method="post"
+                          data-pb-confirm="Opuścić ten pokój?" data-pb-confirm-danger>
                         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                        <button type="submit" class="fc-btn fc-btn-leave fc-btn-sm"
-                                onclick="return confirm('Opuscic?')">Opuść</button>
+                        <button type="submit" class="fc-btn fc-btn-leave fc-btn-sm">Opuść</button>
                     </form>
                 </div>
             </div>
@@ -219,7 +220,9 @@
             .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
             .then(function (res) {
                 if (res.ok && cb) cb(res.data);
-                else if (res.data && res.data.error) alert(res.data.error);
+                else if (res.data && res.data.error) {
+                    if (typeof pbAlert === "function") pbAlert({ message: res.data.error, variant: "error" });
+                }
             });
     }
     document.querySelectorAll(".fc-accept-invite").forEach(function (btn) {

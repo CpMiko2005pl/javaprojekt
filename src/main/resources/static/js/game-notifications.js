@@ -55,7 +55,7 @@
                 .then(function (r) { return r.json(); })
                 .then(function (res) {
                     if (res.redirect) window.location.href = res.redirect;
-                    else if (res.error) alert(res.error);
+                    else if (res.error && typeof pbAlert === "function") pbAlert({ message: res.error, variant: "error" });
                 });
         });
 

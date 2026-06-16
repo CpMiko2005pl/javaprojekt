@@ -98,6 +98,8 @@
         <!-- Wyswietlany centralnie nad planszą gdy jest decyzja do podjecia -->
         <div id="actionPanel" class="bt-action-float" style="display:none;"></div>
 
+        <!-- Leave game — pb-dialog.js -->
+
         <!-- ===== BOTTOM HUD ===== -->
         <div class="bt-bottom-hud">
 
@@ -213,18 +215,27 @@
 <script>
 (function(){
     var btn = document.getElementById("leaveGameBtn");
-    if (!btn) return;
+    if (!btn || typeof pbConfirm !== "function") return;
     btn.addEventListener("click", function(){
-        if (!confirm("Na pewno chcesz opuscic gre?")) return;
-        var t = document.querySelector('meta[name="_csrf"]');
-        var h = document.querySelector('meta[name="_csrf_header"]');
-        var headers = {};
-        if (t && h) headers[h.content] = t.content;
-        fetch("/game/" + document.getElementById("main").dataset.session + "/leave", {
-            method: "POST",
-            headers: headers
-        }).then(function(){ window.location.href = "/game"; })
-          .catch(function(){ window.location.href = "/game"; });
+        pbConfirm({
+            title: "Opuścić grę?",
+            message: "W trakcie rozgrywki zostaniesz oznaczony jako bankrut i stracisz szansę na wygraną w tym meczu.",
+            confirmText: "Opuść grę",
+            cancelText: "Zostaję",
+            danger: true,
+            icon: "fa-solid fa-door-open"
+        }).then(function(ok){
+            if (!ok) return;
+            var t = document.querySelector('meta[name="_csrf"]');
+            var h = document.querySelector('meta[name="_csrf_header"]');
+            var headers = {};
+            if (t && h) headers[h.content] = t.content;
+            fetch("/game/" + document.getElementById("main").dataset.session + "/leave", {
+                method: "POST",
+                headers: headers
+            }).then(function(){ window.location.href = "/game"; })
+              .catch(function(){ window.location.href = "/game"; });
+        });
     });
 })();
 </script>

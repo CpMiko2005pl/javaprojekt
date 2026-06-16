@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Ups…')}"></head>
+<body class="light-page error-page-body">
+<header th:replace="~{fragments/layout :: navbar}"></header>
+
+<main id="main" class="error-page">
+    <div class="error-page-card" role="alert">
+        <div class="error-page-icon" aria-hidden="true">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+
+        <p class="error-page-kicker">Kod <span th:text="${status}">500</span>
+            · <span th:text="${error}">Error</span></p>
+
+        <h1 class="error-page-title">I co żeś narobił…</h1>
+
+        <p class="error-page-lead" th:switch="${status}">
+            <span th:case="403">Nie masz tu wstępu. Albo nie jesteś zalogowany, albo próbujesz wejść tam, gdzie nie powinieneś.</span>
+            <span th:case="404">Ta strona uciekła na urlop — albo nigdy nie istniała.</span>
+            <span th:case="500">Serwer dostał zadyszki. Spróbuj za chwilę albo wróć na bezpieczną stronę.</span>
+            <span th:case="*">Coś poszło nie tak. Może to wina kostki, może Twoja.</span>
+        </p>
+
+        <p class="error-page-meta muted" th:if="${path}">
+            <i class="fa-solid fa-link"></i>
+            <span th:text="${path}">/ścieżka</span>
+        </p>
+
+        <div class="error-page-actions">
+            <a th:href="@{/dashboard}" class="btn btn-bt-roll">
+                <i class="fa-solid fa-house"></i> Wróć do profilu
+            </a>
+            <a th:href="@{/}" class="btn btn-secondary">
+                <i class="fa-solid fa-flag-checkered"></i> Strona główna
+            </a>
+            <button type="button" class="btn btn-ghost" onclick="history.back()">
+                <i class="fa-solid fa-arrow-left"></i> Cofnij
+            </button>
+        </div>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

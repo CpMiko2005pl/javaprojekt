@@ -2802,8 +2802,15 @@
                 e.preventDefault();
                 e.stopPropagation();
                 var pos = parseInt(btn.getAttribute("data-pos"), 10);
-                if (!confirm("Sprzedac te nieruchomosc do banku za 70% ceny gruntu? Ulepszenia przepadaja.")) return;
-                postAction("/sell", { position: pos });
+                var sell = function() { postAction("/sell", { position: pos }); };
+                if (typeof pbConfirm === "function") {
+                    pbConfirm({
+                        title: "Sprzedać nieruchomość?",
+                        message: "Sprzedać tę nieruchomość do banku za 70% ceny gruntu? Ulepszenia przepadają.",
+                        confirmText: "Sprzedaj",
+                        danger: true
+                    }).then(function(ok) { if (ok) sell(); });
+                } else sell();
             });
         });
     }

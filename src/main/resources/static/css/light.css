@@ -50,9 +50,9 @@ body.light-page .btn-danger { background:linear-gradient(135deg,#e11d48,#be123c)
 
 body.light-page .form-card { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); box-shadow:var(--lp-shadow); }
 body.light-page .field label { color:#475569; text-transform:none; letter-spacing:0; font-size:.85rem; }
-body.light-page .field input, body.light-page .field select { background:rgba(255,255,255,0.85); border-color:rgba(0,166,81,0.18); color:#0f172a; }
+body.light-page .field input, body.light-page .field select, body.light-page .field textarea { background:rgba(255,255,255,0.85); border-color:rgba(0,166,81,0.18); color:#0f172a; }
 body.light-page .field input::placeholder { color:#94a3b8; }
-body.light-page .field input:focus, body.light-page .field select:focus { border-color:#00A651; box-shadow:0 0 0 3px rgba(0,166,81,0.1); }
+body.light-page .field input:focus, body.light-page .field select:focus, body.light-page .field textarea:focus { border-color:#00A651; box-shadow:0 0 0 3px rgba(0,166,81,0.1); }
 
 body.light-page .card { background:var(--lp-glass); backdrop-filter:blur(24px); border:1px solid var(--lp-glass-b); }
 body.light-page .card h3 { color:#6A1B9A; }

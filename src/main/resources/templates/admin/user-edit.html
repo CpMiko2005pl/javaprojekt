@@ -4,66 +4,77 @@
 <body class="light-page">
 <header th:replace="~{fragments/layout :: navbar}"></header>
 
-<main id="main">
-    <div class="page-header">
-        <span class="section-kicker"><i class="fa-solid fa-pen"></i> Admin</span>
-        <h1>Edycja uzytkownika: <span th:text="${editUser.username}">login</span></h1>
+<main id="main" class="admin-edit-page">
+    <div class="admin-edit-inner">
+        <div class="page-header admin-edit-header">
+            <span class="section-kicker"><i class="fa-solid fa-pen"></i> Admin</span>
+            <h1>Edycja uzytkownika</h1>
+            <p class="muted admin-edit-sub" th:text="${editUser.username}">login</p>
+        </div>
+
+        <a th:href="@{/admin/users}" class="page-back-link">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Powrot do listy
+        </a>
+
+        <div class="form-card admin-edit-card">
+            <form method="post" th:action="@{/admin/users/{id}/edit(id=${editUser.id})}" th:object="${form}"
+                  aria-label="Formularz edycji danych uzytkownika">
+
+                <div class="alert alert-error" role="alert" th:if="${#fields.hasGlobalErrors()}">
+                    <span th:each="e : ${#fields.globalErrors()}" th:text="${e}"></span>
+                </div>
+
+                <div class="field">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" th:field="*{email}" required
+                           th:attr="aria-invalid=${#fields.hasErrors('email')} ? 'true' : 'false'">
+                    <p class="error" role="alert" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+                </div>
+
+                <div class="admin-edit-row">
+                    <div class="field">
+                        <label for="firstName">Imie</label>
+                        <input type="text" id="firstName" th:field="*{firstName}"
+                               th:attr="aria-invalid=${#fields.hasErrors('firstName')} ? 'true' : 'false'">
+                        <p class="error" role="alert" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></p>
+                    </div>
+                    <div class="field">
+                        <label for="lastName">Nazwisko</label>
+                        <input type="text" id="lastName" th:field="*{lastName}"
+                               th:attr="aria-invalid=${#fields.hasErrors('lastName')} ? 'true' : 'false'">
+                        <p class="error" role="alert" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></p>
+                    </div>
+                </div>
+
+                <div class="admin-edit-row">
+                    <div class="field">
+                        <label for="age">Wiek</label>
+                        <input type="number" id="age" th:field="*{age}" min="18" max="120"
+                               th:attr="aria-invalid=${#fields.hasErrors('age')} ? 'true' : 'false'">
+                        <p class="error" role="alert" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></p>
+                    </div>
+                    <div class="field">
+                        <label for="coins">Monety</label>
+                        <input type="number" id="coins" th:field="*{coins}" min="0" step="50"
+                               th:attr="aria-invalid=${#fields.hasErrors('coins')} ? 'true' : 'false'">
+                        <p class="error" role="alert" th:if="${#fields.hasErrors('coins')}" th:errors="*{coins}"></p>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="bio">Opis (bio)</label>
+                    <textarea id="bio" th:field="*{bio}" rows="4" maxlength="200"
+                              placeholder="Krotki opis profilu gracza"></textarea>
+                    <p class="error" role="alert" th:if="${#fields.hasErrors('bio')}" th:errors="*{bio}"></p>
+                </div>
+
+                <div class="admin-edit-actions">
+                    <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
+                    <a th:href="@{/admin/users}" class="btn btn-secondary">Anuluj</a>
+                </div>
+            </form>
+        </div>
     </div>
-
-    <a th:href="@{/admin/users}" class="page-back-link">
-        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Powrot do listy
-    </a>
-
-    <section class="panel" style="max-width:560px;margin-top:1rem;">
-        <form method="post" th:action="@{/admin/users/{id}/edit(id=${editUser.id})}" th:object="${form}"
-              aria-label="Formularz edycji danych uzytkownika">
-
-            <div class="alert alert-error" role="alert" th:if="${#fields.hasGlobalErrors()}">
-                <span th:each="e : ${#fields.globalErrors()}" th:text="${e}"></span>
-            </div>
-
-            <div class="form-group">
-                <label for="email">E-mail</label>
-                <input type="email" id="email" th:field="*{email}" required>
-                <p class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
-            </div>
-
-            <div class="form-group">
-                <label for="firstName">Imie</label>
-                <input type="text" id="firstName" th:field="*{firstName}">
-                <p class="error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></p>
-            </div>
-
-            <div class="form-group">
-                <label for="lastName">Nazwisko</label>
-                <input type="text" id="lastName" th:field="*{lastName}">
-                <p class="error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></p>
-            </div>
-
-            <div class="form-group">
-                <label for="age">Wiek</label>
-                <input type="number" id="age" th:field="*{age}" min="18" max="120">
-                <p class="error" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></p>
-            </div>
-
-            <div class="form-group">
-                <label for="coins">Monety</label>
-                <input type="number" id="coins" th:field="*{coins}" min="0" step="50">
-                <p class="error" th:if="${#fields.hasErrors('coins')}" th:errors="*{coins}"></p>
-            </div>
-
-            <div class="form-group">
-                <label for="bio">Opis (bio)</label>
-                <textarea id="bio" th:field="*{bio}" rows="3" maxlength="200"></textarea>
-                <p class="error" th:if="${#fields.hasErrors('bio')}" th:errors="*{bio}"></p>
-            </div>
-
-            <div style="display:flex;gap:.5rem;margin-top:1rem;">
-                <button type="submit" class="btn"><i class="fa-solid fa-floppy-disk"></i> Zapisz</button>
-                <a th:href="@{/admin/users}" class="btn btn-secondary">Anuluj</a>
-            </div>
-        </form>
-    </section>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

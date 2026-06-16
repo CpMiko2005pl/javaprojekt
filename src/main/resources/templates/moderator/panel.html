@@ -55,7 +55,7 @@
                     <i class="fa-solid fa-eye"></i> Podglad
                 </a>
                 <form th:action="@{/moderator/sessions/{id}/end(id=${s.id})}" method="post"
-                      class="inline-form" onsubmit="return confirm('Zakonczyc sesje?');">
+                      class="inline-form" data-pb-confirm="Zakończyć tę sesję gry?" data-pb-confirm-danger>
                     <button type="submit" class="btn btn-danger btn-small">
                         <i class="fa-solid fa-stop"></i> Zakoncz
                     </button>
@@ -119,7 +119,8 @@
                 </form>
                 <form th:if="${!u.suspended}" th:action="@{/moderator/users/{id}/suspend(id=${u.id})}"
                       method="post" class="inline-form mod-action-form"
-                      onsubmit="return confirm('Zawiesic tego gracza? Nie bedzie mogl grac.');">
+                      data-pb-confirm="Zawiesić tego gracza? Nie będzie mógł grać." data-pb-confirm-danger
+                      data-pb-confirm-title="Zawiesić konto?">
                     <input type="text" name="reason" placeholder="Powod" maxlength="200" required
                            style="width:120px;font-size:.75rem;padding:.2rem .35rem;">
                     <select name="days" style="font-size:.75rem;padding:.2rem;">

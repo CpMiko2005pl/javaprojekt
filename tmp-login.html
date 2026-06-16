@@ -1,13 +1,11 @@
 <!DOCTYPE html>
-<html lang="pl"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head th:fragment="head(title)">
+<html lang="pl">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
-    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
-    <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <meta name="_csrf" content="Bmx0rxNilCknU6Olc7wBbRpkBxTHa6Ey5zjSN1yJNf7qgbD_YA4VlnJQoUsKYZTHQpE1Xn9WKi3yCcIf11zmAzrsU5yJ4tXO">
+    <meta name="_csrf_header" content="X-CSRF-TOKEN">
+    <title>Logowanie | Politechnika Monopoly</title>
     <!-- Tryb nocny: globalna funkcja pbToggleTheme() + flash-free init -->
     <script>
     /* Natychmiastowy anty-błysk: html.pb-dark przed renderowaniem CSS */
@@ -42,18 +40,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260616-edit-login')}">
-    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v20')}">
-    <script th:src="@{/js/pb-dialog.js(v='20260616-theme')}"></script>
-</head>
-
-<!-- Wariant dla strony startowej: dodatkowo home-page.css (styl commit8) -->
-<head th:fragment="head-home(title)">
+    <link rel="stylesheet" href="/css/styles.css?v=20260616-dialog-theme">
+    <link rel="stylesheet" href="/css/light.css?v=20260614-v20">
+    <script src="/js/pb-dialog.js?v=20260616-theme"></script>
+</head><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}">
-    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}">
-    <title th:text="${title} + ' | Politechnika Monopoly'">Politechnika Monopoly</title>
+    <meta name="_csrf" content="Bmx0rxNilCknU6Olc7wBbRpkBxTHa6Ey5zjSN1yJNf7qgbD_YA4VlnJQoUsKYZTHQpE1Xn9WKi3yCcIf11zmAzrsU5yJ4tXO">
+    <meta name="_csrf_header" content="X-CSRF-TOKEN">
+    <title>Logowanie | Politechnika Monopoly</title>
     <!-- Tryb nocny: globalna funkcja pbToggleTheme() + flash-free init -->
     <script>
     if(localStorage.getItem('pb-theme')==='dark'){document.documentElement.classList.add('pb-dark');}
@@ -80,17 +75,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20260616-edit-login')}">
-    <link rel="stylesheet" th:href="@{/css/light.css(v='20260614-v20')}">
-    <link rel="stylesheet" th:href="@{/css/home-page.css}">
-    <script th:src="@{/js/pb-dialog.js(v='20260616-theme')}"></script>
+    <link rel="stylesheet" href="/css/styles.css?v=20260616-dialog-theme">
+    <link rel="stylesheet" href="/css/light.css?v=20260614-v20">
+    <link rel="stylesheet" href="/css/home-page.css">
+    <script src="/js/pb-dialog.js?v=20260616-theme"></script>
 </head>
-
-<body>
-<header th:fragment="navbar">
+<body class="light-page">
+<header>
     <a class="skip-link" href="#main">Przejdz do tresci</a>
     <nav class="navbar" aria-label="Nawigacja glowna">
-        <a class="brand" th:href="@{/}">
+        <a class="brand" href="/">
             <span class="brand-logo" aria-hidden="true">P</span>
             <span class="brand-text">
                 <span class="brand-title">POLITECHNIKA</span>
@@ -99,33 +93,22 @@
         </a>
 
         <ul class="nav-links">
-            <li sec:authorize="isAuthenticated()"><a th:href="@{/game}">Graj</a></li>
-            <li sec:authorize="isAuthenticated()">
-                <a th:href="@{/friends}"><i class="fa-solid fa-magnifying-glass"></i> Gracze</a>
-            </li>
+            
+            
         </ul>
 
         <div class="nav-auth">
-            <span sec:authorize="isAuthenticated()" class="welcome">
-                <span class="online-dot" aria-hidden="true"></span>
-                <strong sec:authentication="name">login</strong>
-            </span>
+            
             <!-- Przełącznik trybu nocnego -->
             <button type="button" id="themeToggle" class="btn-theme-toggle"
                     title="Przelacz tryb nocny" aria-label="Przelacz tryb nocny" aria-pressed="false"
                     onclick="pbToggleTheme(this)">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
             </button>
-            <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-secondary btn-small">
-                <i class="fa-solid fa-user"></i> Profil
-            </a>
-            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="inline-form">
-                <button type="submit" class="btn btn-secondary btn-small">
-                    <i class="fa-solid fa-right-from-bracket"></i> Wyloguj
-                </button>
-            </form>
-            <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-secondary btn-small">Zaloguj</a>
-            <a sec:authorize="!isAuthenticated()" th:href="@{/register}" class="btn btn-small">Zapisz sie</a>
+            
+            
+            <a href="/login" class="btn btn-secondary btn-small">Zaloguj</a>
+            <a href="/register" class="btn btn-small">Zapisz sie</a>
         </div>
 
         <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu mobilne">
@@ -133,39 +116,64 @@
         </button>
 
         <div class="mobile-menu" id="mobile-menu">
-            <a sec:authorize="isAuthenticated()" th:href="@{/game}">Graj</a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/friends}">
-                <i class="fa-solid fa-magnifying-glass"></i> Gracze
-            </a>
-            <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}">
-                <i class="fa-solid fa-user"></i> Profil
-            </a>
-            <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post"
-                  style="display:block;margin:0;padding:0;">
-                <button type="submit" class="mobile-menu-logout">
-                    <i class="fa-solid fa-right-from-bracket"></i> Wyloguj
-                </button>
-            </form>
-            <a sec:authorize="!isAuthenticated()" th:href="@{/login}">Zaloguj</a>
-            <a sec:authorize="!isAuthenticated()" th:href="@{/register}">Zarejestruj sie</a>
+            
+            
+            
+            
+            <a href="/login">Zaloguj</a>
+            <a href="/register">Zarejestruj sie</a>
         </div>
     </nav>
 </header>
 
-<!-- Zielona / czerwona kropka statusu obok nicku -->
-<span th:fragment="presenceDot(online)"
-      class="presence-dot-inline"
-      th:classappend="${online} ? ' presence-dot-inline--online' : ' presence-dot-inline--offline'"
-      th:title="${online} ? 'Online' : 'Offline'"
-      aria-hidden="true"></span>
+<div class="lp-auth-wrap" id="main">
+    <div class="lp-auth-box">
 
-<!-- Strzałka wstecz (href = np. /dashboard) -->
-<a th:fragment="backLink(href, label)" th:href="${href}" class="page-back-link">
-    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-    <span th:text="${label != null ? label : 'Wstecz'}">Wstecz</span>
-</a>
+        <h1>Witaj z powrotem</h1>
+        <p class="sub">Zaloguj się, aby wejść do lobby i gry.</p>
 
-<footer th:fragment="lp-footer" class="lp-footer">
+        
+        
+        
+
+        <div class="lp-auth-card">
+            <form action="/login" method="post"><input type="hidden" name="_csrf" value="Bmx0rxNilCknU6Olc7wBbRpkBxTHa6Ey5zjSN1yJNf7qgbD_YA4VlnJQoUsKYZTHQpE1Xn9WKi3yCcIf11zmAzrsU5yJ4tXO"/>
+                <div class="field">
+                    <label for="username">Login</label>
+                    <input type="text" id="username" name="username" required autofocus
+                           autocomplete="username" placeholder="Twój login">
+                </div>
+                <div class="field">
+                    <label for="password">Hasło</label>
+                    <input type="password" id="password" name="password" required
+                           autocomplete="current-password" placeholder="••••••••">
+                </div>
+                <button type="submit" class="lp-btn-play lp-auth-submit" style="animation:none;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Zaloguj się
+                </button>
+            </form>
+            <p class="lp-auth-link">Nie masz konta? <a href="/register">Zarejestruj się</a></p>
+        </div>
+
+        <div class="lp-test-card">
+            <div class="lp-test-head">Konta testowe</div>
+            <div class="lp-test-row">
+                <strong>admin</strong>
+                <span style="color:#475569;">admin123 — pełny dostęp</span>
+            </div>
+            <div class="lp-test-row">
+                <strong>moderator</strong>
+                <span style="color:#475569;">moderator123</span>
+            </div>
+            <div class="lp-test-row">
+                <strong>gracz</strong>
+                <span style="color:#475569;">gracz123</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="lp-footer">
     <div class="lp-footer-grid">
         <div class="lp-footer-brand">
             <h3>MONOPOLY PB</h3>
@@ -174,29 +182,28 @@
         <div class="lp-footer-col">
             <h4>Gra</h4>
             <ul>
-                <li><a class="linki" th:href="@{/game}">Lobby</a></li>
-                <li><a class="linki" th:href="@{/}">Strona główna</a></li>
-                <li><a class="linki" th:href="@{/#ranking}">Ranking ELO</a></li>
+                <li><a class="linki" href="/game">Lobby</a></li>
+                <li><a class="linki" href="/">Strona główna</a></li>
+                <li><a class="linki" href="/#ranking">Ranking ELO</a></li>
             </ul>
         </div>
         <div class="lp-footer-col">
             <h4>Konto</h4>
             <ul>
-                <li><a class="linki" th:href="@{/register}">Rejestracja</a></li>
-                <li><a class="linki" th:href="@{/login}">Logowanie</a></li>
-                <li><a class="linki" th:href="@{/dashboard}">Mój profil</a></li>
+                <li><a class="linki" href="/register">Rejestracja</a></li>
+                <li><a class="linki" href="/login">Logowanie</a></li>
+                <li><a class="linki" href="/dashboard">Mój profil</a></li>
             </ul>
         </div>
     </div>
     <div class="lp-footer-bottom">
-        <span>&copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> Monopoly PB.</span>
+        <span>&copy; <span>2026</span> Monopoly PB.</span>
         <div class="lp-social">
             <a class="linki" href="#"><i class="fa-brands fa-github"></i></a>
             <a class="linki" href="#"><i class="fa-brands fa-discord"></i></a>
         </div>
     </div>
 </footer>
-
-<script th:fragment="app-js" th:src="@{/js/app.js}"></script>
+<script src="/js/app.js"></script>
 </body>
 </html>

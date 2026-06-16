@@ -28,7 +28,8 @@
             </div>
             <div class="spacer"></div>
             <form th:action="@{/admin/sessions/{id}/end(id=${s.id})}" method="post" class="inline-form"
-                  onsubmit="return confirm('Zakończyć tę sesję gry?');">
+                  data-pb-confirm="Zakończyć tę sesję gry?" data-pb-confirm-danger
+                  data-pb-confirm-title="Zakończyć sesję?">
                 <button type="submit" class="btn btn-danger btn-small">
                     <i class="fa-solid fa-stop"></i> Zakończ sesję
                 </button>
@@ -161,7 +162,8 @@
                     </button>
                 </form>
                 <form th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" class="inline-form"
-                      onsubmit="return confirm('Na pewno usunac tego uzytkownika?');">
+                      data-pb-confirm="Na pewno usunąć tego użytkownika? Tej operacji nie cofniesz."
+                      data-pb-confirm-danger data-pb-confirm-title="Usunąć konto?">
                     <button type="submit" class="btn btn-danger btn-small">Usun</button>
                 </form>
             </td>
