@@ -1,18 +1,24 @@
 package pl.pb.monopoly.controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pl.pb.monopoly.domain.GameStatus;
 import pl.pb.monopoly.domain.OwnedItem;
 import pl.pb.monopoly.domain.Role;
 import pl.pb.monopoly.domain.User;
+import pl.pb.monopoly.dto.AdminUserEditForm;
 import pl.pb.monopoly.repository.GameSessionRepository;
 import pl.pb.monopoly.repository.MatchHistoryRepository;
 import pl.pb.monopoly.repository.OwnedItemRepository;
@@ -23,6 +29,7 @@ import pl.pb.monopoly.service.UserService;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,13 +70,83 @@ public class AdminController {
         this.gameService = gameService;
     }
 
+    private static final List<String> SORT_KEYS = List.of("username", "createdAt", "coins");
+
     @GetMapping("/users")
-    public String users(Model model) {
-        model.addAttribute("users", userService.findAll());
+    public String users(@RequestParam(required = false) String sort,
+                        @RequestParam(required = false) String dir,
+                        @RequestParam(required = false)
+                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+                        @RequestParam(required = false) Role role,
+                        @CookieValue(value = "adminUserSort", required = false) String sortCookie,
+                        @CookieValue(value = "adminUserDir", required = false) String dirCookie,
+                        HttpServletResponse response,
+                        Model model) {
+        // Brak parametru w URL -> czytaj z cookie; brak cookie -> domyslne.
+        String effSort = sort != null ? sort : (sortCookie != null ? sortCookie : "username");
+        String effDir = dir != null ? dir : (dirCookie != null ? dirCookie : "asc");
+        if (!SORT_KEYS.contains(effSort)) effSort = "username";
+        if (!"asc".equalsIgnoreCase(effDir) && !"desc".equalsIgnoreCase(effDir)) effDir = "asc";
+        // Zmiana sortu w URL -> zapisz w cookies (30 dni).
+        if (sort != null) writeCookie(response, "adminUserSort", effSort);
+        if (dir != null) writeCookie(response, "adminUserDir", effDir);
+
+        model.addAttribute("users", userService.findForAdmin(effSort, effDir, dateFrom, role));
         model.addAttribute("roles", Role.values());
+        model.addAttribute("sort", effSort);
+        model.addAttribute("dir", effDir);
+        model.addAttribute("dateFrom", dateFrom);
+        model.addAttribute("selectedRole", role);
         model.addAttribute("activeSessions", gameSessionRepository.findAllActive());
         model.addAttribute("totalMatches", matchHistoryRepository.count());
         return "admin/users";
+    }
+
+    private void writeCookie(HttpServletResponse response, String name, String value) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setMaxAge(30 * 24 * 60 * 60); // 30 dni
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
+    }
+
+    /** Formularz edycji danych biezacych uzytkownika (tylko ADMIN). */
+    @GetMapping("/users/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model) {
+        User u = userService.getById(id);
+        if (!model.containsAttribute("form")) {
+            AdminUserEditForm form = new AdminUserEditForm();
+            form.setEmail(u.getEmail());
+            form.setFirstName(u.getFirstName());
+            form.setLastName(u.getLastName());
+            form.setAge(u.getAge());
+            form.setCoins(u.getCoins());
+            form.setBio(u.getBio());
+            model.addAttribute("form", form);
+        }
+        model.addAttribute("editUser", u);
+        return "admin/user-edit";
+    }
+
+    @PostMapping("/users/{id}/edit")
+    public String editSave(@PathVariable Long id,
+                           @Valid @ModelAttribute("form") AdminUserEditForm form,
+                           BindingResult bindingResult,
+                           Model model,
+                           RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("editUser", userService.getById(id));
+            return "admin/user-edit";
+        }
+        try {
+            userService.updateByAdmin(id, form);
+            redirectAttributes.addFlashAttribute("message", "Zapisano dane uzytkownika.");
+            return "redirect:/admin/users";
+        } catch (IllegalArgumentException ex) {
+            bindingResult.rejectValue("email", "taken", ex.getMessage());
+            model.addAttribute("editUser", userService.getById(id));
+            return "admin/user-edit";
+        }
     }
 
     /** Funkcja moderatora: admin moze zakonczyc dowolna aktywna sesje gry. */

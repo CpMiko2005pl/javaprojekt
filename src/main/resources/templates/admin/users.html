@@ -37,15 +37,54 @@
         <p class="muted" th:if="${activeSessions == null or activeSessions.isEmpty()}">Brak aktywnych gier.</p>
     </section>
 
-    <table>
-        <caption>Lista uzytkownikow z mozliwoscia weryfikacji, zmiany roli i edycji ekwipunku</caption>
+    <!-- Filtry: data rejestracji od + rola (laczone z sortowaniem) -->
+    <form method="get" th:action="@{/admin/users}" class="admin-filter-form"
+          aria-label="Filtrowanie listy uzytkownikow"
+          style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem;">
+        <input type="hidden" name="sort" th:value="${sort}">
+        <input type="hidden" name="dir" th:value="${dir}">
+        <div>
+            <label for="filterDateFrom" style="display:block;font-size:.8rem;font-weight:600;">Zarejestrowani od</label>
+            <input type="date" id="filterDateFrom" name="dateFrom"
+                   th:value="${dateFrom}" aria-label="Data rejestracji od">
+        </div>
+        <div>
+            <label for="filterRole" style="display:block;font-size:.8rem;font-weight:600;">Rola</label>
+            <select id="filterRole" name="role" aria-label="Filtruj po roli">
+                <option value="">Wszyscy</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r.displayName}"
+                        th:selected="${selectedRole != null and selectedRole == r}">Rola</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-small"><i class="fa-solid fa-filter"></i> Filtruj</button>
+        <a th:href="@{/admin/users}" class="btn btn-secondary btn-small">Wyczysc</a>
+    </form>
+
+    <table th:with="oppDir=${dir == 'asc' ? 'desc' : 'asc'}">
+        <caption>Lista uzytkownikow z sortowaniem (login, data rejestracji, monety), filtrami i edycja danych</caption>
         <thead>
         <tr>
-            <th scope="col">Login</th>
+            <th scope="col" th:attr="aria-sort=${sort == 'username' ? (dir == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                <a th:href="@{/admin/users(sort='username', dir=${sort == 'username' ? oppDir : 'asc'}, dateFrom=${dateFrom}, role=${selectedRole})}"
+                   aria-label="Sortuj po loginie">Login
+                    <span th:if="${sort == 'username'}" th:text="${dir == 'asc' ? '▲' : '▼'}">▲</span>
+                </a>
+            </th>
             <th scope="col">E-mail</th>
             <th scope="col">Rola</th>
             <th scope="col">Status</th>
-            <th scope="col">Monety</th>
+            <th scope="col" th:attr="aria-sort=${sort == 'createdAt' ? (dir == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                <a th:href="@{/admin/users(sort='createdAt', dir=${sort == 'createdAt' ? oppDir : 'asc'}, dateFrom=${dateFrom}, role=${selectedRole})}"
+                   aria-label="Sortuj po dacie rejestracji">Zarejestrowano
+                    <span th:if="${sort == 'createdAt'}" th:text="${dir == 'asc' ? '▲' : '▼'}">▲</span>
+                </a>
+            </th>
+            <th scope="col" th:attr="aria-sort=${sort == 'coins' ? (dir == 'asc' ? 'ascending' : 'descending') : 'none'}">
+                <a th:href="@{/admin/users(sort='coins', dir=${sort == 'coins' ? oppDir : 'asc'}, dateFrom=${dateFrom}, role=${selectedRole})}"
+                   aria-label="Sortuj po liczbie monet">Monety
+                    <span th:if="${sort == 'coins'}" th:text="${dir == 'asc' ? '▲' : '▼'}">▲</span>
+                </a>
+            </th>
             <th scope="col">Akcje</th>
         </tr>
         </thead>
@@ -87,6 +126,9 @@
                 </form>
             </td>
 
+            <!-- Data rejestracji -->
+            <td th:text="${u.createdAt != null ? #temporals.format(u.createdAt, 'dd.MM.yyyy') : '-'}">01.01.2026</td>
+
             <!-- Monety -->
             <td>
                 <div style="font-weight:600;color:#B45309;margin-bottom:.3rem;">
@@ -105,6 +147,10 @@
 
             <!-- Usuniecie + skrzynka + ekwipunek -->
             <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                <a th:href="@{/admin/users/{id}/edit(id=${u.id})}"
+                   class="btn btn-secondary btn-small" title="Edytuj dane">
+                    <i class="fa-solid fa-pen"></i> Edytuj
+                </a>
                 <a th:href="@{/admin/users/{id}/inventory(id=${u.id})}"
                    class="btn btn-secondary btn-small" title="Ekwipunek">
                     <i class="fa-solid fa-toolbox"></i>

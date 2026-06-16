@@ -58,6 +58,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/ranking-najlepszych").permitAll()
                 .requestMatchers("/api/avatar/**").permitAll()
                 .requestMatchers("/u/**").permitAll()
+                // usluga REST admina — lista uzytkownikow (tylko ADMIN)
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // panel administracyjny
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 // panel moderatora

@@ -1,0 +1,24 @@
+package pl.pb.monopoly.config;
+
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.Duration;
+
+/**
+ * Beany infrastrukturalne. {@link RestTemplate} sluzy jako klient REST (Java)
+ * do zewnetrznego API DiceBear (awatary przy rejestracji).
+ */
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .connectTimeout(Duration.ofSeconds(3))
+                .readTimeout(Duration.ofSeconds(4))
+                .build();
+    }
+}
