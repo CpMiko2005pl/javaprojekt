@@ -173,6 +173,7 @@ public class GameService {
     private final ModerationService moderationService;
 
     private final ActiveGameStore activeGameStore;
+    private final AchievementService achievementService;
 
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager em;
@@ -186,7 +187,8 @@ public class GameService {
                        UserNotificationService userNotificationService,
                        FriendService friendService,
                        ModerationService moderationService,
-                       ActiveGameStore activeGameStore) {
+                       ActiveGameStore activeGameStore,
+                       AchievementService achievementService) {
         this.sessionRepository = sessionRepository;
         this.userRepository = userRepository;
         this.gameSyncService = gameSyncService;
@@ -197,6 +199,7 @@ public class GameService {
         this.friendService = friendService;
         this.moderationService = moderationService;
         this.activeGameStore = activeGameStore;
+        this.achievementService = achievementService;
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -1933,6 +1936,8 @@ public class GameService {
                 stats.setEloPoints(newElo);
                 stats.setLevel(GameEconomy.levelForElo(newElo));
             }
+
+            achievementService.checkAndAward(user.getId());
         }
     }
 

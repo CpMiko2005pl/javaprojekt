@@ -19,6 +19,7 @@ import pl.pb.monopoly.repository.UserRepository;
 import pl.pb.monopoly.service.FriendService;
 import pl.pb.monopoly.service.GameService;
 import pl.pb.monopoly.service.ModerationService;
+import pl.pb.monopoly.service.AchievementService;
 import pl.pb.monopoly.service.ProfileCommentService;
 import pl.pb.monopoly.service.LootboxService;
 import pl.pb.monopoly.service.LootboxService.LootboxItem;
@@ -45,6 +46,7 @@ public class HomeController {
     private final Environment environment;
     private final ModerationService moderationService;
     private final ProfileCommentService profileCommentService;
+    private final AchievementService achievementService;
 
     @Value("${app.public-base-url:}")
     private String configuredPublicBaseUrl;
@@ -65,7 +67,8 @@ public class HomeController {
                           OwnedItemRepository ownedItemRepository,
                           Environment environment,
                           ModerationService moderationService,
-                          ProfileCommentService profileCommentService) {
+                          ProfileCommentService profileCommentService,
+                          AchievementService achievementService) {
         this.userRepository = userRepository;
         this.matchHistoryRepository = matchHistoryRepository;
         this.gameService = gameService;
@@ -77,6 +80,7 @@ public class HomeController {
         this.environment = environment;
         this.moderationService = moderationService;
         this.profileCommentService = profileCommentService;
+        this.achievementService = achievementService;
     }
 
     @GetMapping("/")
@@ -94,9 +98,22 @@ public class HomeController {
 
         User user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         lootboxService.grantDailyIfNeeded(user.getUsername());
+        achievementService.checkAndAward(user.getId());
         user = userRepository.findByUsername(authentication.getName()).orElseThrow();
         model.addAttribute("user", user);
         model.addAttribute("stats", user.getStatistics());
+
+        var unlockedAch = achievementService.forUser(user.getId());
+        Map<pl.pb.monopoly.domain.AchievementType, java.time.LocalDateTime> achMap = new java.util.HashMap<>();
+        for (pl.pb.monopoly.domain.Achievement a : unlockedAch) achMap.put(a.getCode(), a.getUnlockedAt());
+        List<pl.pb.monopoly.dto.AchievementView> achievements = new java.util.ArrayList<>();
+        for (pl.pb.monopoly.domain.AchievementType t : pl.pb.monopoly.domain.AchievementType.values()) {
+            achievements.add(new pl.pb.monopoly.dto.AchievementView(
+                    t.title, t.description, t.coinReward, t.iconClass, achMap.containsKey(t), achMap.get(t)));
+        }
+        model.addAttribute("achievements", achievements);
+        model.addAttribute("achievementsUnlocked", unlockedAch.size());
+        model.addAttribute("achievementsTotal", pl.pb.monopoly.domain.AchievementType.values().length);
         model.addAttribute("matches", matchHistoryRepository.findByUserIdOrderByPlayedAtDesc(user.getId())
                 .stream().limit(6).toList());
         var activeSessions = gameService.myActiveSessions(user.getUsername());

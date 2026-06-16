@@ -2755,3 +2755,18 @@ html.pb-dark select option {
     background: #0e1120;
     color: #e8edf5;
 }
+
+.ach-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.6rem; }
+.ach-card { position:relative; display:flex; gap:.6rem; align-items:center; padding:.7rem .8rem; border-radius:12px; border:1px solid rgba(0,0,0,.08); background:#fff; }
+.ach-card.ach-locked { opacity:.55; filter:grayscale(.7); }
+.ach-card.ach-unlocked { border-color:#f5c518; box-shadow:0 0 0 1px rgba(245,197,24,.35) inset; }
+.ach-icon { font-size:1.5rem; width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:rgba(245,197,24,.15); color:#b8860b; flex:0 0 auto; }
+.ach-title { font-weight:700; font-size:.92rem; }
+.ach-desc { font-size:.78rem; color:#64748b; }
+.ach-reward { font-size:.8rem; font-weight:600; color:#B45309; margin-top:.15rem; }
+.ach-state { margin-left:auto; font-size:1rem; }
+.ach-card.ach-unlocked .ach-state { color:#16a34a; }
+.ach-card.ach-locked .ach-state { color:#94a3b8; }
+html.pb-dark .ach-card { background:#0f1623; border-color:rgba(255,255,255,.08); }
+html.pb-dark .ach-desc { color:#94a3b8; }
+html.pb-dark .ach-reward { color:#fbbf24; }

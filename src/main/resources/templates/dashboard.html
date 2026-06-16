@@ -354,6 +354,29 @@ html.pb-dark .profile-bg-overlay { background:linear-gradient(180deg, rgba(8,12,
                 <div th:replace="~{fragments/match-carousel :: matchCarousel(${matches})}"></div>
             </div>
 
+            <div class="lp-sc">
+                <div class="lp-sc-head">
+                    <h3><i class="fa-solid fa-trophy" style="color:var(--brand-gold)"></i> Osiągnięcia</h3>
+                    <span><span th:text="${achievementsUnlocked}">0</span> / <span th:text="${achievementsTotal}">0</span></span>
+                </div>
+                <div class="ach-grid">
+                    <div th:each="a : ${achievements}" class="ach-card"
+                         th:classappend="${a.unlocked} ? ' ach-unlocked' : ' ach-locked'"
+                         th:title="${a.unlocked ? 'Odblokowano' : 'Zablokowane'}">
+                        <div class="ach-icon"><i th:class="${a.iconClass}"></i></div>
+                        <div class="ach-body">
+                            <div class="ach-title" th:text="${a.title}">Tytuł</div>
+                            <div class="ach-desc" th:text="${a.description}">Opis</div>
+                            <div class="ach-reward"><i class="fa-solid fa-coins"></i> +<span th:text="${a.coinReward}">0</span></div>
+                        </div>
+                        <div class="ach-state">
+                            <i th:if="${a.unlocked}" class="fa-solid fa-circle-check"></i>
+                            <i th:unless="${a.unlocked}" class="fa-solid fa-lock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Komentarze pod moim profilem (zarządzanie: odpowiedz / lajk / usuń) -->
             <div th:replace="~{fragments/comments :: commentsSection(${comments}, false, ${user.username}, ${commentFrom}, true, true)}"></div>
 

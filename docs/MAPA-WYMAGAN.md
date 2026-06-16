@@ -75,6 +75,7 @@ tylko na koniec meczu. Plansza to widok 3D (`static/js/board3d.js`, Three.js).
 | Boty (auto-rzut, decyzje kupna/ulepszenia/wykupu) | `BotAutoplayService` |
 | Synchronizacja na żywo (WebSocket/STOMP) | `GameSyncService`, `/topic/game/{id}` |
 | Sklep ze skrzynkami, ekwipunek, kosmetyki (admin: dodawanie itemów, monet, skrzynek) | `LootboxService`, `AdminController` (inventory/give-lootbox/add-coins) — **zachowane bez zmian** |
+| **Osiągnięcia z nagrodą w coinach** (np. „Pierwsze zwycięstwo" +500) — przyznawane po meczu i retroaktywnie na dashboardzie | `AchievementType`, `Achievement` (tabela `player_achievements`), `AchievementService`, sekcja na `dashboard.html` |
 | Profil FACEIT, znajomi, Koło Fortuny, komentarze profilowe | `dashboard.html`, `FriendService`, `WheelService`, `ProfileComment` |
 
 ## 6 reguł walidacji formularza rejestracji
@@ -94,6 +95,7 @@ Plik: `dto/RegistrationForm.java` (+ `validation/PasswordMatches.java`)
 
 ## Sprzątanie martwego kodu (2026)
 Usunięto nieużywane encje i ich repozytoria (brak odczytu w aplikacji):
-`Property`, `MonopolyCard`, `BoardTile`, `BoardCard`, `Rank`, `DailyTask`, `Achievement`, `GameLog`.
+`Property`, `MonopolyCard`, `BoardTile`, `BoardCard`, `Rank`, `DailyTask`, `GameLog`.
+(`Achievement` wrócił jako używana funkcja — nowa tabela `player_achievements`; stara, martwa tabela `achievements` jest w skrypcie DROP.)
 Odpowiadające tabele w bazie usuwa skrypt `db/drop-dead-tables.sql`
 (`ddl-auto=update` sam ich nie kasuje). Komentarze w kodzie Java/CSS/properties wyczyszczone.
